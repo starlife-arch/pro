@@ -6910,7 +6910,6 @@ async function runDailyProfits(){
       const profit=parseFloat(((inv.amount||0)*0.02).toFixed(4));
       if(profit<=0)continue;
       // Auto-reinvest if enabled
-      const uData=uSnap.data();
       let reinvestAmt=0,balanceProfit=profit;
       if(uData.autoReinvest&&uData.autoReinvestPct>0){
         reinvestAmt=parseFloat((profit*uData.autoReinvestPct/100).toFixed(4));

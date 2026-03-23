@@ -1297,7 +1297,7 @@ function hideMore(){if(window._real_hideMore)window._real_hideMore();}
     </div>
     <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
       <button class="btn btn-gh btn-sm" onclick="downloadWalletStatement('csv')">📄 Export CSV Statement</button>
-      <button class="btn btn-gh btn-sm" onclick="downloadWalletStatement('print')">🖨️ Print Statement</button>
+      <button class="btn btn-gh btn-sm" onclick="downloadWalletStatement('print')">🖨️ Print / Save as PDF</button>
     </div>
     <div class="act-list" id="act-full-list"></div>
   </div>
@@ -7177,7 +7177,43 @@ async function downloadWalletStatement(mode='csv'){
 }
 // PROMO CODES
 // ════════════════════════════════════════════════════════
-function promoTsToDate(ts){return ts?.seconds?new Date(ts.seconds*1000):(ts?new Date(ts):null);}
+function promoTsToDate(ts){
+  if(!ts)return null;
+  if(ts?.seconds)return new Date(ts.seconds*1000);
+  if(ts instanceof Date)return isNaN(ts.getTime())?null:ts;
+  if(typeof ts==='string'){
+    const parsed=promoParseInputDateTime(ts);
+    if(parsed)return parsed;
+    const direct=new Date(ts);
+    return isNaN(direct.getTime())?null:direct;
+  }
+  const fallback=new Date(ts);
+  return isNaN(fallback.getTime())?null:fallback;
+}
+function promoParseInputDateTime(val){
+  if(!val)return null;
+  const raw=String(val).trim();
+  if(!raw)return null;
+  const isoLike=/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})$/.exec(raw);
+  if(isoLike){
+    const [,y,m,d,h,mm]=isoLike;
+    const dt=new Date(Number(y),Number(m)-1,Number(d),Number(h),Number(mm));
+    return isNaN(dt.getTime())?null:dt;
+  }
+  const dmy=/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})$/.exec(raw);
+  if(dmy){
+    const [,d,m,y,h,mm]=dmy;
+    const dt=new Date(Number(y),Number(m)-1,Number(d),Number(h),Number(mm));
+    return isNaN(dt.getTime())?null:dt;
+  }
+  return null;
+}
+function promoDateToInputValue(val){
+  const dt=promoTsToDate(val);
+  if(!dt)return '';
+  const pad=n=>String(n).padStart(2,'0');
+  return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+}
 function promoIsStarted(p){const d=promoTsToDate(p.startAt);return !d||d<=new Date();}
 function promoIsExpired(p){const d=promoTsToDate(p.expiry);return !!(d&&d<new Date());}
 function promoUsageCountForUser(uses, code){return uses.filter(u=>u.code===code).length;}
@@ -7264,15 +7300,19 @@ async function adminCreatePromoCode(){
   const minDeposit=parseFloat($('pc-mindeposit')?.value)||0;
   const start=$('pc-start')?.value;
   const expiry=$('pc-expiry')?.value;
+  const startDate=promoParseInputDateTime(start);
+  const expiryDate=promoParseInputDateTime(expiry);
   const notes=$('pc-notes')?.value.trim()||'';
   const depositScope=$('pc-depositscope')?.value||'all';
   if(!code)return toast('Enter a code','ty');
   if(!value||value<=0)return toast('Enter a value','ty');
+  if(start && !startDate)return toast('Enter a valid start date/time','ty');
+  if(expiry && !expiryDate)return toast('Enter a valid expiry date/time','ty');
   const payload={
     code,type,value,minDeposit:Math.max(0,minDeposit),maxUses:maxUses||0,perUserLimit:perUserLimit||0,depositScope,
     usedCount:0,notes,active:true,updatedAt:FS().serverTimestamp(),
-    startAt:start?firebase.firestore.Timestamp.fromDate(new Date(start)):null,
-    expiry:expiry?firebase.firestore.Timestamp.fromDate(new Date(expiry)):null,
+    startAt:startDate?firebase.firestore.Timestamp.fromDate(startDate):null,
+    expiry:expiryDate?firebase.firestore.Timestamp.fromDate(expiryDate):null,
   };
   try{
     if(id){
@@ -7302,8 +7342,8 @@ async function adminEditPromoCode(id){
   $('pc-maxuses').value=p.maxUses||'';
   $('pc-userlimit').value=p.perUserLimit||'';
   $('pc-mindeposit').value=p.minDeposit||'';
-  $('pc-start').value=promoTsToDate(p.startAt)?.toISOString().slice(0,16)||'';
-  $('pc-expiry').value=promoTsToDate(p.expiry)?.toISOString().slice(0,16)||'';
+  $('pc-start').value=promoDateToInputValue(p.startAt);
+  $('pc-expiry').value=promoDateToInputValue(p.expiry);
   $('pc-notes').value=p.notes||'';
   $('pc-depositscope').value=p.depositScope||'all';
   toast('Promo code loaded for editing','tg');

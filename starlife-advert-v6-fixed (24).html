@@ -2303,7 +2303,7 @@ function hideMore(){if(window._real_hideMore)window._real_hideMore();}
       <div style="font-weight:700;margin-bottom:12px">🎫 Generate Prize Code</div>
       <div class="fg"><label class="fl">Total Prize Amount ($)</label><input class="fi" id="pc-amount" type="number" min="1" placeholder="e.g. 5"></div>
       <div class="fg"><label class="fl">Max Winners (default 5)</label><input class="fi" id="pc-winners" type="number" min="1" max="100" placeholder="5" value="5"></div>
-      <div class="fg"><label class="fl">Expiry (hours from now, 0 = no expiry)</label><input class="fi" id="pc-expiry" type="number" min="0" placeholder="24" value="24"></div>
+      <div class="fg"><label class="fl">Expiry (hours from now, 0 = no expiry)</label><input class="fi" id="prize-expiry-hours" type="number" min="0" placeholder="24" value="24"></div>
       <button class="btn btn-p btn-full" onclick="adminGeneratePrizeCode()">⚡ Generate Code</button>
       <div id="pc-result" style="display:none;margin-top:12px;background:var(--s2);border-radius:10px;padding:14px;text-align:center">
         <div style="font-size:.75rem;color:var(--t3);margin-bottom:6px">Generated Code — Share this!</div>
@@ -10382,7 +10382,7 @@ function genPrizeCode(){
 async function adminGeneratePrizeCode(){
   const amount=parseFloat($('pc-amount')?.value);
   const winners=parseInt($('pc-winners')?.value||'5');
-  const expiryHours=parseInt($('pc-expiry')?.value||'24');
+  const expiryHours=parseInt($('prize-expiry-hours')?.value||'24');
   if(!amount||amount<=0)return toast('Enter prize amount','ty');
   const code=genPrizeCode();
   const perWinner=parseFloat((amount/winners).toFixed(2));

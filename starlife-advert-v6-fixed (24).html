@@ -1011,6 +1011,7 @@ function hideMore(){if(window._real_hideMore)window._real_hideMore();}
       <input class="fi" id="promo-inp" placeholder="🎁 Have a promo code? Enter here" style="flex:1;font-size:.82rem" oninput="this.value=this.value.toUpperCase()">
       <button class="btn btn-gold btn-sm" onclick="applyPromoCode()">Apply</button>
     </div>
+    <div style="font-size:.75rem;color:var(--t2);margin:-6px 0 12px">Deposit promo bonuses are credited after admin approves your deposit.</div>
     <div class="dep-method">
       <div class="dm-name">📱 M-Pesa (Lipa Na M-Pesa)</div>
       <div class="dm-detail"><span style="font-size:.8rem;color:var(--t2)">Till Number</span><span class="dm-val" onclick="copyText('6034186','Copied!')">6034186 📋</span></div>
@@ -1395,7 +1396,7 @@ function hideMore(){if(window._real_hideMore)window._real_hideMore();}
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
         <div>
           <div style="font-weight:700;font-size:.9rem">🔐 Security Center</div>
-          <div style="font-size:.75rem;color:var(--t2)">Recent sign-ins, password alerts, and browser notifications.</div>
+          <div style="font-size:.75rem;color:var(--t2)">Recent sign-ins, password alerts, and browser notifications. Device/IP details are browser-based estimates and may show as unavailable.</div>
         </div>
         <span class="badge bsky" id="sec-device-badge">Current device</span>
       </div>
@@ -2259,7 +2260,7 @@ function hideMore(){if(window._real_hideMore)window._real_hideMore();}
       <div style="font-size:.82rem;font-weight:600;margin-bottom:10px">Recent Transactions</div>
       <div id="rev-txns"></div>
     </div>
-    <button class="btn btn-p btn-sm" onclick="exportCSV()">📥 Export Users CSV</button>
+    <button class="btn btn-p btn-sm" onclick="exportCSV()">📥 Export Users CSV</button><div style="font-size:.74rem;color:var(--t2);margin-top:8px">CSV export only — no built-in PDF report generator yet.</div>
     <button class="btn btn-gold btn-sm" style="margin-left:8px" onclick="openModal('m-deal')">🔥 Set Countdown Deal</button>
     <button class="btn btn-sky btn-sm" style="margin-left:8px;margin-top:8px" onclick="openModal('m-blog')">📝 New Blog Post</button>
   </div>
@@ -2442,7 +2443,7 @@ function hideMore(){if(window._real_hideMore)window._real_hideMore();}
       <div id="blocked-ip-list"><div class="es">Loading…</div></div>
     </div>
     <div>
-      <div style="font-weight:600;margin-bottom:8px">Suspicious Login Events</div>
+      <div style="font-weight:600;margin-bottom:8px">Suspicious Login Events</div><div style="font-size:.75rem;color:var(--t2);margin-bottom:8px">IP, location, and device details are best-effort browser lookups and may be approximate or unavailable.</div>
       <div id="security-events-list"><div class="es">Loading…</div></div>
     </div>
   </div>
@@ -2519,7 +2520,7 @@ function hideMore(){if(window._real_hideMore)window._real_hideMore();}
         <div class="fg"><label class="fl">Schedule (optional)</label><input class="fi" id="bc-schedule" type="datetime-local"></div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-p" onclick="sendBroadcast()">📢 Send / Schedule</button>
+        <button class="btn btn-p" onclick="sendBroadcast()">📢 Send / Schedule</button><div style="font-size:.74rem;color:var(--t2);margin-top:8px">Scheduled broadcasts are processed while an admin session is active. This is not a backend cron scheduler.</div>
         <button class="btn btn-gh" onclick="processScheduledBroadcasts(true)">⏰ Run Due Scheduled Items</button>
       </div>
       <div style="margin-top:20px"><h3 style="font-size:.9rem;margin-bottom:10px">Scheduled Broadcasts</h3><div id="bc-scheduled"></div></div>
@@ -7033,7 +7034,7 @@ async function loadSecurityCenter(){
     const items=historySnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
     const events=eventSnap.docs.map(d=>d.data()).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
     if(alerts)alerts.innerHTML=events.length?events.slice(0,2).map(e=>`⚠️ ${e.type.replace(/_/g,' ')} • ${e.location||e.ip||'Unknown'}`).join('<br>'):'No suspicious activity detected.';
-    wrap.innerHTML=items.length?items.map(i=>`<div class="ai"><div class="ai-l"><div class="ai-ico ${i.deviceId===getDeviceId()?'g':'sky'}">🔐</div><div><div class="ai-desc">${i.browser||'Browser'} • ${i.device||'Device'} ${i.deviceId===getDeviceId()?'<span class="badge bg">Current</span>':''}</div><div class="ai-time">${i.ip||'IP unavailable'} · ${i.location||'Location unavailable'} · ${fmtDT(i.createdAt)}</div></div></div>${i.suspicious?'<span class="badge bgold">New device</span>':'<span class="badge bmut">Known</span>'}</div>`).join(''):'<div class="es">No login history yet</div>';
+    wrap.innerHTML=items.length?items.map(i=>`<div class="ai"><div class="ai-l"><div class="ai-ico ${i.deviceId===getDeviceId()?'g':'sky'}">🔐</div><div><div class="ai-desc">${i.browser||'Browser'} • ${i.device||'Device'} ${i.deviceId===getDeviceId()?'<span class="badge bg">Current</span>':''}</div><div class="ai-time">${i.ip&&i.ip!=='Unavailable'?i.ip:'IP unavailable'} · ${i.location&&i.location!=='Unavailable'?i.location:'Location unavailable / approximate'} · ${i.device||'Browser device estimate'} · ${fmtDT(i.createdAt)}</div></div></div>${i.suspicious?'<span class="badge bgold">New device</span>':'<span class="badge bmut">Known</span>'}</div>`).join(''):'<div class="es">No login history yet</div>';
   }catch(e){wrap.innerHTML='<div class="es">Unable to load security history</div>';}
 }
 async function toggleBrowserNotifications(){
@@ -7076,7 +7077,7 @@ async function loadAdminSecurity(){
     const blocked=blockedSnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
     const events=eventsSnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
     if(blockedEl)blockedEl.innerHTML=blocked.length?blocked.map(b=>`<div class="ai"><div class="ai-l"><div class="ai-ico r">⛔</div><div><div class="ai-desc">${b.ip}</div><div class="ai-time">${b.reason||'Blocked IP'} · ${fmtDT(b.createdAt)}</div></div></div><button class="btn btn-gh btn-sm" onclick="adminUnblockIp('${b.id}')">Unblock</button></div>`).join(''):'<div class="es">No blocked IPs</div>';
-    if(eventsEl)eventsEl.innerHTML=events.length?events.map(e=>`<div class="ai"><div class="ai-l"><div class="ai-ico gold">🛡️</div><div><div class="ai-desc">${(e.type||'event').replace(/_/g,' ')} ${e.email?`— ${e.email}`:''}</div><div class="ai-time">${e.ip||'No IP'} · ${e.location||'No location'} · ${fmtDT(e.createdAt)}</div></div></div>${e.resolved?'<span class="badge bg">Resolved</span>':'<span class="badge bgold">Open</span>'}</div>`).join(''):'<div class="es">No suspicious logins yet</div>';
+    if(eventsEl)eventsEl.innerHTML=events.length?events.map(e=>`<div class="ai"><div class="ai-l"><div class="ai-ico gold">🛡️</div><div><div class="ai-desc">${(e.type||'event').replace(/_/g,' ')} ${e.email?`— ${e.email}`:''}</div><div class="ai-time">${e.ip&&e.ip!=='Unavailable'?e.ip:'IP unavailable'} · ${e.location&&e.location!=='Unavailable'?e.location:'Location unavailable / approximate'} · ${e.device||'Browser device estimate'} · ${fmtDT(e.createdAt)}</div></div></div>${e.resolved?'<span class="badge bg">Resolved</span>':'<span class="badge bgold">Unresolved</span>'}</div>`).join(''):'<div class="es">No suspicious logins yet</div>';
   }catch(e){if(blockedEl)blockedEl.innerHTML='<div class="es">Error</div>'; if(eventsEl)eventsEl.innerHTML='<div class="es">Error</div>';}
 }
 async function adminBlockIp(){
@@ -7323,9 +7324,10 @@ async function loadAdminPromoCodes(){
   if(el)el.innerHTML='<div class="es">Loading…</div>';
   if(usageEl)usageEl.innerHTML='<div class="es">Loading…</div>';
   try{
-    const [snap,useSnap]=await Promise.all([db.collection('promoCodes').get(),db.collection('promoUses').limit(100).get()]);
+    const [snap,useSnap,userSnap]=await Promise.all([db.collection('promoCodes').get(),db.collection('promoUses').limit(100).get(),db.collection('users').get()]);
     const list=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
-    const uses=useSnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.usedAt?.seconds||0)-(a.usedAt?.seconds||0));
+    const userMap={}; userSnap.docs.forEach(d=>{userMap[d.id]=d.data()||{};});
+    const uses=useSnap.docs.map(d=>({id:d.id,...d.data(),userName:userMap[d.data().uid]?.name||'',userEmail:userMap[d.data().uid]?.email||''})).sort((a,b)=>(b.usedAt?.seconds||0)-(a.usedAt?.seconds||0));
     if(el){
       if(!list.length)el.innerHTML='<div class="es">No promo codes yet</div>';
       else el.innerHTML=list.map(p=>{
@@ -7352,7 +7354,7 @@ async function loadAdminPromoCodes(){
       }).join('');
     }
     if(usageEl){
-      usageEl.innerHTML=uses.length?uses.slice(0,25).map(u=>`<div class="ai"><div class="ai-l"><div class="ai-ico gold">🎁</div><div><div class="ai-desc">${u.code}${u.rewardValue?` — ${u.rewardType||'reward'} ${u.rewardType==='pct'?u.rewardValue+'%':'$'+fmt(u.rewardValue)}`:''}</div><div class="ai-time">${u.uid||'—'} · ${fmtDT(u.usedAt)}</div></div></div><div class="badge bg">Used</div></div>`).join(''):'<div class="es">No promo usage yet</div>';
+      usageEl.innerHTML=uses.length?uses.slice(0,25).map(u=>`<div class="ai"><div class="ai-l"><div class="ai-ico gold">🎁</div><div><div class="ai-desc">${u.code}${u.rewardValue?` — ${u.rewardType||'reward'} ${u.rewardType==='pct'?u.rewardValue+'%':'$'+fmt(u.rewardValue)}`:''}</div><div class="ai-time">User: ${u.userName||u.userEmail||u.uid||'—'} · Deposit: ${u.depositId||'direct / none'} · ${fmtDT(u.usedAt)}</div></div></div><div class="badge bg">Used</div></div>`).join(''):'<div class="es">No promo usage yet</div>';
     }
   }catch(e){if(el)el.innerHTML='<div class="es">Error</div>';if(usageEl)usageEl.innerHTML='<div class="es">Error</div>';} 
 }

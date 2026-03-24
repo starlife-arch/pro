@@ -2819,6 +2819,9 @@ function hideMore(){if(window._real_hideMore)window._real_hideMore();}
   <div id="grp-chat-msgs" style="flex:1;overflow-y:auto;background:var(--s2);border-radius:10px;padding:12px;margin-bottom:12px;min-height:200px">
     <div class="es">Loading messages…</div>
   </div>
+  <div style="font-size:.72rem;color:var(--t3);margin:-4px 0 10px;line-height:1.4">
+    ⚠️ Be aware of scammers. Chats and deals here are between users only; Starlife is not part of private message deals. Never share personal details, password, OTP, or payment credentials.
+  </div>
   <!-- Image preview -->
   <div id="grp-img-preview" style="display:none;margin-bottom:8px">
     <img id="grp-img-preview-img" style="max-height:80px;border-radius:8px;object-fit:contain">
@@ -4181,11 +4184,14 @@ function getTagsHTML(u){
   return tags;
 }
 
-function updateProfileBadges(u){
+function updateProfileBadges(u=window.CU){
+  if(!u)return;
   const vbadge=$('prof-vbadge');
   const tagsRow=$('prof-tags-row');
   const badgeIcon=$('prof-badge-icon');
+  const badgeEl=$('prof-badges-display');
   if(vbadge)vbadge.innerHTML=getBadgeHTML(u);
+  if(badgeEl)badgeEl.innerHTML=getBadgeHTML(u);
   if(tagsRow)tagsRow.innerHTML=getTagsHTML(u);
   if(badgeIcon){
     if(u.isVerified||u.isAgent){
@@ -4197,6 +4203,16 @@ function updateProfileBadges(u){
   const fc=$('prof-followers-count'),fgc=$('prof-following-count');
   if(fc)fc.textContent=fmtNum(getTotalFollowers(u));
   if(fgc)fgc.textContent=fmtNum((u.followingCount||0)+(u.following||[]).length);
+  // Update VIP display
+  const vip=getVIPLevel(u.totalInvested||0);
+  const vipEl=$('prof-vip-level');
+  if(vipEl)vipEl.innerHTML=`<span class="tag-vip ${vip.css}">${vip.icon} ${vip.label}</span>`;
+  // Update nav avatar badge
+  const navAv=$('nav-av-wrap');
+  if(navAv){
+    if(u.isVerified){navAv.style.outline='2px solid #1877F2';navAv.style.outlineOffset='1px';}
+    else {navAv.style.outline='';navAv.style.outlineOffset='';}
+  }
   // Verify notice — show if not verified and could qualify
   const notice=$('prof-verify-notice');
   if(notice)notice.style.display=u.isVerified?'none':'block';
@@ -4372,6 +4388,11 @@ async function toggleFollow(){
     await db.collection('users').doc(me.uid).update({followingCount:firebase.firestore.FieldValue.increment(-1)});
     const btn=$('pp-follow-btn');
     if(btn){btn.textContent='Follow';btn.style.background='var(--g)';btn.style.color='#000';}
+    if(window.CU){
+      window.CU.followingCount=Math.max(0,(window.CU.followingCount||0)-1);
+      updateProfileBadges(window.CU);
+    }
+    await refreshPublicProfileCounts(uid);
     toast('Unfollowed');
   } else {
     // Follow
@@ -4381,8 +4402,29 @@ async function toggleFollow(){
     await db.collection('userNotifs').add({uid,msg:`👤 ${me.name} started following you!`,read:false,createdAt:FS().serverTimestamp()});
     const btn=$('pp-follow-btn');
     if(btn){btn.textContent='✓ Following';btn.style.background='var(--s2)';btn.style.color='var(--t1)';}
+    if(window.CU){
+      window.CU.followingCount=(window.CU.followingCount||0)+1;
+      updateProfileBadges(window.CU);
+    }
+    await refreshPublicProfileCounts(uid);
     toast('Following ✓');
   }
+}
+
+async function refreshPublicProfileCounts(uid){
+  if(!uid)return;
+  try{
+    const targetSnap=await db.collection('users').doc(uid).get();
+    if(targetSnap.exists){
+      const target={id:uid,...targetSnap.data()};
+      if($('pp-followers'))$('pp-followers').textContent=fmtNum(getTotalFollowers(target));
+      if($('pp-following'))$('pp-following').textContent=fmtNum((target.followingCount||0)+(target.following||[]).length);
+      if(_viewingProfileUid===window.CU?.uid){
+        window.CU={...window.CU,...target};
+        updateProfileBadges(window.CU);
+      }
+    }
+  }catch(_){}
 }
 
 async function showFollowers(){
@@ -6614,20 +6656,6 @@ async function renewVerifiedSubscriptions(){
       }
     }
   }
-}
-
-function updateProfileBadges(){
-  const u=window.CU;if(!u)return;
-  // Update profile tab badges
-  const badgeEl=$('prof-badges-display');
-  if(badgeEl)badgeEl.innerHTML=getBadgeHTML(u);
-  // Update VIP display
-  const vip=getVIPLevel(u.totalInvested||0);
-  const vipEl=$('prof-vip-level');
-  if(vipEl)vipEl.innerHTML=`<span class="tag-vip ${vip.css}">${vip.icon} ${vip.label}</span>`;
-  // Update nav avatar badge
-  const navAv=$('nav-av-wrap');
-  if(navAv&&u.isVerified){navAv.style.outline='2px solid #1877F2';navAv.style.outlineOffset='1px';}
 }
 
 // ════════════════════════════════════════════════════════

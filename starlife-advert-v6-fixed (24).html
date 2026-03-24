@@ -1717,7 +1717,7 @@ function hideMore(){if(window._real_hideMore)window._real_hideMore();}
         <div style="font-size:.72rem;color:var(--t3)" id="dm-chat-status"></div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
-        <button onclick="viewPublicProfile(window._activeDMUser?.id||window._activeDMUser?.uid)" style="background:none;border:none;color:var(--sky);cursor:pointer;font-size:.75rem">View Profile</button>
+        <button onclick="dmViewProfile()" style="background:none;border:none;color:var(--sky);cursor:pointer;font-size:.75rem">View Profile</button>
         <button onclick="openDMReportModal()" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:.75rem">Report</button>
         <button id="dm-block-btn" onclick="toggleDMBlock()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:.75rem">Block</button>
         <button onclick="closeModal('m-dm-chat')" style="background:none;border:none;color:var(--t2);cursor:pointer;font-size:1.2rem">✕</button>
@@ -4501,11 +4501,17 @@ function dmFromProfile(){
 let _activeDMUser=null;
 let _activeDMId=null;
 let _dmBlockState={iBlocked:false,blockedMe:false,muted:false};
+window._activeDMUser=null;
 
 function getDMId(uid1,uid2){
   return [uid1,uid2].sort().join('_');
 }
 function memberIdFromUid(uid){ return (uid||'').substring(0,8).toUpperCase(); }
+function dmViewProfile(){
+  const uid=_activeDMUser?.id||_activeDMUser?.uid||window._activeDMUser?.id||window._activeDMUser?.uid;
+  if(!uid)return toast('Profile unavailable','ty');
+  viewPublicProfile(uid);
+}
 
 async function refreshDMModerationState(){
   const u=window.CU, peer=_activeDMUser?.id||_activeDMUser?.uid;
@@ -4519,14 +4525,16 @@ async function refreshDMModerationState(){
     ]);
     _dmBlockState.iBlocked=mine.exists;
     _dmBlockState.blockedMe=other.exists;
-    _dmBlockState.muted=!!freshMe.data()?.dmMuted;
+    const meData=freshMe.data()||{};
+    const strikeUntil=promoTsToDate(meData.dmStrikeUntil);
+    _dmBlockState.muted=!!meData.dmMuted || (!!strikeUntil && strikeUntil>new Date());
     if(blockBtn)blockBtn.textContent=_dmBlockState.iBlocked?'Unblock':'Block';
     const statusEl=$('dm-chat-status');
     if(statusEl && _dmBlockState.blockedMe)statusEl.innerHTML=(getTagsHTML(_activeDMUser)||'Member')+' · <span style="color:var(--red)">Blocked you</span>';
     if(inp){
       const locked=_dmBlockState.blockedMe||_dmBlockState.iBlocked||_dmBlockState.muted;
       inp.disabled=locked;
-      inp.placeholder=_dmBlockState.muted?'Messaging disabled by support':(_dmBlockState.iBlocked?'You blocked this user':'Message…');
+      inp.placeholder=_dmBlockState.muted?'Messaging temporarily restricted by support':(_dmBlockState.iBlocked?'You blocked this user':'Message…');
     }
   }catch(_){}
 }
@@ -4554,6 +4562,7 @@ async function openDMChat(uid,userData,rowEl){
     }catch(e){return toast('Error: '+e.message,'tr');}
   }
   _activeDMUser=userData;
+  window._activeDMUser=userData;
   _activeDMId=getDMId(u.uid,uid);
   if(rowEl){
     const b=rowEl.querySelector('[data-unread-badge]');
@@ -4664,6 +4673,12 @@ async function submitDMReport(){
       reviewedBy:null,
       reviewedAt:null
     });
+    await db.collection('userNotifs').add({uid:u.uid,msg:'✅ Your report has been received and is pending review.',read:false,createdAt:FS().serverTimestamp()});
+    const when=new Date().toLocaleString();
+    const reporterRef=`${memberIdFromUid(u.uid)}${u.email?` / ${u.email}`:''}`;
+    const peerEmail=_activeDMUser?.email||'';
+    const reportedRef=`${memberIdFromUid(peer)}${peerEmail?` / ${peerEmail}`:''}`;
+    tg(`🚨 <b>New DM Report</b>\nReason: ${String(reason).toUpperCase()}\nReporter: ${reporterRef}\nReported: ${reportedRef}\nTime: ${when}\nNote: ${note||'none'}`);
     closeModal('m-dm-report');
     toast('Report submitted. Support will review it.','tg');
   }catch(e){toast('Could not submit report: '+e.message,'tr');}
@@ -7279,21 +7294,46 @@ async function adminOpenDMReportChat(reportId){
   }catch(e){if(msgsEl)msgsEl.innerHTML='<div class="es">Could not load report chat</div>';}
 }
 async function adminUpdateDMReportStatus(reportId,status='reviewed'){
+  const repSnap=await db.collection('dmReports').doc(reportId).get();
+  const rep=repSnap.exists?repSnap.data():null;
   await db.collection('dmReports').doc(reportId).set({status,reviewedBy:window.CU?.uid||null,reviewedAt:FS().serverTimestamp()},{merge:true});
+  if(rep?.reporterUid)await db.collection('userNotifs').add({uid:rep.reporterUid,msg:'✅ Your DM report has been reviewed by support.',read:false,createdAt:FS().serverTimestamp()});
   toast('Report updated');
   loadAdminSecurity();
 }
 async function adminWarnDMUser(uid,reportId){
   if(!uid)return;
-  await db.collection('users').doc(uid).set({dmWarnings:FS().increment(1)},{merge:true});
-  await db.collection('dmReports').doc(reportId).set({status:'reviewed',action:'warned',reviewedBy:window.CU?.uid||null,reviewedAt:FS().serverTimestamp()},{merge:true});
-  toast('User warned/struck');
+  const strike=confirm('Press OK to STRIKE (48h DM restriction). Press Cancel to WARN.');
+  const repSnap=await db.collection('dmReports').doc(reportId).get();
+  const rep=repSnap.exists?repSnap.data():null;
+  if(strike){
+    const until=new Date(Date.now()+48*60*60*1000);
+    await db.collection('users').doc(uid).set({dmStrikeUntil:firebase.firestore.Timestamp.fromDate(until)},{merge:true});
+    await db.collection('dmReports').doc(reportId).set({status:'reviewed',action:'striked',reviewedBy:window.CU?.uid||null,reviewedAt:FS().serverTimestamp()},{merge:true});
+    await db.collection('userNotifs').add({uid,msg:'⛔ You have been striked and cannot send direct messages for 48 hours.',read:false,createdAt:FS().serverTimestamp()});
+    if(rep?.reporterUid)await db.collection('userNotifs').add({uid:rep.reporterUid,msg:'✅ Your DM report was resolved with a strike action.',read:false,createdAt:FS().serverTimestamp()});
+    toast('User striked for 48h');
+  }else{
+    const uRef=db.collection('users').doc(uid);
+    await uRef.set({dmWarnings:FS().increment(1)},{merge:true});
+    const fresh=await uRef.get();
+    const count=fresh.data()?.dmWarnings||1;
+    const remaining=Math.max(0,3-count);
+    await db.collection('dmReports').doc(reportId).set({status:'reviewed',action:'warned',reviewedBy:window.CU?.uid||null,reviewedAt:FS().serverTimestamp()},{merge:true});
+    await db.collection('userNotifs').add({uid,msg:`⚠️ You have received a warning from support. Please follow platform rules. ${remaining} warnings remaining.`,read:false,createdAt:FS().serverTimestamp()});
+    if(rep?.reporterUid)await db.collection('userNotifs').add({uid:rep.reporterUid,msg:'✅ Your DM report was reviewed and a warning was issued.',read:false,createdAt:FS().serverTimestamp()});
+    toast('User warned');
+  }
   loadAdminSecurity();
 }
 async function adminToggleDMMute(uid,current,reportId){
   if(!uid)return;
+  const repSnap=await db.collection('dmReports').doc(reportId).get();
+  const rep=repSnap.exists?repSnap.data():null;
   await db.collection('users').doc(uid).set({dmMuted:!current,dmMutedAt:FS().serverTimestamp(),dmMutedBy:window.CU?.uid||null},{merge:true});
   await db.collection('dmReports').doc(reportId).set({dmMuted:!current,status:'reviewed',reviewedBy:window.CU?.uid||null,reviewedAt:FS().serverTimestamp()},{merge:true});
+  await db.collection('userNotifs').add({uid,msg:!current?'⛔ Support has muted your direct messages.':'✅ Your direct message mute has been lifted.',read:false,createdAt:FS().serverTimestamp()});
+  if(rep?.reporterUid)await db.collection('userNotifs').add({uid:rep.reporterUid,msg:`ℹ️ Your DM report was reviewed. Action: ${!current?'mute applied':'mute lifted'}.`,read:false,createdAt:FS().serverTimestamp()});
   toast(!current?'DM muted':'DM unmuted');
   loadAdminSecurity();
 }

@@ -2263,6 +2263,25 @@ function hideMore(){if(window._real_hideMore)window._real_hideMore();}
     <button class="btn btn-p btn-sm" onclick="exportCSV()">📥 Export Users CSV</button><div style="font-size:.74rem;color:var(--t2);margin-top:8px">CSV export only — no built-in PDF report generator yet.</div>
     <button class="btn btn-gold btn-sm" style="margin-left:8px" onclick="openModal('m-deal')">🔥 Set Countdown Deal</button>
     <button class="btn btn-sky btn-sm" style="margin-left:8px;margin-top:8px" onclick="openModal('m-blog')">📝 New Blog Post</button>
+
+    <div class="card" style="margin-top:14px">
+      <div style="font-weight:700;font-size:.92rem;margin-bottom:8px">⚙️ Bulk Profit Operations</div>
+      <div style="font-size:.76rem;color:var(--t2);margin-bottom:10px">Uses the same daily profit logic as global run. Choose users and mode below.</div>
+      <div class="fg"><label class="fl">Mode</label>
+        <select class="fi" id="bp-mode">
+          <option value="selected">Run for selected users only</option>
+          <option value="exclude">Run for all except excluded users</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Search User (name, email, or UID)</label><input class="fi" id="bp-user-search" placeholder="Type to search users" oninput="bulkProfitSearchUsers()"></div>
+      <div id="bp-user-results" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+      <div style="font-size:.74rem;color:var(--t3);margin-bottom:6px">Selected users</div>
+      <div id="bp-selected-users" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-gh btn-sm" onclick="bulkProfitClearUsers()">Clear Selected</button>
+        <button class="btn btn-gold btn-sm" onclick="adminRunBulkProfits()">▶ Run Bulk Profits</button>
+      </div>
+    </div>
   </div>
 
   <div id="at-kyc" class="atab">
@@ -5696,6 +5715,7 @@ async function loadRevenue(){
       +'<div class="ai-time">'+fmtDT(a.createdAt)+'</div></div></div>'
       +'<div class="ai-amt '+(pos?'pos':'neg')+'">'+(pos?'+':'')+'$'+fmt(a.amt)+'</div></div>';
   }).join('');
+  if(window.bulkProfitRenderSelected)bulkProfitRenderSelected();
 }
 
 function exportCSV(){
@@ -7402,11 +7422,20 @@ async function loadAdminPromoCodes(){
 // ════════════════════════════════════════════════════════
 // DAILY PROFITS
 // ════════════════════════════════════════════════════════
-async function runDailyProfits(){
-  if(!confirm('Run daily profits for investments AND shareholders?'))return;
+function shouldRunProfitForUid(uid,opts){
+  const mode=opts?.mode||'all';
+  const set=opts?.uidSet||null;
+  if(mode==='selected') return !!(set&&set.has(uid));
+  if(mode==='exclude') return !(set&&set.has(uid));
+  return true;
+}
+
+async function runDailyProfitsInternal(opts={mode:'all',uidSet:null,label:'global'}){
+  if(window._profitRunLock){toast('A profit run is already in progress','ty');return null;}
+  window._profitRunLock=true;
   toast('Processing…','ty',20000);
   const today=new Date().toDateString();
-  let invCount=0, shCount=0;
+  let invCount=0, shCount=0, savCount=0;
   try{
     // ── PART 1: Investment profits (2% daily) ──────────
     const invSnap=await db.collection('investments').where('status','==','active').get();
@@ -7415,6 +7444,7 @@ async function runDailyProfits(){
     for(const doc of invSnap.docs){
       const inv=doc.data();
       if(!inv||!inv.uid)continue;
+      if(!shouldRunProfitForUid(inv.uid,opts))continue;
       if(inv.lastProfitDate===today)continue;
       const uSnap=await db.collection('users').doc(inv.uid).get();
       if(!uSnap.exists)continue;
@@ -7457,6 +7487,7 @@ async function runDailyProfits(){
       for(const doc of shSnap.docs){
         const u=doc.data();
         if(!u||u.isBanned)continue;
+        if(!shouldRunProfitForUid(doc.id,opts))continue;
         if(u.shLastProfitDate===today)continue; // prevent double run
         const stake=u.shareholderStake||0;
         if(stake<=0)continue;
@@ -7480,13 +7511,13 @@ async function runDailyProfits(){
     }
 
     // ── PART 3: Savings Wallet profits (3% daily, 30-day lock) ──
-    let savCount=0;
     const savSnap=await db.collection('savings').where('status','==','active').get();
     const savBatch=db.batch();
     const savActBatch=db.batch();
     for(const doc of savSnap.docs){
       const sav=doc.data();
       if(!sav||!sav.uid)continue;
+      if(!shouldRunProfitForUid(sav.uid,opts))continue;
       if(sav.savLastProfitDate===today)continue; // prevent double run
       // Check 30-day lock — only pay if within lock period
       const unlockDate=sav.unlockDate?new Date(sav.unlockDate.seconds*1000):null;
@@ -7532,11 +7563,71 @@ async function runDailyProfits(){
     // Renew verified subscriptions
     try{await renewVerifiedSubscriptions();}catch(e){}
     toast(`✓ Done! Investments: ${invCount} · Shareholders: ${shCount} · Savings: ${savCount}`);
-    tg(`📈 <b>Daily Profits Run</b>\n\n💰 Investments: ${invCount}\n💎 Shareholders: ${shCount}\n🏦 Savings: ${savCount}\n📅 ${today}`);
+    tg(`📈 <b>Daily Profits Run</b>
+
+💰 Investments: ${invCount}
+💎 Shareholders: ${shCount}
+🏦 Savings: ${savCount}
+📅 ${today}
+Mode: ${opts?.label||'global'}`);
     loadAdminAll();
-  }catch(e){toast('Error: '+e.message,'tr');console.error(e);}
+    return {invCount,shCount,savCount};
+  }catch(e){toast('Error: '+e.message,'tr');console.error(e);return null;}
+  finally{window._profitRunLock=false;}
+}
+
+async function runDailyProfits(){
+  if(!confirm('Run daily profits for investments AND shareholders?'))return;
+  await runDailyProfitsInternal({mode:'all',uidSet:null,label:'global'});
 }
 window.runDailyProfits=runDailyProfits;
+
+window._bulkProfitSelected=new Set();
+function bulkProfitGetUserPool(){return (window.AU||[]).filter(u=>!u.isBanned);}
+function bulkProfitRenderSelected(){
+  const el=$('bp-selected-users'); if(!el)return;
+  const ids=[...window._bulkProfitSelected];
+  const map={}; (window.AU||[]).forEach(u=>{map[u.id]=u;});
+  if(!ids.length){el.innerHTML='<span style="font-size:.75rem;color:var(--t3)">No users selected</span>';return;}
+  el.innerHTML=ids.map(id=>{
+    const u=map[id]||{};
+    const name=u.name||u.email||id.substring(0,8);
+    return `<span class="badge bmut" style="display:inline-flex;align-items:center;gap:6px">${name}<button onclick="bulkProfitRemoveUser('${id}')" style="border:none;background:none;color:var(--red);cursor:pointer;font-weight:700">×</button></span>`;
+  }).join('');
+}
+function bulkProfitSearchUsers(){
+  const q=($('bp-user-search')?.value||'').trim().toLowerCase();
+  const el=$('bp-user-results'); if(!el)return;
+  if(!q){el.innerHTML='';return;}
+  const list=bulkProfitGetUserPool().filter(u=>
+    (u.name||'').toLowerCase().includes(q)||
+    (u.email||'').toLowerCase().includes(q)||
+    (u.id||'').toLowerCase().includes(q)
+  ).slice(0,8);
+  el.innerHTML=list.length?list.map(u=>`<button class="btn btn-gh btn-sm" onclick="bulkProfitAddUser('${u.id}')">${u.name||'User'} · ${(u.email||'').slice(0,22)}${(u.email||'').length>22?'…':''}</button>`).join(''):'<span style="font-size:.75rem;color:var(--t3)">No matching users</span>';
+}
+function bulkProfitAddUser(uid){ window._bulkProfitSelected.add(uid); bulkProfitRenderSelected(); }
+function bulkProfitRemoveUser(uid){ window._bulkProfitSelected.delete(uid); bulkProfitRenderSelected(); }
+function bulkProfitClearUsers(){ window._bulkProfitSelected.clear(); bulkProfitRenderSelected(); if($('bp-user-results'))$('bp-user-results').innerHTML=''; if($('bp-user-search'))$('bp-user-search').value=''; }
+
+async function adminRunBulkProfits(){
+  const mode=$('bp-mode')?.value||'selected';
+  const ids=[...window._bulkProfitSelected];
+  if(!ids.length)return toast('Select at least one user first','ty');
+  const map={}; (window.AU||[]).forEach(u=>{map[u.id]=u;});
+  const names=ids.slice(0,6).map(id=>map[id]?.name||map[id]?.email||id.substring(0,6)).join(', ');
+  const msg=mode==='selected'
+    ?`Run profits for ${ids.length} selected user(s)?
+
+${names}${ids.length>6?' ...':''}`
+    :`Run profits for all eligible users EXCEPT ${ids.length} selected user(s)?
+
+${names}${ids.length>6?' ...':''}`;
+  if(!confirm(msg))return;
+  const uidSet=new Set(ids);
+  await runDailyProfitsInternal({mode:mode==='selected'?'selected':'exclude',uidSet,label:mode==='selected'?'selected-only':'all-except-selected'});
+}
+
 
 // ════════════════════════════════════════════════════════
 // KYC VERIFICATION

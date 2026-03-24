@@ -856,6 +856,22 @@ function hideMore(){if(window._real_hideMore)window._real_hideMore();}
 </div>
 
 <!-- ══════════════════════════════════════════
+     MAINTENANCE
+══════════════════════════════════════════ -->
+<div class="page" id="pg-maint">
+<div class="ban-overlay">
+<div class="ban-card">
+  <div style="font-size:3rem;margin-bottom:16px">🛠️</div>
+  <h2 style="margin-bottom:10px;color:var(--gold)" id="maint-title">Scheduled Maintenance</h2>
+  <p style="color:var(--t2);margin-bottom:10px" id="maint-msg">We’re making improvements right now. Please check back shortly.</p>
+  <p style="color:var(--t3);margin-bottom:20px;font-size:.85rem" id="maint-return">Estimated return: —</p>
+  <a href="mailto:support@starlifeadvert.com">Contact Support</a>
+  <button class="btn btn-gh btn-full" style="margin-top:8px" onclick="doLogout()">Sign Out</button>
+</div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════
      MAIN APP
 ══════════════════════════════════════════ -->
 <div class="page" id="pg-app">
@@ -995,6 +1011,7 @@ function hideMore(){if(window._real_hideMore)window._real_hideMore();}
       <input class="fi" id="promo-inp" placeholder="🎁 Have a promo code? Enter here" style="flex:1;font-size:.82rem" oninput="this.value=this.value.toUpperCase()">
       <button class="btn btn-gold btn-sm" onclick="applyPromoCode()">Apply</button>
     </div>
+    <div style="font-size:.75rem;color:var(--t2);margin:-6px 0 12px">Deposit promo bonuses are credited after admin approves your deposit.</div>
     <div class="dep-method">
       <div class="dm-name">📱 M-Pesa (Lipa Na M-Pesa)</div>
       <div class="dm-detail"><span style="font-size:.8rem;color:var(--t2)">Till Number</span><span class="dm-val" onclick="copyText('6034186','Copied!')">6034186 📋</span></div>
@@ -1278,6 +1295,10 @@ function hideMore(){if(window._real_hideMore)window._real_hideMore();}
       <div class="itab" onclick="actTab(this,'survey')">Surveys</div>
       <div class="itab" onclick="actTab(this,'transfer')">💸 Transfers</div>
     </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <button class="btn btn-gh btn-sm" onclick="downloadWalletStatement('csv')">📄 Export CSV Statement</button>
+      <button class="btn btn-gh btn-sm" onclick="downloadWalletStatement('print')">🖨️ Print / Save as PDF</button>
+    </div>
     <div class="act-list" id="act-full-list"></div>
   </div>
 
@@ -1370,6 +1391,21 @@ function hideMore(){if(window._real_hideMore)window._real_hideMore();}
         <div style="font-size:.78rem;color:var(--t2);margin-bottom:10px;line-height:1.5">Free: invest $100+ or refer 50+ members<br>Or pay <strong>$10/month</strong> (auto-deducted)</div>
         <button class="btn btn-sky btn-full" onclick="applyVerification()" style="font-weight:700">Get Verified — $10/month</button>
       </div>
+    </div>
+    <div class="card" style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <div>
+          <div style="font-weight:700;font-size:.9rem">🔐 Security Center</div>
+          <div style="font-size:.75rem;color:var(--t2)">Recent sign-ins, password alerts, and browser notifications. Device/IP details are browser-based estimates and may show as unavailable.</div>
+        </div>
+        <span class="badge bsky" id="sec-device-badge">Current device</span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <button class="btn btn-gh btn-sm" onclick="changePasswordFlow()">🔑 Change Password</button>
+        <button class="btn btn-gh btn-sm" id="browser-notif-btn" onclick="toggleBrowserNotifications()">🔔 Enable Browser Alerts</button>
+      </div>
+      <div id="security-alerts" style="font-size:.76rem;color:var(--gold);margin-bottom:10px"></div>
+      <div id="security-history"><div class="es">Loading security activity…</div></div>
     </div>
     <button class="btn btn-o btn-full" style="margin-bottom:8px" id="pin-profile-btn" onclick="openSetPin()">🔐 <span id="pin-btn-txt">Set Withdrawal PIN</span></button>
     <button class="btn btn-d btn-full" onclick="doLogout()">Sign Out</button>
@@ -1681,18 +1717,45 @@ function hideMore(){if(window._real_hideMore)window._real_hideMore();}
         <div style="font-size:.72rem;color:var(--t3)" id="dm-chat-status"></div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
-        <button onclick="viewPublicProfile(window._activeDMUser?.id||window._activeDMUser?.uid)" style="background:none;border:none;color:var(--sky);cursor:pointer;font-size:.75rem">View Profile</button>
+        <button onclick="dmViewProfile()" style="background:none;border:none;color:var(--sky);cursor:pointer;font-size:.75rem">View Profile</button>
+        <button onclick="openDMReportModal()" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:.75rem">Report</button>
+        <button id="dm-block-btn" onclick="toggleDMBlock()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:.75rem">Block</button>
         <button onclick="closeModal('m-dm-chat')" style="background:none;border:none;color:var(--t2);cursor:pointer;font-size:1.2rem">✕</button>
       </div>
     </div>
     <!-- Messages -->
     <div id="dm-messages" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:4px"></div>
+    <div style="font-size:.72rem;color:var(--t3);padding:0 14px 8px;line-height:1.4">
+      ⚠️ Be aware of scammers. Chat discussions/deals are between users only; Starlife is not part of private message deals. Never share personal details, password, OTP, or payment credentials.
+    </div>
     <!-- Input -->
     <div style="padding:10px 14px;border-top:1px solid var(--bd);flex-shrink:0">
       <div style="display:flex;gap:8px;align-items:flex-end">
         <textarea id="dm-inp" rows="1" placeholder="Message…" style="flex:1;background:var(--s2);border:1px solid var(--bd);border-radius:20px;padding:9px 14px;color:var(--t1);font-size:.85rem;resize:none;outline:none;font-family:inherit;max-height:100px" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendDM();}"></textarea>
         <button onclick="sendDM()" style="width:38px;height:38px;border-radius:50%;background:var(--g);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#000;font-size:1rem;flex-shrink:0">➤</button>
       </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- DM REPORT MODAL -->
+  <div class="mover" id="m-dm-report">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">🚩 Report User</div>
+    <div class="fg"><label class="fl">Reason</label>
+      <select class="fi" id="dm-report-reason">
+        <option value="scam">Scam</option>
+        <option value="fraud">Fraud</option>
+        <option value="harassment">Harassment</option>
+        <option value="impersonation">Impersonation</option>
+        <option value="spam">Spam</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Note (optional)</label><textarea class="fi" id="dm-report-note" rows="3" placeholder="Add any detail (optional)"></textarea></div>
+    <div class="modal-acts">
+      <button class="btn btn-d" onclick="submitDMReport()">Submit Report</button>
+      <button class="btn btn-gh" onclick="closeModal('m-dm-report')">Cancel</button>
     </div>
   </div>
   </div>
@@ -2224,9 +2287,28 @@ function hideMore(){if(window._real_hideMore)window._real_hideMore();}
       <div style="font-size:.82rem;font-weight:600;margin-bottom:10px">Recent Transactions</div>
       <div id="rev-txns"></div>
     </div>
-    <button class="btn btn-p btn-sm" onclick="exportCSV()">📥 Export Users CSV</button>
+    <button class="btn btn-p btn-sm" onclick="exportCSV()">📥 Export Users CSV</button><div style="font-size:.74rem;color:var(--t2);margin-top:8px">CSV export only — no built-in PDF report generator yet.</div>
     <button class="btn btn-gold btn-sm" style="margin-left:8px" onclick="openModal('m-deal')">🔥 Set Countdown Deal</button>
     <button class="btn btn-sky btn-sm" style="margin-left:8px;margin-top:8px" onclick="openModal('m-blog')">📝 New Blog Post</button>
+
+    <div class="card" style="margin-top:14px">
+      <div style="font-weight:700;font-size:.92rem;margin-bottom:8px">⚙️ Bulk Profit Operations</div>
+      <div style="font-size:.76rem;color:var(--t2);margin-bottom:10px">Uses the same daily profit logic as global run. Choose users and mode below.</div>
+      <div class="fg"><label class="fl">Mode</label>
+        <select class="fi" id="bp-mode">
+          <option value="selected">Run for selected users only</option>
+          <option value="exclude">Run for all except excluded users</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Search User (name, email, or UID)</label><input class="fi" id="bp-user-search" placeholder="Type to search users" oninput="bulkProfitSearchUsers()"></div>
+      <div id="bp-user-results" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+      <div style="font-size:.74rem;color:var(--t3);margin-bottom:6px">Selected users</div>
+      <div id="bp-selected-users" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-gh btn-sm" onclick="bulkProfitClearUsers()">Clear Selected</button>
+        <button class="btn btn-gold btn-sm" onclick="adminRunBulkProfits()">▶ Run Bulk Profits</button>
+      </div>
+    </div>
   </div>
 
   <div id="at-kyc" class="atab">
@@ -2267,7 +2349,7 @@ function hideMore(){if(window._real_hideMore)window._real_hideMore();}
       <div style="font-weight:700;margin-bottom:12px">🎫 Generate Prize Code</div>
       <div class="fg"><label class="fl">Total Prize Amount ($)</label><input class="fi" id="pc-amount" type="number" min="1" placeholder="e.g. 5"></div>
       <div class="fg"><label class="fl">Max Winners (default 5)</label><input class="fi" id="pc-winners" type="number" min="1" max="100" placeholder="5" value="5"></div>
-      <div class="fg"><label class="fl">Expiry (hours from now, 0 = no expiry)</label><input class="fi" id="pc-expiry" type="number" min="0" placeholder="24" value="24"></div>
+      <div class="fg"><label class="fl">Expiry (hours from now, 0 = no expiry)</label><input class="fi" id="prize-expiry-hours" type="number" min="0" placeholder="24" value="24"></div>
       <button class="btn btn-p btn-full" onclick="adminGeneratePrizeCode()">⚡ Generate Code</button>
       <div id="pc-result" style="display:none;margin-top:12px;background:var(--s2);border-radius:10px;padding:14px;text-align:center">
         <div style="font-size:.75rem;color:var(--t3);margin-bottom:6px">Generated Code — Share this!</div>
@@ -2349,31 +2431,128 @@ function hideMore(){if(window._real_hideMore)window._real_hideMore();}
   </div>
   </div>
 
+  <div class="mover" id="m-admin-dm-review">
+  <div class="modal" style="max-width:560px;height:88vh;display:flex;flex-direction:column">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div>
+        <div class="modal-title" style="margin:0">🧾 Reported DM Review</div>
+        <div style="font-size:.72rem;color:var(--t3)" id="adm-dm-meta"></div>
+      </div>
+      <button onclick="closeModal('m-admin-dm-review')" style="background:none;border:none;color:var(--t2);font-size:1.2rem;cursor:pointer">✕</button>
+    </div>
+    <div id="adm-dm-msgs" style="flex:1;overflow-y:auto;background:var(--s2);border-radius:10px;padding:10px"></div>
+  </div>
+  </div>
+
   <div id="at-promocodes" class="atab">
     <div style="font-weight:700;margin-bottom:12px">🎁 Promo Codes</div>
     <div class="card" style="margin-bottom:14px">
-      <div style="font-weight:600;margin-bottom:10px">Create New Promo Code</div>
-      <div class="fg"><label class="fl">Code (e.g. WELCOME50)</label><input class="fi" id="pc-code" placeholder="e.g. WELCOME50" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
+      <div style="font-weight:600;margin-bottom:10px">Create / Update Promo Code</div>
+      <input type="hidden" id="pc-edit-id">
+      <div class="fg"><label class="fl">Code Name</label><input class="fi" id="pc-code" placeholder="e.g. WELCOME50" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div class="fg"><label class="fl">Type</label>
+        <div class="fg"><label class="fl">Bonus Type</label>
           <select class="fi" id="pc-type">
-            <option value="balance">Add $ to balance</option>
+            <option value="balance">Fixed wallet bonus</option>
+            <option value="deposit_fixed">Fixed deposit bonus</option>
             <option value="pct">% bonus on deposit</option>
             <option value="points">Add points</option>
           </select>
         </div>
-        <div class="fg"><label class="fl">Value</label><input class="fi" id="pc-value" type="number" placeholder="e.g. 10"></div>
+        <div class="fg"><label class="fl">Bonus Value</label><input class="fi" id="pc-value" type="number" min="0" step="0.01" placeholder="e.g. 10"></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div class="fg"><label class="fl">Max Uses</label><input class="fi" id="pc-maxuses" type="number" placeholder="0 = unlimited"></div>
-        <div class="fg"><label class="fl">Expires</label><input class="fi" id="pc-expiry" type="date"></div>
+        <div class="fg"><label class="fl">Minimum Deposit</label><input class="fi" id="pc-mindeposit" type="number" min="0" step="0.01" placeholder="0 = none"></div>
+        <div class="fg"><label class="fl">Per-user Usage Limit</label><input class="fi" id="pc-userlimit" type="number" min="0" placeholder="0 = unlimited"></div>
       </div>
-      <button class="btn btn-p btn-full" onclick="adminCreatePromoCode()">➕ Create Code</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="fg"><label class="fl">Maximum Total Uses</label><input class="fi" id="pc-maxuses" type="number" min="0" placeholder="0 = unlimited"></div>
+        <div class="fg"><label class="fl">Applies To</label>
+          <select class="fi" id="pc-depositscope">
+            <option value="all">All deposits</option>
+            <option value="first">First deposit only</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="fg"><label class="fl">Start Date & Time</label><input class="fi" id="pc-start" type="datetime-local"></div>
+        <div class="fg"><label class="fl">Expiry Date & Time</label><input class="fi" id="pc-expiry" type="datetime-local"></div>
+      </div>
+      <div class="fg"><label class="fl">Notes (optional)</label><textarea class="fi" id="pc-notes" rows="3" placeholder="Optional admin notes"></textarea></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-p" onclick="adminCreatePromoCode()">💾 Save Promo Code</button>
+        <button class="btn btn-gh" onclick="adminResetPromoForm()">Reset</button>
+      </div>
     </div>
     <div id="at-promo-list"><div class="es">Loading…</div></div>
+    <div style="margin-top:14px">
+      <div style="font-weight:600;margin-bottom:8px">Usage History</div>
+      <div id="at-promo-usage"><div class="es">Loading…</div></div>
+    </div>
   </div>
 
-  <div id="at-admins" class="atab">
+  <div id="at-security" class="atab">
+    <div style="font-weight:700;margin-bottom:12px">🛡️ Security Center</div>
+    <div class="card" style="margin-bottom:14px">
+      <div style="font-weight:600;margin-bottom:10px">Blocked IP Addresses</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <input class="fi" id="block-ip-input" placeholder="e.g. 203.0.113.10" style="flex:1;min-width:220px">
+        <button class="btn btn-d btn-sm" onclick="adminBlockIp()">Block IP</button>
+      </div>
+      <div id="blocked-ip-list"><div class="es">Loading…</div></div>
+    </div>
+    <div>
+      <div style="font-weight:600;margin-bottom:8px">Suspicious Login Events</div><div style="font-size:.75rem;color:var(--t2);margin-bottom:8px">IP, location, and device details are best-effort browser lookups and may be approximate or unavailable.</div>
+      <div id="security-events-list"><div class="es">Loading…</div></div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div style="font-weight:600;margin-bottom:8px">DM Reports & Moderation</div>
+      <div style="font-size:.75rem;color:var(--t2);margin-bottom:8px">Only reported conversations are shown for support/admin review.</div>
+      <div id="dm-report-list"><div class="es">Loading…</div></div>
+    </div>
+  </div>
+
+  <div id="at-analytics" class="atab">
+    <div style="font-weight:700;margin-bottom:12px">📊 Analytics</div>
+    <div id="analytics-stats" class="sgrid" style="grid-template-columns:repeat(2,1fr);margin-bottom:14px"><div class="es">Loading analytics…</div></div>
+    <div class="card" style="margin-bottom:14px">
+      <div style="font-weight:600;margin-bottom:10px">Growth Over Time</div>
+      <div id="analytics-growth-chart"></div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div style="font-weight:600;margin-bottom:10px">Deposits vs Withdrawals</div>
+      <div id="analytics-cashflow-chart"></div>
+    </div>
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:10px">Daily / Weekly / Monthly Trends</div>
+      <div id="analytics-trends"></div>
+    </div>
+  </div>
+
+  <div id="at-maintenance" class="atab">
+    <div style="font-weight:700;margin-bottom:12px">🛠️ Maintenance Mode</div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="fg"><label class="fl">Status</label>
+        <select class="fi" id="maint-active">
+          <option value="false">Off</option>
+          <option value="true">On</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Title</label><input class="fi" id="maint-title-inp" placeholder="Scheduled maintenance"></div>
+      <div class="fg"><label class="fl">Message</label><textarea class="fi" id="maint-msg-inp" rows="4" placeholder="We’ll be back shortly."></textarea></div>
+      <div class="fg"><label class="fl">Expected Return Time</label><input class="fi" id="maint-return-inp" type="datetime-local"></div>
+      <div class="fg"><label class="fl">Admin Bypass</label>
+        <select class="fi" id="maint-bypass">
+          <option value="true">Allow admins</option>
+          <option value="false">Disable all access</option>
+        </select>
+      </div>
+      <button class="btn btn-p" onclick="saveMaintenanceMode()">💾 Save Maintenance Settings</button>
+    </div>
+    <div id="maint-summary" class="card">Loading…</div>
+  </div>
+
+<div id="at-admins" class="atab">
     <div style="font-weight:700;margin-bottom:12px">👥 Admin Management</div>
     <div style="font-size:.82rem;color:var(--t3);margin-bottom:14px">Only Super Admin can add or remove admins and assign roles.</div>
     <div class="card" style="margin-bottom:14px">
@@ -2398,7 +2577,17 @@ function hideMore(){if(window._real_hideMore)window._real_hideMore();}
     <div class="card">
       <div class="fg"><label class="fl">Title</label><input class="fi" id="bc-title" placeholder="e.g. Important Update"></div>
       <div class="fg"><label class="fl">Message</label><textarea class="fi" id="bc-msg" rows="5" placeholder="Message to all users…"></textarea></div>
-      <button class="btn btn-p" onclick="sendBroadcast()">📢 Send to All Users</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="fg"><label class="fl">Audience</label>
+          <select class="fi" id="bc-audience"><option value="all">All users</option><option value="admins">Admins only</option><option value="members">Members only</option></select>
+        </div>
+        <div class="fg"><label class="fl">Schedule (optional)</label><input class="fi" id="bc-schedule" type="datetime-local"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-p" onclick="sendBroadcast()">📢 Send / Schedule</button><div style="font-size:.74rem;color:var(--t2);margin-top:8px">Scheduled broadcasts are processed while an admin session is active. This is not a backend cron scheduler.</div>
+        <button class="btn btn-gh" onclick="processScheduledBroadcasts(true)">⏰ Run Due Scheduled Items</button>
+      </div>
+      <div style="margin-top:20px"><h3 style="font-size:.9rem;margin-bottom:10px">Scheduled Broadcasts</h3><div id="bc-scheduled"></div></div>
       <div style="margin-top:20px"><h3 style="font-size:.9rem;margin-bottom:10px">Sent Broadcasts</h3><div id="bc-history"></div></div>
     </div>
   </div>
@@ -2675,6 +2864,9 @@ function hideMore(){if(window._real_hideMore)window._real_hideMore();}
   <div id="grp-chat-msgs" style="flex:1;overflow-y:auto;background:var(--s2);border-radius:10px;padding:12px;margin-bottom:12px;min-height:200px">
     <div class="es">Loading messages…</div>
   </div>
+  <div style="font-size:.72rem;color:var(--t3);margin:-4px 0 10px;line-height:1.4">
+    ⚠️ Be aware of scammers. Chats and deals here are between users only; Starlife is not part of private message deals. Never share personal details, password, OTP, or payment credentials.
+  </div>
   <!-- Image preview -->
   <div id="grp-img-preview" style="display:none;margin-bottom:8px">
     <img id="grp-img-preview-img" style="max-height:80px;border-radius:8px;object-fit:contain">
@@ -2850,13 +3042,16 @@ function hideMore(){if(window._real_hideMore)window._real_hideMore();}
 const FIREBASE_CONFIG={apiKey:"AIzaSyCF09qr8P8_BOzWt53wopZlavHFZb7sBnM",authDomain:"starlife-advert-a6587.firebaseapp.com",projectId:"starlife-advert-a6587",storageBucket:"starlife-advert-a6587.firebasestorage.app",messagingSenderId:"946780590831",appId:"1:946780590831:web:dd22e4879ec0786a31011a"};
 const ADMIN_EMAIL="starlifeadvert@gmail.com";
 const SUPPORT_EMAIL="support@starlifeadvert.com";
-const TG_TOKEN="7703654969:AAHQ_wDrgFtvOzmSrSRglZwgPd4VXDFOMps";
-const TG_CHAT_ID="8403840295"; // Telegram Chat ID
 
 async function tg(msg){
-  if(!TG_CHAT_ID)return;
-  const url=`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`;
-  try{await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:TG_CHAT_ID,text:msg,parse_mode:'HTML'})});}
+  if(!msg)return;
+  try{
+    await fetch('/.netlify/functions/send-telegram',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({message:msg})
+    });
+  }
   catch(e){console.warn('TG error',e);}
 }
 firebase.initializeApp(FIREBASE_CONFIG);
@@ -2943,7 +3138,11 @@ window._activeSurvey=null;
 // AUTH STATE
 // ════════════════════════════════════════════════════════
 auth.onAuthStateChanged(async user=>{
-  if(!user){go('pg-land');return;}
+  if(!user){
+    await applyMaintenanceModeToUI(null);
+    go(window._maintenanceState?.active?'pg-maint':'pg-land');
+    return;
+  }
   const ref=db.collection('users').doc(user.uid);
   let snap=await ref.get();
   if(!snap.exists){
@@ -2954,6 +3153,16 @@ auth.onAuthStateChanged(async user=>{
   const d=snap.data();
   window.CU={uid:user.uid,...d};
   if(d.isBanned){go('pg-banned');return;}
+  await warmSecurityContext();
+  const blocked=await isCurrentIpBlocked();
+  if(blocked && !(d.isAdmin||user.email===ADMIN_EMAIL)){
+    await auth.signOut();
+    toast('Access from this network is restricted. Contact support.','tr',5000);
+    go('pg-login');
+    return;
+  }
+  await applyMaintenanceModeToUI(window.CU);
+  const sessionMeta=await recordLoginSession(user, d);
   if(d.isAdmin||user.email===ADMIN_EMAIL){
     if(!d.isAdmin)await ref.update({isAdmin:true});
     go('pg-admin');
@@ -2961,11 +3170,22 @@ auth.onAuthStateChanged(async user=>{
     renderAdminTabs();
     loadAdminAll();
   } else {
+    if(window._maintenanceState?.active && !window._maintenanceState?.allowAdminBypass){
+      go('pg-maint');
+      return;
+    }
+    if(window._maintenanceState?.active){
+      go('pg-maint');
+      return;
+    }
     go('pg-app');
     updateUI();
     loadAllUserData();
     loadBroadcasts();
     loadFAQ();
+    if(sessionMeta?.suspicious){
+      toast('Suspicious login detected — review Security Center','ty',5000);
+    }
   }
 });
 
@@ -3211,7 +3431,8 @@ function atab(el,id){
 // LOAD ALL USER DATA
 // ════════════════════════════════════════════════════════
 async function loadAllUserData(){
-  await Promise.all([loadInvestments(),loadWithdrawals(),loadActivity('all'),loadReferrals(),loadSurveys(),loadMyLoans(),loadMyTickets()]);
+  await Promise.all([loadInvestments(),loadWithdrawals(),loadActivity('all'),loadReferrals(),loadSurveys(),loadMyLoans(),loadMyTickets(),loadSecurityCenter()]);
+  processScheduledBroadcasts();
   setTimeout(initAutoReinvestUI, 500);
   // Load fresh KYC status from Firestore (not just cached CU)
   db.collection('kyc').doc(window.CU.uid).get().then(function(snap){
@@ -3477,7 +3698,8 @@ async function doInvest(){
   const u=window.CU;
   if(!amt||amt<10)return toast('Minimum $10','ty');
   if(amt>800000)return toast('Maximum $800,000','ty');
-  if((u.balance||0)<amt)return toast('Insufficient balance — deposit funds first','tr');
+  const spendable=getAvailableBalance(u);
+  if(spendable<amt)return toast(`Insufficient available balance. Available: $${fmt(spendable)}${(u.heldAmount||0)>0?' ($'+fmt(u.heldAmount)+' on hold)':''}`,'tr');
   try{
     const batch=db.batch();
     const invRef=db.collection('investments').doc();
@@ -3538,7 +3760,7 @@ async function doWithdraw(){
   const u=window.CU;
   if(!amt||amt<10)return toast('Minimum withdrawal $10','ty');
   if(!details)return toast('Enter your payment details','ty');
-  const availBal=Math.max(0,(u.balance||0)-(u.heldAmount||0));
+  const availBal=getAvailableBalance(u);
   if(availBal<amt)return toast(`Insufficient available balance. Available: $${fmt(availBal)}${(u.heldAmount||0)>0?' ($'+fmt(u.heldAmount)+' on hold)':''}`, 'tr');
   // KYC check
   if(u.kycStatus!=='approved'){
@@ -3607,7 +3829,7 @@ async function submitDeposit(){
   const u=window.CU;
   if(!amt||amt<=0)return toast('Enter amount','ty');
   if(!ref)return toast('Enter your transaction reference','ty');
-  await db.collection('deposits').add({uid:u.uid,userName:u.name,userEmail:u.email,method,amount:amt,ref,status:'pending',createdAt:FS().serverTimestamp()});
+  await db.collection('deposits').add({uid:u.uid,userName:u.name,userEmail:u.email,method,amount:amt,ref,status:'pending',promoCode:window._appliedPromo?.code||null,promoId:window._appliedPromo?.id||null,promoType:window._appliedPromo?.type||null,promoValue:window._appliedPromo?.value||null,promoMinDeposit:window._appliedPromo?.minDeposit||0,promoDepositScope:window._appliedPromo?.depositScope||null,promoAppliedAt:window._appliedPromo?FS().serverTimestamp():null,promoBonusApplied:false,createdAt:FS().serverTimestamp()});
   await db.collection('adminNotifs').add({type:'deposit',msg:`Deposit $${amt} from ${u.name} via ${method}`,uid:u.uid,read:false,createdAt:FS().serverTimestamp()});
   logAct(u.uid,`Deposit submitted $${fmt(amt)} via ${method}`,0,'📥','deposit');
   tg(`📥 <b>Deposit Proof</b>\nUser: ${u.name} (${u.email})\nAmount: $${fmt(amt)}\nMethod: ${method}\nRef: ${ref}`);
@@ -3647,7 +3869,8 @@ async function doStake(){
   const amt=parseFloat($('sh-amt').value);
   const u=window.CU;
   if(!amt||amt<25)return toast('Minimum stake is $25','ty');
-  if((u.balance||0)<amt)return toast('Insufficient balance — deposit funds first','tr');
+  const spendable=getAvailableBalance(u);
+  if(spendable<amt)return toast(`Insufficient available balance. Available: $${fmt(spendable)}${(u.heldAmount||0)>0?' ($'+fmt(u.heldAmount)+' on hold)':''}`,'tr');
   try{
     const batch=db.batch();
     const stakeRef=db.collection('stakes').doc();
@@ -3870,7 +4093,8 @@ async function loadMyLoans(){
 
 async function repayLoan(loanId,total){
   const u=window.CU;
-  if((u.balance||0)<total)return toast('Insufficient balance to repay','tr');
+  const spendable=getAvailableBalance(u);
+  if(spendable<total)return toast(`Insufficient available balance to repay. Available: $${fmt(spendable)}`,'tr');
   await db.collection('users').doc(u.uid).update({balance:FS().increment(-total)});
   await db.collection('loans').doc(loanId).update({status:'repaid',repaidAt:FS().serverTimestamp()});
   logAct(u.uid,`Loan repaid $${fmt(total)}`,-total,'💰','loan');
@@ -4011,11 +4235,14 @@ function getTagsHTML(u){
   return tags;
 }
 
-function updateProfileBadges(u){
+function updateProfileBadges(u=window.CU){
+  if(!u)return;
   const vbadge=$('prof-vbadge');
   const tagsRow=$('prof-tags-row');
   const badgeIcon=$('prof-badge-icon');
+  const badgeEl=$('prof-badges-display');
   if(vbadge)vbadge.innerHTML=getBadgeHTML(u);
+  if(badgeEl)badgeEl.innerHTML=getBadgeHTML(u);
   if(tagsRow)tagsRow.innerHTML=getTagsHTML(u);
   if(badgeIcon){
     if(u.isVerified||u.isAgent){
@@ -4027,6 +4254,16 @@ function updateProfileBadges(u){
   const fc=$('prof-followers-count'),fgc=$('prof-following-count');
   if(fc)fc.textContent=fmtNum(getTotalFollowers(u));
   if(fgc)fgc.textContent=fmtNum((u.followingCount||0)+(u.following||[]).length);
+  // Update VIP display
+  const vip=getVIPLevel(u.totalInvested||0);
+  const vipEl=$('prof-vip-level');
+  if(vipEl)vipEl.innerHTML=`<span class="tag-vip ${vip.css}">${vip.icon} ${vip.label}</span>`;
+  // Update nav avatar badge
+  const navAv=$('nav-av-wrap');
+  if(navAv){
+    if(u.isVerified){navAv.style.outline='2px solid #1877F2';navAv.style.outlineOffset='1px';}
+    else {navAv.style.outline='';navAv.style.outlineOffset='';}
+  }
   // Verify notice — show if not verified and could qualify
   const notice=$('prof-verify-notice');
   if(notice)notice.style.display=u.isVerified?'none':'block';
@@ -4089,7 +4326,7 @@ async function applyVerification(){
     toast('✅ Blue verified badge activated instantly!','tg',4000);
   } else {
     // Paid — $10/month, instant
-    const avail=Math.max(0,(u.balance||0)-(u.heldAmount||0));
+    const avail=getAvailableBalance(u);
     if(avail<10)return toast(`Insufficient balance — need $10. Available: $${fmt(avail)}`,'tr');
     if(!confirm('Pay $10/month for blue verified badge? Deducted from your balance now, then monthly automatically.'))return;
     try{
@@ -4202,6 +4439,11 @@ async function toggleFollow(){
     await db.collection('users').doc(me.uid).update({followingCount:firebase.firestore.FieldValue.increment(-1)});
     const btn=$('pp-follow-btn');
     if(btn){btn.textContent='Follow';btn.style.background='var(--g)';btn.style.color='#000';}
+    if(window.CU){
+      window.CU.followingCount=Math.max(0,(window.CU.followingCount||0)-1);
+      updateProfileBadges(window.CU);
+    }
+    await refreshPublicProfileCounts(uid);
     toast('Unfollowed');
   } else {
     // Follow
@@ -4211,8 +4453,29 @@ async function toggleFollow(){
     await db.collection('userNotifs').add({uid,msg:`👤 ${me.name} started following you!`,read:false,createdAt:FS().serverTimestamp()});
     const btn=$('pp-follow-btn');
     if(btn){btn.textContent='✓ Following';btn.style.background='var(--s2)';btn.style.color='var(--t1)';}
+    if(window.CU){
+      window.CU.followingCount=(window.CU.followingCount||0)+1;
+      updateProfileBadges(window.CU);
+    }
+    await refreshPublicProfileCounts(uid);
     toast('Following ✓');
   }
+}
+
+async function refreshPublicProfileCounts(uid){
+  if(!uid)return;
+  try{
+    const targetSnap=await db.collection('users').doc(uid).get();
+    if(targetSnap.exists){
+      const target={id:uid,...targetSnap.data()};
+      if($('pp-followers'))$('pp-followers').textContent=fmtNum(getTotalFollowers(target));
+      if($('pp-following'))$('pp-following').textContent=fmtNum((target.followingCount||0)+(target.following||[]).length);
+      if(_viewingProfileUid===window.CU?.uid){
+        window.CU={...window.CU,...target};
+        updateProfileBadges(window.CU);
+      }
+    }
+  }catch(_){}
 }
 
 async function showFollowers(){
@@ -4243,9 +4506,43 @@ function dmFromProfile(){
 // ════════════════════════════════════════════════════════
 let _activeDMUser=null;
 let _activeDMId=null;
+let _dmBlockState={iBlocked:false,blockedMe:false,muted:false};
+window._activeDMUser=null;
 
 function getDMId(uid1,uid2){
   return [uid1,uid2].sort().join('_');
+}
+function memberIdFromUid(uid){ return (uid||'').substring(0,8).toUpperCase(); }
+function dmViewProfile(){
+  const uid=_activeDMUser?.id||_activeDMUser?.uid||window._activeDMUser?.id||window._activeDMUser?.uid;
+  if(!uid)return toast('Profile unavailable','ty');
+  viewPublicProfile(uid);
+}
+
+async function refreshDMModerationState(){
+  const u=window.CU, peer=_activeDMUser?.id||_activeDMUser?.uid;
+  if(!u||!peer)return;
+  const blockBtn=$('dm-block-btn'), inp=$('dm-inp');
+  try{
+    const [mine,other,freshMe]=await Promise.all([
+      db.collection('dmBlocks').doc(`${u.uid}_${peer}`).get(),
+      db.collection('dmBlocks').doc(`${peer}_${u.uid}`).get(),
+      db.collection('users').doc(u.uid).get()
+    ]);
+    _dmBlockState.iBlocked=mine.exists;
+    _dmBlockState.blockedMe=other.exists;
+    const meData=freshMe.data()||{};
+    const strikeUntil=promoTsToDate(meData.dmStrikeUntil);
+    _dmBlockState.muted=!!meData.dmMuted || (!!strikeUntil && strikeUntil>new Date());
+    if(blockBtn)blockBtn.textContent=_dmBlockState.iBlocked?'Unblock':'Block';
+    const statusEl=$('dm-chat-status');
+    if(statusEl && _dmBlockState.blockedMe)statusEl.innerHTML=(getTagsHTML(_activeDMUser)||'Member')+' · <span style="color:var(--red)">Blocked you</span>';
+    if(inp){
+      const locked=_dmBlockState.blockedMe||_dmBlockState.iBlocked||_dmBlockState.muted;
+      inp.disabled=locked;
+      inp.placeholder=_dmBlockState.muted?'Messaging temporarily restricted by support':(_dmBlockState.iBlocked?'You blocked this user':'Message…');
+    }
+  }catch(_){}
 }
 
 async function startNewDM(){
@@ -4260,7 +4557,7 @@ async function startNewDM(){
   openDMChat(match.id,{id:match.id,...match.data()});
 }
 
-async function openDMChat(uid,userData){
+async function openDMChat(uid,userData,rowEl){
   const u=window.CU;
   if(!uid||uid==='undefined')return toast('Invalid user','ty');
   if(!userData||typeof userData==='string'){
@@ -4271,20 +4568,27 @@ async function openDMChat(uid,userData){
     }catch(e){return toast('Error: '+e.message,'tr');}
   }
   _activeDMUser=userData;
+  window._activeDMUser=userData;
   _activeDMId=getDMId(u.uid,uid);
+  if(rowEl){
+    const b=rowEl.querySelector('[data-unread-badge]');
+    if(b)b.remove();
+  }
   // Update header
   const av=$('dm-chat-av'),nameEl=$('dm-chat-name'),statusEl=$('dm-chat-status');
   if(av)av.textContent=(userData.name||'U')[0].toUpperCase();
   if(nameEl)nameEl.innerHTML=(userData.name||'Member')+getBadgeHTML(userData);
   if(statusEl)statusEl.innerHTML=getTagsHTML(userData)||'Member';
+  await refreshDMModerationState();
   // Load messages
   await loadDMMessages();
   openModal('m-dm-chat');
   // Mark as read
   await db.collection('dms').doc(_activeDMId).collection('msgs')
     .where('to','==',u.uid).where('read','==',false).get()
-    .then(snap=>snap.docs.forEach(d=>d.ref.update({read:true})));
-  loadDMList();
+    .then(snap=>Promise.all(snap.docs.map(d=>d.ref.update({read:true}))));
+  await db.collection('dms').doc(_activeDMId).set({[`unread_${u.uid}`]:0},{merge:true});
+  await loadDMList();
 }
 
 async function loadDMMessages(){
@@ -4294,7 +4598,10 @@ async function loadDMMessages(){
   try{
     const snap=await db.collection('dms').doc(_activeDMId).collection('msgs').get();
     const msgs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
-    if(!msgs.length){el.innerHTML='<div style="text-align:center;padding:30px;color:var(--t3);font-size:.82rem">No messages yet. Say hello! 👋</div>';return;}
+    if(!msgs.length){
+      el.innerHTML='<div style="font-size:.72rem;color:var(--t3);line-height:1.4;padding:8px 8px 14px;text-align:center">⚠️ Be aware of scammers. Any transaction or discussion in this chat is between users only. Starlife is not part of private deals made in messages. Do not share your personal details, password, OTP, or payment credentials.</div><div style="text-align:center;padding:20px 30px;color:var(--t3);font-size:.82rem">No messages yet. Say hello! 👋</div>';
+      return;
+    }
     el.innerHTML=msgs.map(m=>{
       const mine=m.from===u.uid;
       const time=m.createdAt?new Date(m.createdAt.seconds*1000).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):'';
@@ -4311,6 +4618,10 @@ async function sendDM(){
   const inp=$('dm-inp');
   const text=inp?.value.trim();
   if(!text||!_activeDMId||!_activeDMUser)return;
+  await refreshDMModerationState();
+  if(_dmBlockState.muted)return toast('You are muted from sending DMs','tr');
+  if(_dmBlockState.blockedMe)return toast('This user has blocked you','ty');
+  if(_dmBlockState.iBlocked)return toast('Unblock this user to send messages','ty');
   const u=window.CU;
   inp.value='';
   try{
@@ -4331,6 +4642,54 @@ async function sendDM(){
   }catch(e){toast('Error: '+e.message,'tr');inp.value=text;}
 }
 
+async function toggleDMBlock(){
+  const u=window.CU,peer=_activeDMUser?.id||_activeDMUser?.uid;
+  if(!u||!peer||peer===u.uid)return;
+  const ref=db.collection('dmBlocks').doc(`${u.uid}_${peer}`);
+  const snap=await ref.get();
+  if(snap.exists){ await ref.delete(); toast('User unblocked'); }
+  else { await ref.set({blockerUid:u.uid,blockedUid:peer,createdAt:FS().serverTimestamp()}); toast('User blocked'); }
+  await refreshDMModerationState();
+}
+
+function openDMReportModal(){
+  if(!_activeDMId||!_activeDMUser)return toast('Open a chat first','ty');
+  if($('dm-report-reason'))$('dm-report-reason').value='scam';
+  if($('dm-report-note'))$('dm-report-note').value='';
+  openModal('m-dm-report');
+}
+
+async function submitDMReport(){
+  const u=window.CU,peer=_activeDMUser?.id||_activeDMUser?.uid;
+  const reason=$('dm-report-reason')?.value||'other';
+  const note=($('dm-report-note')?.value||'').trim();
+  if(!u||!peer||!_activeDMId)return toast('Open a chat first','ty');
+  try{
+    await db.collection('dmReports').add({
+      reporterUid:u.uid,
+      reportedUid:peer,
+      reporterMemberId:memberIdFromUid(u.uid),
+      reportedMemberId:memberIdFromUid(peer),
+      conversationId:_activeDMId,
+      reason,
+      note,
+      status:'pending',
+      createdAt:FS().serverTimestamp(),
+      moderationNotes:'',
+      reviewedBy:null,
+      reviewedAt:null
+    });
+    await db.collection('userNotifs').add({uid:u.uid,msg:'✅ Your report has been received and is pending review.',read:false,createdAt:FS().serverTimestamp()});
+    const when=new Date().toLocaleString();
+    const reporterRef=`${memberIdFromUid(u.uid)}${u.email?` / ${u.email}`:''}`;
+    const peerEmail=_activeDMUser?.email||'';
+    const reportedRef=`${memberIdFromUid(peer)}${peerEmail?` / ${peerEmail}`:''}`;
+    tg(`🚨 <b>New DM Report</b>\nReason: ${String(reason).toUpperCase()}\nReporter: ${reporterRef}\nReported: ${reportedRef}\nTime: ${when}\nNote: ${note||'none'}`);
+    closeModal('m-dm-report');
+    toast('Report submitted. Support will review it.','tg');
+  }catch(e){toast('Could not submit report: '+e.message,'tr');}
+}
+
 async function loadDMList(){
   const el=$('dm-list');if(!el)return;
   const u=window.CU;
@@ -4342,7 +4701,7 @@ async function loadDMList(){
       const otherUid=c.participants.find(p=>p!==u.uid);
       const otherName=c.names?.[otherUid]||'Member';
       const unread=c[`unread_${u.uid}`]||0;
-      return`<div class="dm-list-item" onclick="openDMChat('${otherUid}')">
+      return`<div class="dm-list-item" onclick="openDMChat('${otherUid}',null,this)">
         <div class="dm-av" style="width:42px;height:42px;font-size:.95rem">${(otherName||'M')[0].toUpperCase()}</div>
         <div style="flex:1;min-width:0">
           <div style="display:flex;justify-content:space-between;align-items:center">
@@ -4351,7 +4710,7 @@ async function loadDMList(){
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px">
             <div style="font-size:.78rem;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${c.lastMsg||'...'}</div>
-            ${unread>0?`<span style="background:var(--g);color:#000;font-size:.68rem;font-weight:700;padding:2px 6px;border-radius:10px;flex-shrink:0;margin-left:6px">${unread}</span>`:''}
+            ${unread>0?`<span data-unread-badge="1" style="background:var(--g);color:#000;font-size:.68rem;font-weight:700;padding:2px 6px;border-radius:10px;flex-shrink:0;margin-left:6px">${unread}</span>`:''}
           </div>
         </div>
       </div>`;
@@ -4365,15 +4724,15 @@ async function loadDMList(){
 const ADMIN_ROLES = {
   superadmin: {
     label:'⭐ Super Admin', color:'var(--gold)',
-    tabs:['investments','deposits','withdrawals','users','kyc','leaderboard','community','stakes','loans','tickets','surveys','redemptions','activity','revenue','testi','prizecodes','luckydraw','contest','p2p','broadcast','ads','admins']
+    tabs:['investments','deposits','withdrawals','users','kyc','leaderboard','community','stakes','loans','tickets','surveys','redemptions','activity','revenue','analytics','security','maintenance','testi','prizecodes','luckydraw','contest','p2p','broadcast','ads','admins','promocodes']
   },
   finance: {
     label:'💰 Finance', color:'var(--g)',
-    tabs:['deposits','withdrawals','revenue','activity','users']
+    tabs:['deposits','withdrawals','revenue','analytics','activity','users','promocodes']
   },
   support: {
     label:'🎧 Support', color:'var(--sky)',
-    tabs:['tickets','kyc','users','activity']
+    tabs:['tickets','kyc','users','activity','security']
   },
   moderator: {
     label:'🌐 Moderator', color:'#a78bfa',
@@ -4401,6 +4760,9 @@ const ADMIN_TAB_LOADERS = {
   redemptions: ()=>loadAdminRedemptions(),
   activity: ()=>loadAdminActivity('all'),
   revenue: ()=>loadRevenue(),
+  analytics: ()=>loadAnalyticsDashboard(),
+  security: ()=>loadAdminSecurity(),
+  maintenance: ()=>loadMaintenanceAdmin(),
   testi: ()=>loadAdminTestis(),
   prizecodes: ()=>loadAdminPrizeCodes(),
   luckydraw: ()=>loadAdminDraw(),
@@ -4427,6 +4789,9 @@ const ALL_ADMIN_TABS = [
   {id:'redemptions', label:'🔄 Redeem'},
   {id:'activity', label:'Activity'},
   {id:'revenue', label:'Revenue'},
+  {id:'analytics', label:'📊 Analytics'},
+  {id:'security', label:'🛡️ Security'},
+  {id:'maintenance', label:'🛠️ Maintenance'},
   {id:'testi', label:'Reviews'},
   {id:'prizecodes', label:'🎫 Prize Codes'},
   {id:'luckydraw', label:'🎰 Lucky Draw'},
@@ -5422,10 +5787,57 @@ async function loadAdminActivity(filter='all'){
 async function sendBroadcast(){
   const title=$('bc-title').value.trim();
   const message=$('bc-msg').value.trim();
+  const audience=$('bc-audience')?.value||'all';
+  const scheduleAt=$('bc-schedule')?.value;
   if(!message)return toast('Enter message','ty');
-  await db.collection('broadcasts').add({title:title||'Announcement',message,createdAt:FS().serverTimestamp()});
-  tg(`📢 <b>Broadcast Sent</b>\nTitle: ${title||'Announcement'}\nMessage: ${message}`);
-  toast('Broadcast sent ✓');$('bc-title').value='';$('bc-msg').value='';
+  const payload={title:title||'Announcement',message,audience,createdAt:FS().serverTimestamp(),status:scheduleAt?'scheduled':'sent'};
+  if(scheduleAt)payload.scheduleAt=firebase.firestore.Timestamp.fromDate(new Date(scheduleAt));
+  if(scheduleAt){
+    await db.collection('broadcasts').add(payload);
+    toast('Broadcast scheduled ✓');
+  }else{
+    await db.collection('broadcasts').add({...payload,sentAt:FS().serverTimestamp()});
+    tg(`📢 <b>Broadcast Sent</b>
+Title: ${title||'Announcement'}
+Message: ${message}`);
+    toast('Broadcast sent ✓');
+  }
+  $('bc-title').value='';$('bc-msg').value='';if($('bc-schedule'))$('bc-schedule').value='';
+  loadAdminBroadcasts();
+}
+async function processScheduledBroadcasts(showToast){
+  try{
+    const snap=await db.collection('broadcasts').where('status','==','scheduled').get();
+    const now=Date.now();
+    let sent=0;
+    for(const doc of snap.docs){
+      const data=doc.data()||{};
+      const at=promoTsToDate(data.scheduleAt)?.getTime()||0;
+      if(at && at<=now){
+        await doc.ref.update({status:'sent',sentAt:FS().serverTimestamp()});
+        sent++;
+      }
+    }
+    if(showToast)toast(sent?`Scheduled broadcasts processed: ${sent}`:'No due scheduled broadcasts','tg');
+    if($('bc-history'))loadAdminBroadcasts();
+  }catch(e){if(showToast)toast('Scheduled broadcast check failed','tr');}
+}
+async function loadAdminBroadcasts(){
+  await processScheduledBroadcasts(false);
+  const snap=await db.collection('broadcasts').limit(50).get();
+  const list=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>((b.sentAt?.seconds||b.scheduleAt?.seconds||b.createdAt?.seconds||0)-(a.sentAt?.seconds||a.scheduleAt?.seconds||a.createdAt?.seconds||0)));
+  const el=$('bc-history');const schedEl=$('bc-scheduled');
+  if(el)el.innerHTML=''; if(schedEl)schedEl.innerHTML='';
+  const scheduled=list.filter(b=>b.status==='scheduled');
+  const sent=list.filter(b=>b.status!=='scheduled');
+  if(schedEl)schedEl.innerHTML=scheduled.length?scheduled.map(b=>`<div class="arow" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div><div style="font-weight:600;font-size:.88rem">${b.title||'Announcement'} <span class="badge bgold">Scheduled</span></div><div style="font-size:.8rem;color:var(--t2);margin-top:3px">${b.message}</div><div style="font-size:.72rem;color:var(--t3);margin-top:4px">Audience: ${b.audience||'all'} · ${fmtDT(b.scheduleAt)}</div></div><button class="btn btn-d btn-sm" style="flex-shrink:0" onclick="deleteBroadcast(this)" data-id="${b.id}">🗑</button></div></div>`).join(''):'<div class="es" style="padding:14px">No scheduled broadcasts</div>';
+  if(el)el.innerHTML=sent.length?sent.map(b=>`<div class="arow" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div><div style="font-weight:600;font-size:.88rem">${b.title||'Announcement'} ${b.failed?'<span class="badge br">Failed</span>':'<span class="badge bg">Sent</span>'}</div><div style="font-size:.8rem;color:var(--t2);margin-top:3px">${b.message}</div><div style="font-size:.72rem;color:var(--t3);margin-top:4px">Audience: ${b.audience||'all'} · ${fmtDT(b.sentAt||b.createdAt)}</div></div><button class="btn btn-d btn-sm" style="flex-shrink:0" onclick="deleteBroadcast(this)" data-id="${b.id}">🗑</button></div></div>`).join(''):'<div class="es" style="padding:14px">No broadcasts yet</div>';
+}
+async function deleteBroadcast(btn){
+  const id=btn.dataset.id;
+  if(!confirm('Delete this broadcast?'))return;
+  await db.collection('broadcasts').doc(id).delete();
+  toast('Broadcast deleted');
   loadAdminBroadcasts();
 }
 
@@ -5492,6 +5904,7 @@ async function loadRevenue(){
       +'<div class="ai-time">'+fmtDT(a.createdAt)+'</div></div></div>'
       +'<div class="ai-amt '+(pos?'pos':'neg')+'">'+(pos?'+':'')+'$'+fmt(a.amt)+'</div></div>';
   }).join('');
+  if(window.bulkProfitRenderSelected)bulkProfitRenderSelected();
 }
 
 function exportCSV(){
@@ -5576,9 +5989,8 @@ async function adminHoldFunds(uid, name, balance, currentHeld){
 }
 
 // Block withdraw/transfer/invest if held funds would make balance insufficient
-function getAvailableBalance(){
-  const u=window.CU;
-  return Math.max(0,(u.balance||0)-(u.heldAmount||0));
+function getAvailableBalance(u=window.CU){
+  return Math.max(0,(u?.balance||0)-(u?.heldAmount||0));
 }
 
 // ════════════════════════════════════════════════════════
@@ -5659,7 +6071,7 @@ function initiateTransfer(){
   if(!amt||amt<=0)return toast('Enter an amount','ty');
   if(_tfType==='cash'){
     if(amt<1)return toast('Minimum transfer is $1','ty');
-    const tfAvail=Math.max(0,(u.balance||0)-(u.heldAmount||0));
+    const tfAvail=getAvailableBalance(u);
     if(tfAvail<amt)return toast(`Insufficient available balance. Available: $${fmt(tfAvail)}${(u.heldAmount||0)>0?' ($'+fmt(u.heldAmount)+' on hold)':''}`, 'tr');
   } else {
     if(amt<10)return toast('Minimum transfer is 10 points','ty');
@@ -5813,7 +6225,7 @@ async function postP2PAd(){
   if(max>amt)return toast('Max order cannot exceed total amount','ty');
   if(_p2pAdType==='sell'&&!details)return toast('Enter your payment details','ty');
   if(_p2pAdType==='sell'){
-    const avail=Math.max(0,(u.balance||0)-(u.heldAmount||0));
+    const avail=getAvailableBalance(u);
     if(avail<amt)return toast(`Insufficient balance. Available: $${fmt(avail)}`,'tr');
   }
   try{
@@ -5930,7 +6342,7 @@ async function confirmOpenTrade(){
   const isSelling=ad.type==='buy'; // user selling to buy ad
   if(isSelling){
     // User is selling their USD to a buy ad — check balance
-    const avail=Math.max(0,(u.balance||0)-(u.heldAmount||0));
+    const avail=getAvailableBalance(u);
     if(avail<amt)return toast(`Insufficient balance. Available: $${fmt(avail)}`,'tr');
   }
   closeModal('m-p2p-open');
@@ -6392,20 +6804,6 @@ async function renewVerifiedSubscriptions(){
   }
 }
 
-function updateProfileBadges(){
-  const u=window.CU;if(!u)return;
-  // Update profile tab badges
-  const badgeEl=$('prof-badges-display');
-  if(badgeEl)badgeEl.innerHTML=getBadgeHTML(u);
-  // Update VIP display
-  const vip=getVIPLevel(u.totalInvested||0);
-  const vipEl=$('prof-vip-level');
-  if(vipEl)vipEl.innerHTML=`<span class="tag-vip ${vip.css}">${vip.icon} ${vip.label}</span>`;
-  // Update nav avatar badge
-  const navAv=$('nav-av-wrap');
-  if(navAv&&u.isVerified){navAv.style.outline='2px solid #1877F2';navAv.style.outlineOffset='1px';}
-}
-
 // ════════════════════════════════════════════════════════
 // FOLLOW SYSTEM
 // ════════════════════════════════════════════════════════
@@ -6499,7 +6897,7 @@ async function loadDiscover(){
     // Get ALL users — real and fake — no filtering on following
     const snap=await db.collection('users').get();
     const users=snap.docs.map(d=>({id:d.id,...d.data()}))
-      .filter(p=>p.id!==u.uid&&!p.isBanned&&!p.isAdmin)
+      .filter(p=>p.id!==u.uid&&!p.isBanned&&!p.isAdmin&&!p.hideFromDiscover)
       .sort((a,b)=>getTotalFollowers(b)-getTotalFollowers(a)); // sort by followers desc
     if(!users.length){el.innerHTML='<div class="es">No users yet</div>';return;}
     el.innerHTML=users.map(p=>renderSocialCard(p,'discover')).join('');
@@ -6645,7 +7043,7 @@ async function lockInVault(){
   const u=window.CU;
   const amt=parseFloat($('vault-amt')?.value);
   if(!amt||amt<10)return toast('Minimum $10 to lock in vault','ty');
-  const avail=Math.max(0,(u.balance||0)-(u.heldAmount||0));
+  const avail=getAvailableBalance(u);
   if(avail<amt)return toast(`Insufficient balance. Available: $${fmt(avail)}`,'tr');
   const bonus=parseFloat((amt*_vaultPlan.rate/100).toFixed(4));
   const receive=parseFloat((amt+bonus).toFixed(4));
@@ -6762,7 +7160,7 @@ async function addToGoal(goalId,target,saved){
   const u=window.CU;
   const amt=parseFloat($('gs-'+goalId)?.value)||0;
   if(!amt||amt<1)return toast('Enter amount to add','ty');
-  const avail=Math.max(0,(u.balance||0)-(u.heldAmount||0));
+  const avail=getAvailableBalance(u);
   if(avail<amt)return toast(`Insufficient balance. Available: $${fmt(avail)}`,'tr');
   const newSaved=parseFloat((saved+amt).toFixed(4));
   const achieved=newSaved>=target;
@@ -6787,8 +7185,325 @@ async function deleteGoal(goalId){
 }
 
 // ════════════════════════════════════════════════════════
+let _securityMeta=null;
+window._maintenanceState={active:false};
+function getDeviceId(){let id=localStorage.getItem('starlifeDeviceId');if(!id){id='dev-'+Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem('starlifeDeviceId',id);}return id;}
+function getBrowserName(){const ua=navigator.userAgent||'';if(/Edg\//.test(ua))return'Edge';if(/Chrome\//.test(ua))return'Chrome';if(/Firefox\//.test(ua))return'Firefox';if(/Safari\//.test(ua) && !/Chrome\//.test(ua))return'Safari';return'Browser';}
+async function warmSecurityContext(){
+  if(_securityMeta)return _securityMeta;
+  const meta={deviceId:getDeviceId(),browser:getBrowserName(),device:navigator.platform||'Unknown device',ip:'Unavailable',location:'Unavailable',ua:navigator.userAgent||''};
+  try{const res=await fetch('https://api.ipify.org?format=json');const data=await res.json();meta.ip=data.ip||meta.ip;}catch(e){}
+  try{const res=await fetch('https://ipapi.co/json/');const data=await res.json();meta.location=[data.city,data.region,data.country_name].filter(Boolean).join(', ')||meta.location;meta.ip=(data.ip||meta.ip);}catch(e){}
+  _securityMeta=meta; return meta;
+}
+async function isCurrentIpBlocked(){
+  const meta=await warmSecurityContext();
+  if(!meta.ip||meta.ip==='Unavailable')return false;
+  const snap=await db.collection('blockedIps').where('ip','==',meta.ip).where('active','==',true).limit(1).get();
+  return !snap.empty;
+}
+async function recordLoginSession(user, d){
+  const meta=await warmSecurityContext();
+  const prior=await db.collection('loginHistory').where('uid','==',user.uid).where('deviceId','==',meta.deviceId).limit(1).get();
+  const suspicious=prior.empty;
+  const payload={uid:user.uid,email:user.email||d.email||'',deviceId:meta.deviceId,device:meta.device,browser:meta.browser,ip:meta.ip||'Unavailable',location:meta.location||'Unavailable',userAgent:meta.ua,createdAt:FS().serverTimestamp(),current:true,suspicious};
+  await db.collection('loginHistory').add(payload);
+  if(suspicious){
+    await db.collection('securityEvents').add({uid:user.uid,email:user.email||d.email||'',type:'suspicious_login',ip:payload.ip,location:payload.location,device:payload.device,browser:payload.browser,createdAt:FS().serverTimestamp(),resolved:false});
+    await db.collection('userNotifs').add({uid:user.uid,msg:`⚠️ New login detected from ${payload.browser} • ${payload.location||payload.ip}`,read:false,createdAt:FS().serverTimestamp()});
+  }
+  return {suspicious,...payload};
+}
+async function loadSecurityCenter(){
+  const wrap=$('security-history');if(!wrap||!window.CU)return;
+  const alerts=$('security-alerts');
+  const btn=$('browser-notif-btn');
+  if(btn)btn.textContent=(window.CU.browserNotificationsEnabled?'🔕 Disable Browser Alerts':'🔔 Enable Browser Alerts');
+  wrap.innerHTML='<div class="es">Loading security activity…</div>';
+  try{
+    const [historySnap,eventSnap]=await Promise.all([
+      db.collection('loginHistory').where('uid','==',window.CU.uid).limit(10).get(),
+      db.collection('securityEvents').where('uid','==',window.CU.uid).limit(10).get()
+    ]);
+    const items=historySnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+    const events=eventSnap.docs.map(d=>d.data()).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+    if(alerts)alerts.innerHTML=events.length?events.slice(0,2).map(e=>`⚠️ ${e.type.replace(/_/g,' ')} • ${e.location||e.ip||'Unknown'}`).join('<br>'):'No suspicious activity detected.';
+    wrap.innerHTML=items.length?items.map(i=>`<div class="ai"><div class="ai-l"><div class="ai-ico ${i.deviceId===getDeviceId()?'g':'sky'}">🔐</div><div><div class="ai-desc">${i.browser||'Browser'} • ${i.device||'Device'} ${i.deviceId===getDeviceId()?'<span class="badge bg">Current</span>':''}</div><div class="ai-time">${i.ip&&i.ip!=='Unavailable'?i.ip:'IP unavailable'} · ${i.location&&i.location!=='Unavailable'?i.location:'Location unavailable / approximate'} · ${i.device||'Browser device estimate'} · ${fmtDT(i.createdAt)}</div></div></div>${i.suspicious?'<span class="badge bgold">New device</span>':'<span class="badge bmut">Known</span>'}</div>`).join(''):'<div class="es">No login history yet</div>';
+  }catch(e){wrap.innerHTML='<div class="es">Unable to load security history</div>';}
+}
+async function toggleBrowserNotifications(){
+  if(!window.CU)return;
+  if(!('Notification' in window))return toast('Browser notifications are not supported here','ty');
+  const enabled=!!window.CU.browserNotificationsEnabled;
+  if(enabled){
+    await db.collection('users').doc(window.CU.uid).update({browserNotificationsEnabled:false});
+    window.CU.browserNotificationsEnabled=false; loadSecurityCenter(); return toast('Browser notifications disabled');
+  }
+  const perm=await Notification.requestPermission();
+  if(perm!=='granted')return toast('Notification permission was not granted','ty');
+  await db.collection('users').doc(window.CU.uid).update({browserNotificationsEnabled:true});
+  window.CU.browserNotificationsEnabled=true;
+  new Notification('Starlife notifications enabled',{body:'You will now receive browser alerts while this app is open.'});
+  loadSecurityCenter();
+  toast('Browser notifications enabled','tg');
+}
+async function changePasswordFlow(){
+  if(!auth.currentUser?.email)return toast('Please sign in again to change your password','ty');
+  const current=prompt('Enter your current password'); if(!current)return;
+  const next=prompt('Enter your new password (minimum 8 characters)'); if(!next)return;
+  if(next.length<8)return toast('Password must be at least 8 characters','ty');
+  try{
+    const cred=firebase.auth.EmailAuthProvider.credential(auth.currentUser.email,current);
+    await auth.currentUser.reauthenticateWithCredential(cred);
+    await auth.currentUser.updatePassword(next);
+    await db.collection('securityEvents').add({uid:window.CU.uid,email:window.CU.email||auth.currentUser.email,type:'password_changed',createdAt:FS().serverTimestamp(),resolved:true});
+    await db.collection('userNotifs').add({uid:window.CU.uid,msg:'🔐 Your password was changed successfully.',read:false,createdAt:FS().serverTimestamp()});
+    await loadSecurityCenter();
+    toast('Password updated successfully','tg');
+  }catch(e){toast('Could not update password: '+e.message,'tr');}
+}
+async function loadAdminSecurity(){
+  const blockedEl=$('blocked-ip-list'), eventsEl=$('security-events-list'), reportsEl=$('dm-report-list');
+  if(blockedEl)blockedEl.innerHTML='<div class="es">Loading…</div>';
+  if(eventsEl)eventsEl.innerHTML='<div class="es">Loading…</div>';
+  if(reportsEl)reportsEl.innerHTML='<div class="es">Loading…</div>';
+  try{
+    const [blockedSnap,eventsSnap,reportsSnap]=await Promise.all([db.collection('blockedIps').get(),db.collection('securityEvents').limit(50).get(),db.collection('dmReports').limit(100).get()]);
+    const blocked=blockedSnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+    const events=eventsSnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+    const reports=reportsSnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+    if(blockedEl)blockedEl.innerHTML=blocked.length?blocked.map(b=>`<div class="ai"><div class="ai-l"><div class="ai-ico r">⛔</div><div><div class="ai-desc">${b.ip}</div><div class="ai-time">${b.reason||'Blocked IP'} · ${fmtDT(b.createdAt)}</div></div></div><button class="btn btn-gh btn-sm" onclick="adminUnblockIp('${b.id}')">Unblock</button></div>`).join(''):'<div class="es">No blocked IPs</div>';
+    if(eventsEl)eventsEl.innerHTML=events.length?events.map(e=>`<div class="ai"><div class="ai-l"><div class="ai-ico gold">🛡️</div><div><div class="ai-desc">${(e.type||'event').replace(/_/g,' ')} ${e.email?`— ${e.email}`:''}</div><div class="ai-time">${e.ip&&e.ip!=='Unavailable'?e.ip:'IP unavailable'} · ${e.location&&e.location!=='Unavailable'?e.location:'Location unavailable / approximate'} · ${e.device||'Browser device estimate'} · ${fmtDT(e.createdAt)}</div></div></div>${e.resolved?'<span class="badge bg">Resolved</span>':'<span class="badge bgold">Unresolved</span>'}</div>`).join(''):'<div class="es">No suspicious logins yet</div>';
+    if(reportsEl)reportsEl.innerHTML=reports.length?reports.map(r=>`<div class="ai"><div class="ai-l"><div class="ai-ico ${r.status==='pending'?'gold':'g'}">🚩</div><div><div class="ai-desc">${(r.reason||'report').toUpperCase()} · ${r.status||'pending'}</div><div class="ai-time">Reporter: ${r.reporterMemberId||memberIdFromUid(r.reporterUid)} · Reported: ${r.reportedMemberId||memberIdFromUid(r.reportedUid)} · ${fmtDT(r.createdAt)}</div><div class="ai-time">${r.note?('Note: '+r.note):'No user note'}</div></div></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-gh btn-sm" onclick="adminOpenDMReportChat('${r.id}')">View Chat</button><button class="btn btn-gh btn-sm" onclick="adminUpdateDMReportStatus('${r.id}','reviewed')">Mark Reviewed</button><button class="btn btn-gold btn-sm" onclick="adminWarnDMUser('${r.reportedUid}','${r.id}')">Warn/Strike</button><button class="btn btn-d btn-sm" onclick="adminToggleDMMute('${r.reportedUid}',${!!r.dmMuted},'${r.id}')">${r.dmMuted?'Unmute DM':'Mute DM'}</button><button class="btn btn-gh btn-sm" onclick="adminToggleHideFromDiscover('${r.reportedUid}',${!!r.hiddenFromDiscover},'${r.id}')">${r.hiddenFromDiscover?'Show Discover':'Hide Discover'}</button><button class="btn btn-gh btn-sm" onclick="adminAddDMModerationNote('${r.id}')">Add Note</button></div></div>`).join(''):'<div class="es">No DM reports yet</div>';
+  }catch(e){if(blockedEl)blockedEl.innerHTML='<div class="es">Error</div>'; if(eventsEl)eventsEl.innerHTML='<div class="es">Error</div>';}
+}
+async function adminBlockIp(){
+  const ip=$('block-ip-input')?.value.trim(); if(!ip)return toast('Enter an IP address','ty');
+  await db.collection('blockedIps').add({ip,reason:'Blocked by admin',active:true,createdAt:FS().serverTimestamp()});
+  $('block-ip-input').value=''; toast('IP blocked'); loadAdminSecurity();
+}
+async function adminUnblockIp(id){ await db.collection('blockedIps').doc(id).delete(); toast('IP unblocked'); loadAdminSecurity(); }
+async function adminOpenDMReportChat(reportId){
+  const metaEl=$('adm-dm-meta'),msgsEl=$('adm-dm-msgs');
+  if(metaEl)metaEl.textContent='Loading…';
+  if(msgsEl)msgsEl.innerHTML='<div class="es">Loading chat…</div>';
+  try{
+    const repSnap=await db.collection('dmReports').doc(reportId).get();
+    if(!repSnap.exists)return toast('Report not found','ty');
+    const rep={id:repSnap.id,...repSnap.data()};
+    const mSnap=await db.collection('dms').doc(rep.conversationId).collection('msgs').get();
+    const msgs=mSnap.docs.map(d=>d.data()).sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
+    if(metaEl)metaEl.textContent=`${rep.reporterMemberId||memberIdFromUid(rep.reporterUid)} reported ${rep.reportedMemberId||memberIdFromUid(rep.reportedUid)} · ${rep.reason||'other'} · ${rep.status||'pending'}`;
+    if(msgsEl)msgsEl.innerHTML=msgs.length?msgs.map(m=>`<div style="margin-bottom:8px"><div style="font-size:.72rem;color:var(--t3)">${memberIdFromUid(m.from)} · ${fmtDT(m.createdAt)}</div><div style="background:${m.from===rep.reporterUid?'rgba(0,230,118,.08)':'var(--s1)'};border:1px solid var(--bd);border-radius:10px;padding:8px">${m.text||''}</div></div>`).join(''):'<div class="es">No messages in this conversation</div>';
+    openModal('m-admin-dm-review');
+  }catch(e){if(msgsEl)msgsEl.innerHTML='<div class="es">Could not load report chat</div>';}
+}
+async function adminUpdateDMReportStatus(reportId,status='reviewed'){
+  const repSnap=await db.collection('dmReports').doc(reportId).get();
+  const rep=repSnap.exists?repSnap.data():null;
+  await db.collection('dmReports').doc(reportId).set({status,reviewedBy:window.CU?.uid||null,reviewedAt:FS().serverTimestamp()},{merge:true});
+  if(rep?.reporterUid)await db.collection('userNotifs').add({uid:rep.reporterUid,msg:'✅ Your DM report has been reviewed by support.',read:false,createdAt:FS().serverTimestamp()});
+  toast('Report updated');
+  loadAdminSecurity();
+}
+async function adminWarnDMUser(uid,reportId){
+  if(!uid)return;
+  const strike=confirm('Press OK to STRIKE (48h DM restriction). Press Cancel to WARN.');
+  const repSnap=await db.collection('dmReports').doc(reportId).get();
+  const rep=repSnap.exists?repSnap.data():null;
+  if(strike){
+    const until=new Date(Date.now()+48*60*60*1000);
+    await db.collection('users').doc(uid).set({dmStrikeUntil:firebase.firestore.Timestamp.fromDate(until)},{merge:true});
+    await db.collection('dmReports').doc(reportId).set({status:'reviewed',action:'striked',reviewedBy:window.CU?.uid||null,reviewedAt:FS().serverTimestamp()},{merge:true});
+    await db.collection('userNotifs').add({uid,msg:'⛔ You have been striked and cannot send direct messages for 48 hours.',read:false,createdAt:FS().serverTimestamp()});
+    if(rep?.reporterUid)await db.collection('userNotifs').add({uid:rep.reporterUid,msg:'✅ Your DM report was resolved with a strike action.',read:false,createdAt:FS().serverTimestamp()});
+    toast('User striked for 48h');
+  }else{
+    const uRef=db.collection('users').doc(uid);
+    await uRef.set({dmWarnings:FS().increment(1)},{merge:true});
+    const fresh=await uRef.get();
+    const count=fresh.data()?.dmWarnings||1;
+    const remaining=Math.max(0,3-count);
+    await db.collection('dmReports').doc(reportId).set({status:'reviewed',action:'warned',reviewedBy:window.CU?.uid||null,reviewedAt:FS().serverTimestamp()},{merge:true});
+    await db.collection('userNotifs').add({uid,msg:`⚠️ You have received a warning from support. Please follow platform rules. ${remaining} warnings remaining.`,read:false,createdAt:FS().serverTimestamp()});
+    if(rep?.reporterUid)await db.collection('userNotifs').add({uid:rep.reporterUid,msg:'✅ Your DM report was reviewed and a warning was issued.',read:false,createdAt:FS().serverTimestamp()});
+    toast('User warned');
+  }
+  loadAdminSecurity();
+}
+async function adminToggleDMMute(uid,current,reportId){
+  if(!uid)return;
+  const repSnap=await db.collection('dmReports').doc(reportId).get();
+  const rep=repSnap.exists?repSnap.data():null;
+  await db.collection('users').doc(uid).set({dmMuted:!current,dmMutedAt:FS().serverTimestamp(),dmMutedBy:window.CU?.uid||null},{merge:true});
+  await db.collection('dmReports').doc(reportId).set({dmMuted:!current,status:'reviewed',reviewedBy:window.CU?.uid||null,reviewedAt:FS().serverTimestamp()},{merge:true});
+  await db.collection('userNotifs').add({uid,msg:!current?'⛔ Support has muted your direct messages.':'✅ Your direct message mute has been lifted.',read:false,createdAt:FS().serverTimestamp()});
+  if(rep?.reporterUid)await db.collection('userNotifs').add({uid:rep.reporterUid,msg:`ℹ️ Your DM report was reviewed. Action: ${!current?'mute applied':'mute lifted'}.`,read:false,createdAt:FS().serverTimestamp()});
+  toast(!current?'DM muted':'DM unmuted');
+  loadAdminSecurity();
+}
+async function adminToggleHideFromDiscover(uid,current,reportId){
+  if(!uid)return;
+  await db.collection('users').doc(uid).set({hideFromDiscover:!current,updatedAt:FS().serverTimestamp()},{merge:true});
+  await db.collection('dmReports').doc(reportId).set({hiddenFromDiscover:!current,status:'reviewed',reviewedBy:window.CU?.uid||null,reviewedAt:FS().serverTimestamp()},{merge:true});
+  toast(!current?'Hidden from Discover':'Shown in Discover');
+  loadAdminSecurity();
+}
+async function adminAddDMModerationNote(reportId){
+  const note=prompt('Moderation note');
+  if(note===null)return;
+  await db.collection('dmReports').doc(reportId).set({moderationNotes:(note||'').trim(),status:'reviewed',reviewedBy:window.CU?.uid||null,reviewedAt:FS().serverTimestamp()},{merge:true});
+  toast('Note saved');
+  loadAdminSecurity();
+}
+function analyticsBarChart(rows,colorA='var(--g)',colorB='var(--gold)'){
+  if(!rows.length)return '<div class="es">No data yet</div>';
+  const max=Math.max(...rows.map(r=>Math.max(r.a||0,r.b||0,1)),1);
+  return rows.map(r=>`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--t2);margin-bottom:4px"><span>${r.label}</span><span>${r.a||0}${r.b!==undefined?' / '+(r.b||0):''}</span></div><div style="height:8px;background:var(--s2);border-radius:999px;overflow:hidden;display:flex"><div style="width:${((r.a||0)/max)*100}%;background:${colorA}"></div>${r.b!==undefined?`<div style="width:${((r.b||0)/max)*100}%;background:${colorB};opacity:.75"></div>`:''}</div></div>`).join('');
+}
+async function loadAnalyticsDashboard(){
+  const statsEl=$('analytics-stats'), growthEl=$('analytics-growth-chart'), cashEl=$('analytics-cashflow-chart'), trendsEl=$('analytics-trends');
+  if(statsEl)statsEl.innerHTML='<div class="es">Loading analytics…</div>';
+  try{
+    const [usersSnap,depSnap,wdSnap,invSnap,actSnap]=await Promise.all([db.collection('users').get(),db.collection('deposits').get(),db.collection('withdrawals').get(),db.collection('investments').get(),db.collection('activity').get()]);
+    const users=usersSnap.docs.map(d=>({id:d.id,...d.data()}));
+    const deps=depSnap.docs.map(d=>d.data());
+    const wds=wdSnap.docs.map(d=>d.data());
+    const invs=invSnap.docs.map(d=>d.data());
+    const acts=actSnap.docs.map(d=>d.data());
+    const paidProfit=acts.filter(a=>a.type==='profit' && (a.amt||0)>0).reduce((s,a)=>s+(a.amt||0),0);
+    const activeUsers=users.filter(u=>(u.balance||0)>0 || (u.totalInvested||0)>0 || (u.totalEarned||0)>0).length;
+    const totalDeps=deps.filter(d=>d.status==='approved').reduce((s,d)=>s+(d.amount||0),0);
+    const totalWds=wds.filter(w=>['paid','approved'].includes(w.status)).reduce((s,w)=>s+(w.amount||0),0);
+    const totalInv=invs.filter(i=>i.status==='active').reduce((s,i)=>s+(i.amount||0),0);
+    if(statsEl)statsEl.innerHTML=[['Total Users',users.length,'g'],['Active Users',activeUsers,'sky'],['Total Deposits','$'+fmt(totalDeps),'gold'],['Total Withdrawals','$'+fmt(totalWds),''],['Total Investments','$'+fmt(totalInv),'g'],['Total Profit Paid','$'+fmt(paidProfit),'gold']].map(([l,v,c])=>`<div class="sc"><div class="sl">${l}</div><div class="sv ${c||''}">${v}</div></div>`).join('');
+    const byMonth={};
+    users.forEach(u=>{const d=promoTsToDate(u.createdAt); if(!d)return; const k=d.toLocaleDateString('en-US',{month:'short',year:'2-digit'}); byMonth[k]=byMonth[k]||{label:k,a:0,b:0}; byMonth[k].a++;});
+    deps.filter(d=>d.status==='approved').forEach(d=>{const dt=promoTsToDate(d.createdAt); if(!dt)return; const k=dt.toLocaleDateString('en-US',{month:'short',year:'2-digit'}); byMonth[k]=byMonth[k]||{label:k,a:0,b:0}; byMonth[k].b+=(d.amount||0);});
+    const monthRows=Object.values(byMonth).slice(-6);
+    if(growthEl)growthEl.innerHTML=analyticsBarChart(monthRows.map(r=>({label:r.label,a:r.a,b:undefined})), 'var(--g)');
+    const cashMap={};
+    deps.filter(d=>d.status==='approved').forEach(d=>{const dt=promoTsToDate(d.createdAt); if(!dt)return; const k=dt.toLocaleDateString('en-US',{month:'short',day:'numeric'}); cashMap[k]=cashMap[k]||{label:k,a:0,b:0}; cashMap[k].a+=(d.amount||0);});
+    wds.forEach(w=>{if(!['paid','approved'].includes(w.status))return; const dt=promoTsToDate(w.createdAt); if(!dt)return; const k=dt.toLocaleDateString('en-US',{month:'short',day:'numeric'}); cashMap[k]=cashMap[k]||{label:k,a:0,b:0}; cashMap[k].b+=(w.amount||0);});
+    const cashRows=Object.values(cashMap).slice(-7);
+    if(cashEl)cashEl.innerHTML=analyticsBarChart(cashRows,'var(--g)','var(--red)');
+    const dailyDeps=cashRows.reduce((s,r)=>s+r.a,0)/Math.max(cashRows.length,1);
+    const dailyWds=cashRows.reduce((s,r)=>s+r.b,0)/Math.max(cashRows.length,1);
+    const weeklyDeps=dailyDeps*7, monthlyDeps=dailyDeps*30;
+    if(trendsEl)trendsEl.innerHTML=`<div class="sgrid"><div class="sc"><div class="sl">Daily Deposits Avg</div><div class="sv g">$${fmt(dailyDeps)}</div></div><div class="sc"><div class="sl">Weekly Deposits Avg</div><div class="sv gold">$${fmt(weeklyDeps)}</div></div><div class="sc"><div class="sl">Monthly Deposits Avg</div><div class="sv sky">$${fmt(monthlyDeps)}</div></div><div class="sc"><div class="sl">Daily Withdrawals Avg</div><div class="sv">$${fmt(dailyWds)}</div></div></div>`;
+  }catch(e){if(statsEl)statsEl.innerHTML='<div class="es">Analytics unavailable</div>';}
+}
+async function loadMaintenanceAdmin(){
+  try{
+    const snap=await db.collection('appSettings').doc('maintenance').get();
+    const data=snap.exists?snap.data():{};
+    $('maint-active').value=String(!!data.active);
+    $('maint-title-inp').value=data.title||'Scheduled Maintenance';
+    $('maint-msg-inp').value=data.message||'We’re making improvements right now. Please check back shortly.';
+    $('maint-return-inp').value=promoTsToDate(data.expectedReturnAt)?.toISOString().slice(0,16)||'';
+    $('maint-bypass').value=String(data.allowAdminBypass!==false);
+    const sum=$('maint-summary');
+    if(sum)sum.innerHTML=`<div style="font-weight:600;margin-bottom:6px">Current status: ${data.active?'<span class="badge bgold">ON</span>':'<span class="badge bg">OFF</span>'}</div><div style="font-size:.8rem;color:var(--t2)">${data.message||'Maintenance mode is currently disabled.'}</div>`;
+  }catch(e){const sum=$('maint-summary'); if(sum)sum.textContent='Unable to load maintenance settings.';}
+}
+async function saveMaintenanceMode(){
+  const active=$('maint-active').value==='true';
+  const title=$('maint-title-inp').value.trim()||'Scheduled Maintenance';
+  const message=$('maint-msg-inp').value.trim()||'We’re making improvements right now. Please check back shortly.';
+  const expected=$('maint-return-inp').value;
+  const allowAdminBypass=$('maint-bypass').value==='true';
+  await db.collection('appSettings').doc('maintenance').set({active,title,message,allowAdminBypass,expectedReturnAt:expected?firebase.firestore.Timestamp.fromDate(new Date(expected)):null,updatedAt:FS().serverTimestamp()},{merge:true});
+  toast('Maintenance settings saved','tg');
+  loadMaintenanceAdmin();
+}
+async function applyMaintenanceModeToUI(user){
+  try{
+    const snap=await db.collection('appSettings').doc('maintenance').get();
+    const data=snap.exists?snap.data():{};
+    window._maintenanceState={active:!!data.active,title:data.title||'Scheduled Maintenance',message:data.message||'We’re making improvements right now. Please check back shortly.',allowAdminBypass:data.allowAdminBypass!==false,expectedReturnAt:data.expectedReturnAt||null};
+    if($('maint-title'))$('maint-title').textContent=window._maintenanceState.title;
+    if($('maint-msg'))$('maint-msg').textContent=window._maintenanceState.message;
+    if($('maint-return'))$('maint-return').textContent='Estimated return: '+(data.expectedReturnAt?fmtDT(data.expectedReturnAt):'—');
+    return window._maintenanceState;
+  }catch(e){window._maintenanceState={active:false};return window._maintenanceState;}
+}
+function notifyBrowser(title,body){if(window.CU?.browserNotificationsEnabled && 'Notification' in window && Notification.permission==='granted'){try{new Notification(title,{body});}catch(e){}}}
+function downloadTextFile(name,content,type='text/plain'){const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+async function downloadWalletStatement(mode='csv'){
+  if(!window.CU)return;
+  const [actSnap,depSnap,wdSnap]=await Promise.all([db.collection('activity').where('uid','==',window.CU.uid).get(),db.collection('deposits').where('uid','==',window.CU.uid).get(),db.collection('withdrawals').where('uid','==',window.CU.uid).get()]);
+  const rows=[];
+  actSnap.docs.forEach(d=>{const a=d.data();rows.push({date:fmtDT(a.createdAt),type:a.type||'activity',description:a.desc||'',amount:a.amt||0,status:'logged'});});
+  depSnap.docs.forEach(d=>{const x=d.data();rows.push({date:fmtDT(x.createdAt),type:'deposit',description:`${x.method||'Deposit'} ${x.ref||''}`.trim(),amount:x.amount||0,status:x.status||'pending'});});
+  wdSnap.docs.forEach(d=>{const x=d.data();rows.push({date:fmtDT(x.createdAt),type:'withdrawal',description:`${x.method||'Withdrawal'} ${x.txId||''}`.trim(),amount:-(x.amount||0),status:x.status||'pending'});});
+  rows.sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if(mode==='csv'){
+    const csv=[['Date','Type','Description','Amount','Status'],...rows.map(r=>[r.date,r.type,r.description,r.amount,r.status])].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    downloadTextFile('starlife-wallet-statement.csv',csv,'text/csv');
+    return toast('Statement exported ✓');
+  }
+  const win=window.open('','_blank');
+  win.document.write(`<html><head><title>Wallet Statement</title></head><body style="font-family:Arial;padding:24px"><h2>Starlife Wallet Statement</h2><p>${window.CU.name||''} · ${window.CU.email||''}</p><table border="1" cellspacing="0" cellpadding="8" style="border-collapse:collapse;width:100%"><tr><th>Date</th><th>Type</th><th>Description</th><th>Amount</th><th>Status</th></tr>${rows.map(r=>`<tr><td>${r.date}</td><td>${r.type}</td><td>${r.description}</td><td>${r.amount}</td><td>${r.status}</td></tr>`).join('')}</table></body></html>`); win.document.close(); win.focus(); win.print();
+}
 // PROMO CODES
 // ════════════════════════════════════════════════════════
+function promoTsToDate(ts){
+  if(!ts)return null;
+  if(ts?.seconds)return new Date(ts.seconds*1000);
+  if(ts instanceof Date)return isNaN(ts.getTime())?null:ts;
+  if(typeof ts==='string'){
+    const parsed=promoParseInputDateTime(ts);
+    if(parsed)return parsed;
+    const direct=new Date(ts);
+    return isNaN(direct.getTime())?null:direct;
+  }
+  const fallback=new Date(ts);
+  return isNaN(fallback.getTime())?null:fallback;
+}
+function promoParseInputDateTime(val){
+  if(!val)return null;
+  const raw=String(val).trim();
+  if(!raw)return null;
+  const isoLike=/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})$/.exec(raw);
+  if(isoLike){
+    const [,y,m,d,h,mm]=isoLike;
+    const dt=new Date(Number(y),Number(m)-1,Number(d),Number(h),Number(mm));
+    return isNaN(dt.getTime())?null:dt;
+  }
+  const dmy=/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})$/.exec(raw);
+  if(dmy){
+    const [,d,m,y,h,mm]=dmy;
+    const dt=new Date(Number(y),Number(m)-1,Number(d),Number(h),Number(mm));
+    return isNaN(dt.getTime())?null:dt;
+  }
+  return null;
+}
+function promoDateToInputValue(val){
+  const dt=promoTsToDate(val);
+  if(!dt)return '';
+  const pad=n=>String(n).padStart(2,'0');
+  return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+}
+function promoIsStarted(p){const d=promoTsToDate(p.startAt);return !d||d<=new Date();}
+function promoIsExpired(p){const d=promoTsToDate(p.expiry);return !!(d&&d<new Date());}
+function promoUsageCountForUser(uses, code){return uses.filter(u=>u.code===code).length;}
+function resetAppliedPromo(){ window._appliedPromo=null; const info=$('promo-applied-info'); if(info)info.remove(); }
+function renderAppliedPromo(promo){
+  let info=$('promo-applied-info');
+  if(!info){
+    info=document.createElement('div');
+    info.id='promo-applied-info';
+    info.style.cssText='font-size:.76rem;color:var(--gold);margin:-4px 0 12px';
+    const host=$('promo-inp')?.parentElement?.parentElement;
+    if(host)host.insertAdjacentElement('afterend',info);
+  }
+  const label=promo.type==='pct'?promo.value+'% deposit bonus':promo.type==='deposit_fixed'?'$'+fmt(promo.value)+' fixed deposit bonus':promo.type==='balance'?'$'+fmt(promo.value)+' wallet bonus':'+'+promo.value+' points';
+  info.textContent='Applied: '+promo.code+' — '+label;
+}
+async function getPromoUsesForUser(uid, code){
+  const snap=await db.collection('promoUses').where('uid','==',uid).where('code','==',code).get();
+  return snap.docs.map(d=>({id:d.id,...d.data()}));
+}
 async function applyPromoCode(){
   const code=$('promo-inp')?.value.trim().toUpperCase();
   if(!code)return toast('Enter a promo code','ty');
@@ -6797,103 +7512,180 @@ async function applyPromoCode(){
     const snap=await db.collection('promoCodes').where('code','==',code).limit(1).get();
     if(snap.empty)return toast('Invalid promo code','tr');
     const promoDoc=snap.docs[0];
-    const promo=promoDoc.data();
-    // Check if expired
-    if(promo.expiry&&new Date(promo.expiry.seconds*1000)<new Date())return toast('This promo code has expired','tr');
-    // Check max uses
+    const promo={id:promoDoc.id,...promoDoc.data()};
+    if(promo.active===false)return toast('This promo code is inactive','tr');
+    if(!promoIsStarted(promo))return toast('This promo code is not active yet','tr');
+    if(promoIsExpired(promo))return toast('This promo code has expired','tr');
     if(promo.maxUses&&(promo.usedCount||0)>=promo.maxUses)return toast('This promo code has reached its limit','tr');
-    // Check if user already used it
-    const usedSnap=await db.collection('promoUses').where('uid','==',u.uid).where('code','==',code).limit(1).get();
-    if(!usedSnap.empty)return toast('You have already used this promo code','tr');
-    // Apply reward
-    let msg='';
-    const batch=db.batch();
-    if(promo.type==='balance'){
-      batch.update(db.collection('users').doc(u.uid),{balance:FS().increment(promo.value),totalEarned:FS().increment(promo.value)});
-      window.CU.balance=(u.balance||0)+promo.value;
-      msg=`🎁 $${fmt(promo.value)} added to your balance!`;
-    } else if(promo.type==='points'){
-      batch.update(db.collection('users').doc(u.uid),{surveyPoints:FS().increment(promo.value)});
-      window.CU.surveyPoints=(u.surveyPoints||0)+promo.value;
-      msg=`🎁 ${promo.value} points added!`;
+    const uses=await getPromoUsesForUser(u.uid,code);
+    if((promo.perUserLimit||0)>0 && uses.length>=promo.perUserLimit)return toast('You have reached the usage limit for this code','tr');
+    if(promo.depositScope==='first'){
+      const depSnap=await db.collection('deposits').where('uid','==',u.uid).where('status','==','approved').limit(1).get();
+      if(!depSnap.empty)return toast('This code is only valid on your first approved deposit','tr');
     }
-    // Log usage
-    batch.set(db.collection('promoUses').doc(),{uid:u.uid,code,usedAt:FS().serverTimestamp()});
-    batch.update(db.collection('promoCodes').doc(promoDoc.id),{usedCount:FS().increment(1)});
-    await batch.commit();
-    updateUI();
-    await logAct(u.uid,`Promo code redeemed: ${code}`,promo.type==='balance'?promo.value:0,'🎁','deposit');
-    if($('promo-inp'))$('promo-inp').value='';
-    toast(msg,'tg',4000);
+    if(promo.type==='balance' || promo.type==='points'){
+      let msg='';
+      const batch=db.batch();
+      if(promo.type==='balance'){
+        batch.update(db.collection('users').doc(u.uid),{balance:FS().increment(promo.value),totalEarned:FS().increment(promo.value)});
+        window.CU.balance=(u.balance||0)+promo.value;
+        msg=`🎁 $${fmt(promo.value)} added to your balance!`;
+      } else {
+        batch.update(db.collection('users').doc(u.uid),{surveyPoints:FS().increment(promo.value)});
+        window.CU.surveyPoints=(u.surveyPoints||0)+promo.value;
+        msg=`🎁 ${promo.value} points added!`;
+      }
+      batch.set(db.collection('promoUses').doc(),{uid:u.uid,code,promoId:promo.id,depositId:null,usedAt:FS().serverTimestamp(),rewardType:promo.type,rewardValue:promo.value});
+      batch.update(db.collection('promoCodes').doc(promo.id),{usedCount:FS().increment(1)});
+      await batch.commit();
+      updateUI();
+      await logAct(u.uid,`Promo code redeemed: ${code}`,promo.type==='balance'?promo.value:0,'🎁','deposit');
+      $('promo-inp').value='';
+      resetAppliedPromo();
+      toast(msg,'tg',4000);
+      return;
+    }
+    window._appliedPromo={
+      id:promo.id, code:promo.code, type:promo.type, value:parseFloat(promo.value)||0,
+      minDeposit:parseFloat(promo.minDeposit)||0, maxUses:promo.maxUses||0, perUserLimit:promo.perUserLimit||0,
+      depositScope:promo.depositScope||'all', notes:promo.notes||''
+    };
+    renderAppliedPromo(window._appliedPromo);
+    toast('Promo code applied to your next deposit','tg');
   }catch(e){toast('Error: '+e.message,'tr');}
 }
 
-// Admin promo code management
+function adminResetPromoForm(){
+  ['pc-edit-id','pc-code','pc-value','pc-maxuses','pc-start','pc-expiry','pc-userlimit','pc-mindeposit','pc-notes'].forEach(id=>{if($(id))$(id).value='';});
+  if($('pc-type'))$('pc-type').value='balance';
+  if($('pc-depositscope'))$('pc-depositscope').value='all';
+}
 async function adminCreatePromoCode(){
+  const id=$('pc-edit-id')?.value.trim();
   const code=$('pc-code')?.value.trim().toUpperCase();
   const type=$('pc-type')?.value;
   const value=parseFloat($('pc-value')?.value)||0;
   const maxUses=parseInt($('pc-maxuses')?.value)||0;
+  const perUserLimit=parseInt($('pc-userlimit')?.value)||0;
+  const minDeposit=parseFloat($('pc-mindeposit')?.value)||0;
+  const start=$('pc-start')?.value;
   const expiry=$('pc-expiry')?.value;
+  const startDate=promoParseInputDateTime(start);
+  const expiryDate=promoParseInputDateTime(expiry);
+  const notes=$('pc-notes')?.value.trim()||'';
+  const depositScope=$('pc-depositscope')?.value||'all';
   if(!code)return toast('Enter a code','ty');
   if(!value||value<=0)return toast('Enter a value','ty');
-  // Check if code already exists
-  const existing=await db.collection('promoCodes').where('code','==',code).limit(1).get();
-  if(!existing.empty)return toast('Code already exists','tr');
-  await db.collection('promoCodes').add({
-    code,type,value,
-    maxUses:maxUses||0,
-    usedCount:0,
-    expiry:expiry?firebase.firestore.Timestamp.fromDate(new Date(expiry)):null,
-    active:true,
-    createdAt:FS().serverTimestamp()
-  });
-  toast(`✅ Promo code ${code} created!`,'tg');
-  if($('pc-code'))$('pc-code').value='';
-  if($('pc-value'))$('pc-value').value='';
+  if(start && !startDate)return toast('Enter a valid start date/time','ty');
+  if(expiry && !expiryDate)return toast('Enter a valid expiry date/time','ty');
+  const payload={
+    code,type,value,minDeposit:Math.max(0,minDeposit),maxUses:maxUses||0,perUserLimit:perUserLimit||0,depositScope,
+    usedCount:0,notes,active:true,updatedAt:FS().serverTimestamp(),
+    startAt:startDate?firebase.firestore.Timestamp.fromDate(startDate):null,
+    expiry:expiryDate?firebase.firestore.Timestamp.fromDate(expiryDate):null,
+  };
+  try{
+    if(id){
+      const ref=db.collection('promoCodes').doc(id);
+      const snap=await ref.get();
+      const current=snap.data()||{};
+      await ref.update({...payload,usedCount:current.usedCount||0});
+      toast(`✅ Promo code ${code} updated`,'tg');
+    }else{
+      const existing=await db.collection('promoCodes').where('code','==',code).limit(1).get();
+      if(!existing.empty)return toast('Code already exists','tr');
+      await db.collection('promoCodes').add({...payload,createdAt:FS().serverTimestamp()});
+      toast(`✅ Promo code ${code} created!`,'tg');
+    }
+    adminResetPromoForm();
+    loadAdminPromoCodes();
+  }catch(e){toast('Error: '+e.message,'tr');}
+}
+async function adminEditPromoCode(id){
+  const snap=await db.collection('promoCodes').doc(id).get();
+  if(!snap.exists)return toast('Promo code not found','tr');
+  const p={id:snap.id,...snap.data()};
+  $('pc-edit-id').value=p.id;
+  $('pc-code').value=p.code||'';
+  $('pc-type').value=p.type||'balance';
+  $('pc-value').value=p.value||'';
+  $('pc-maxuses').value=p.maxUses||'';
+  $('pc-userlimit').value=p.perUserLimit||'';
+  $('pc-mindeposit').value=p.minDeposit||'';
+  $('pc-start').value=promoDateToInputValue(p.startAt);
+  $('pc-expiry').value=promoDateToInputValue(p.expiry);
+  $('pc-notes').value=p.notes||'';
+  $('pc-depositscope').value=p.depositScope||'all';
+  toast('Promo code loaded for editing','tg');
+}
+async function adminTogglePromoCode(id,current){
+  await db.collection('promoCodes').doc(id).update({active:!current,updatedAt:FS().serverTimestamp()});
+  toast(!current?'Promo code activated':'Promo code deactivated');
   loadAdminPromoCodes();
 }
-
-async function loadAdminPromoCodes(){
-  const el=$('at-promo-list');if(!el)return;
-  el.innerHTML='<div class="es">Loading…</div>';
-  try{
-    const snap=await db.collection('promoCodes').get();
-    const list=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
-    if(!list.length){el.innerHTML='<div class="es">No promo codes yet</div>';return;}
-    el.innerHTML=list.map(p=>{
-      const expired=p.expiry&&new Date(p.expiry.seconds*1000)<new Date();
-      const typeLabel=p.type==='balance'?`+$${fmt(p.value)}`:p.type==='points'?`+${p.value} pts`:`${p.value}% bonus`;
-      return`<div class="arow">
-        <div style="flex:1">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-            <span class="promo-badge">${p.code}</span>
-            <span style="font-size:.8rem;color:var(--g)">${typeLabel}</span>
-            ${expired?'<span class="badge br">Expired</span>':!p.active?'<span class="badge bmut">Inactive</span>':'<span class="badge bg">Active</span>'}
-          </div>
-          <div class="ar-sub">Used: ${p.usedCount||0}${p.maxUses?' / '+p.maxUses:' / ∞'} · ${p.expiry?'Expires: '+new Date(p.expiry.seconds*1000).toLocaleDateString():'No expiry'}</div>
-        </div>
-        <button class="btn btn-d btn-sm" onclick="adminDeletePromoCode('${p.id}','${p.code}')">🗑</button>
-      </div>`;
-    }).join('');
-  }catch(e){el.innerHTML='<div class="es">Error</div>';}
-}
-
 async function adminDeletePromoCode(id,code){
-  if(!confirm(`Delete promo code ${code}?`))return;
+  if(!confirm(`Delete promo code ${code}? Existing usage history will remain.`))return;
   await db.collection('promoCodes').doc(id).delete();
   toast('Deleted');
   loadAdminPromoCodes();
+}
+async function loadAdminPromoCodes(){
+  const el=$('at-promo-list');const usageEl=$('at-promo-usage');
+  if(el)el.innerHTML='<div class="es">Loading…</div>';
+  if(usageEl)usageEl.innerHTML='<div class="es">Loading…</div>';
+  try{
+    const [snap,useSnap,userSnap]=await Promise.all([db.collection('promoCodes').get(),db.collection('promoUses').limit(100).get(),db.collection('users').get()]);
+    const list=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+    const userMap={}; userSnap.docs.forEach(d=>{userMap[d.id]=d.data()||{};});
+    const uses=useSnap.docs.map(d=>({id:d.id,...d.data(),userName:userMap[d.data().uid]?.name||'',userEmail:userMap[d.data().uid]?.email||''})).sort((a,b)=>(b.usedAt?.seconds||0)-(a.usedAt?.seconds||0));
+    if(el){
+      if(!list.length)el.innerHTML='<div class="es">No promo codes yet</div>';
+      else el.innerHTML=list.map(p=>{
+        const expired=promoIsExpired(p);
+        const notStarted=!promoIsStarted(p);
+        const typeLabel=p.type==='balance'?`+$${fmt(p.value)} wallet`:p.type==='points'?`+${p.value} pts`:p.type==='deposit_fixed'?`+$${fmt(p.value)} deposit`:`${p.value}% deposit`;
+        return`<div class="arow">
+          <div class="ar-top"><div style="flex:1">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+              <span class="promo-badge">${p.code}</span>
+              <span style="font-size:.8rem;color:var(--g)">${typeLabel}</span>
+              ${expired?'<span class="badge br">Expired</span>':notStarted?'<span class="badge bgold">Scheduled</span>':!p.active?'<span class="badge bmut">Inactive</span>':'<span class="badge bg">Active</span>'}
+            </div>
+            <div class="ar-sub">Min deposit: $${fmt(p.minDeposit||0)} · Uses: ${p.usedCount||0}${p.maxUses?' / '+p.maxUses:' / ∞'} · Per user: ${p.perUserLimit||'∞'} · Scope: ${(p.depositScope||'all')==='first'?'First deposit only':'All deposits'}</div>
+            <div class="ar-sub">Starts: ${p.startAt?fmtDT(p.startAt):'Now'} · Expires: ${p.expiry?fmtDT(p.expiry):'No expiry'}</div>
+            ${p.notes?`<div class="ar-sub">Notes: ${p.notes}</div>`:''}
+          </div></div>
+          <div class="ar-acts">
+            <button class="btn btn-gh btn-sm" onclick="adminEditPromoCode('${p.id}')">Edit</button>
+            <button class="btn btn-gold btn-sm" onclick="adminTogglePromoCode('${p.id}',${!!p.active})">${p.active?'Deactivate':'Activate'}</button>
+            <button class="btn btn-d btn-sm" onclick="adminDeletePromoCode('${p.id}','${p.code}')">🗑</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+    if(usageEl){
+      usageEl.innerHTML=uses.length?uses.slice(0,25).map(u=>`<div class="ai"><div class="ai-l"><div class="ai-ico gold">🎁</div><div><div class="ai-desc">${u.code}${u.rewardValue?` — ${u.rewardType||'reward'} ${u.rewardType==='pct'?u.rewardValue+'%':'$'+fmt(u.rewardValue)}`:''}</div><div class="ai-time">User: ${u.userName||u.userEmail||u.uid||'—'} · Deposit: ${u.depositId||'direct / none'} · ${fmtDT(u.usedAt)}</div></div></div><div class="badge bg">Used</div></div>`).join(''):'<div class="es">No promo usage yet</div>';
+    }
+  }catch(e){if(el)el.innerHTML='<div class="es">Error</div>';if(usageEl)usageEl.innerHTML='<div class="es">Error</div>';} 
 }
 
 // ════════════════════════════════════════════════════════
 // DAILY PROFITS
 // ════════════════════════════════════════════════════════
-async function runDailyProfits(){
-  if(!confirm('Run daily profits for investments AND shareholders?'))return;
+function shouldRunProfitForUid(uid,opts){
+  const mode=opts?.mode||'all';
+  const set=opts?.uidSet||null;
+  if(mode==='selected') return !!(set&&set.has(uid));
+  if(mode==='exclude') return !(set&&set.has(uid));
+  return true;
+}
+
+async function runDailyProfitsInternal(opts={mode:'all',uidSet:null,label:'global'}){
+  if(window._profitRunLock){toast('A profit run is already in progress','ty');return null;}
+  window._profitRunLock=true;
   toast('Processing…','ty',20000);
   const today=new Date().toDateString();
-  let invCount=0, shCount=0;
+  let invCount=0, shCount=0, savCount=0;
   try{
     // ── PART 1: Investment profits (2% daily) ──────────
     const invSnap=await db.collection('investments').where('status','==','active').get();
@@ -6902,6 +7694,7 @@ async function runDailyProfits(){
     for(const doc of invSnap.docs){
       const inv=doc.data();
       if(!inv||!inv.uid)continue;
+      if(!shouldRunProfitForUid(inv.uid,opts))continue;
       if(inv.lastProfitDate===today)continue;
       const uSnap=await db.collection('users').doc(inv.uid).get();
       if(!uSnap.exists)continue;
@@ -6910,7 +7703,6 @@ async function runDailyProfits(){
       const profit=parseFloat(((inv.amount||0)*0.02).toFixed(4));
       if(profit<=0)continue;
       // Auto-reinvest if enabled
-      const uData=uSnap.data();
       let reinvestAmt=0,balanceProfit=profit;
       if(uData.autoReinvest&&uData.autoReinvestPct>0){
         reinvestAmt=parseFloat((profit*uData.autoReinvestPct/100).toFixed(4));
@@ -6945,6 +7737,7 @@ async function runDailyProfits(){
       for(const doc of shSnap.docs){
         const u=doc.data();
         if(!u||u.isBanned)continue;
+        if(!shouldRunProfitForUid(doc.id,opts))continue;
         if(u.shLastProfitDate===today)continue; // prevent double run
         const stake=u.shareholderStake||0;
         if(stake<=0)continue;
@@ -6968,13 +7761,13 @@ async function runDailyProfits(){
     }
 
     // ── PART 3: Savings Wallet profits (3% daily, 30-day lock) ──
-    let savCount=0;
     const savSnap=await db.collection('savings').where('status','==','active').get();
     const savBatch=db.batch();
     const savActBatch=db.batch();
     for(const doc of savSnap.docs){
       const sav=doc.data();
       if(!sav||!sav.uid)continue;
+      if(!shouldRunProfitForUid(sav.uid,opts))continue;
       if(sav.savLastProfitDate===today)continue; // prevent double run
       // Check 30-day lock — only pay if within lock period
       const unlockDate=sav.unlockDate?new Date(sav.unlockDate.seconds*1000):null;
@@ -7020,11 +7813,71 @@ async function runDailyProfits(){
     // Renew verified subscriptions
     try{await renewVerifiedSubscriptions();}catch(e){}
     toast(`✓ Done! Investments: ${invCount} · Shareholders: ${shCount} · Savings: ${savCount}`);
-    tg(`📈 <b>Daily Profits Run</b>\n\n💰 Investments: ${invCount}\n💎 Shareholders: ${shCount}\n🏦 Savings: ${savCount}\n📅 ${today}`);
+    tg(`📈 <b>Daily Profits Run</b>
+
+💰 Investments: ${invCount}
+💎 Shareholders: ${shCount}
+🏦 Savings: ${savCount}
+📅 ${today}
+Mode: ${opts?.label||'global'}`);
     loadAdminAll();
-  }catch(e){toast('Error: '+e.message,'tr');console.error(e);}
+    return {invCount,shCount,savCount};
+  }catch(e){toast('Error: '+e.message,'tr');console.error(e);return null;}
+  finally{window._profitRunLock=false;}
+}
+
+async function runDailyProfits(){
+  if(!confirm('Run daily profits for investments AND shareholders?'))return;
+  await runDailyProfitsInternal({mode:'all',uidSet:null,label:'global'});
 }
 window.runDailyProfits=runDailyProfits;
+
+window._bulkProfitSelected=new Set();
+function bulkProfitGetUserPool(){return (window.AU||[]).filter(u=>!u.isBanned);}
+function bulkProfitRenderSelected(){
+  const el=$('bp-selected-users'); if(!el)return;
+  const ids=[...window._bulkProfitSelected];
+  const map={}; (window.AU||[]).forEach(u=>{map[u.id]=u;});
+  if(!ids.length){el.innerHTML='<span style="font-size:.75rem;color:var(--t3)">No users selected</span>';return;}
+  el.innerHTML=ids.map(id=>{
+    const u=map[id]||{};
+    const name=u.name||u.email||id.substring(0,8);
+    return `<span class="badge bmut" style="display:inline-flex;align-items:center;gap:6px">${name}<button onclick="bulkProfitRemoveUser('${id}')" style="border:none;background:none;color:var(--red);cursor:pointer;font-weight:700">×</button></span>`;
+  }).join('');
+}
+function bulkProfitSearchUsers(){
+  const q=($('bp-user-search')?.value||'').trim().toLowerCase();
+  const el=$('bp-user-results'); if(!el)return;
+  if(!q){el.innerHTML='';return;}
+  const list=bulkProfitGetUserPool().filter(u=>
+    (u.name||'').toLowerCase().includes(q)||
+    (u.email||'').toLowerCase().includes(q)||
+    (u.id||'').toLowerCase().includes(q)
+  ).slice(0,8);
+  el.innerHTML=list.length?list.map(u=>`<button class="btn btn-gh btn-sm" onclick="bulkProfitAddUser('${u.id}')">${u.name||'User'} · ${(u.email||'').slice(0,22)}${(u.email||'').length>22?'…':''}</button>`).join(''):'<span style="font-size:.75rem;color:var(--t3)">No matching users</span>';
+}
+function bulkProfitAddUser(uid){ window._bulkProfitSelected.add(uid); bulkProfitRenderSelected(); }
+function bulkProfitRemoveUser(uid){ window._bulkProfitSelected.delete(uid); bulkProfitRenderSelected(); }
+function bulkProfitClearUsers(){ window._bulkProfitSelected.clear(); bulkProfitRenderSelected(); if($('bp-user-results'))$('bp-user-results').innerHTML=''; if($('bp-user-search'))$('bp-user-search').value=''; }
+
+async function adminRunBulkProfits(){
+  const mode=$('bp-mode')?.value||'selected';
+  const ids=[...window._bulkProfitSelected];
+  if(!ids.length)return toast('Select at least one user first','ty');
+  const map={}; (window.AU||[]).forEach(u=>{map[u.id]=u;});
+  const names=ids.slice(0,6).map(id=>map[id]?.name||map[id]?.email||id.substring(0,6)).join(', ');
+  const msg=mode==='selected'
+    ?`Run profits for ${ids.length} selected user(s)?
+
+${names}${ids.length>6?' ...':''}`
+    :`Run profits for all eligible users EXCEPT ${ids.length} selected user(s)?
+
+${names}${ids.length>6?' ...':''}`;
+  if(!confirm(msg))return;
+  const uidSet=new Set(ids);
+  await runDailyProfitsInternal({mode:mode==='selected'?'selected':'exclude',uidSet,label:mode==='selected'?'selected-only':'all-except-selected'});
+}
+
 
 // ════════════════════════════════════════════════════════
 // KYC VERIFICATION
@@ -7329,7 +8182,7 @@ async function buyTickets(){
   const ptsCost=_ticketType==='pts'?qty*50:0;
   const cashCost=_ticketType==='bal'?qty*0.50:0;
   if(ptsCost>0&&(u.surveyPoints||0)<ptsCost)return toast('Not enough points. Need '+ptsCost+' pts','tr');
-  if(cashCost>0&&(u.balance||0)<cashCost)return toast('Insufficient balance','tr');
+  if(cashCost>0&&getAvailableBalance(u)<cashCost)return toast(`Insufficient available balance. Available: $${fmt(getAvailableBalance(u))}`,'tr');
   const allowed=qty;
   const actualPtsCost=_ticketType==='pts'?allowed*50:0;
   const actualCashCost=_ticketType==='bal'?allowed*0.50:0;
@@ -7791,6 +8644,8 @@ async function loadNotifs(){
   const el=$('notif-list');
   if(!el)return;
   if(!list.length){el.innerHTML='<div class="es" style="padding:20px">No notifications</div>';return;}
+  const latestUnread=list.find(n=>!n.read);
+  if(latestUnread && latestUnread.id!==window._lastBrowserNotifId){ window._lastBrowserNotifId=latestUnread.id; notifyBrowser('Starlife Alert', latestUnread.msg||'You have a new notification'); }
   el.innerHTML=list.map(function(n){
     window['_n_'+n.id]=n.id;
     return '<div class="notif-item '+(n.read?'':'unread')+'" onclick="readNotif(this,this.dataset.nid)" data-nid="'+n.id+'">'
@@ -7894,7 +8749,7 @@ async function doSavDeposit(){
   const txid=$('sav-txid').value.trim();
   const u=window.CU;
   if(!amt||amt<10)return toast('Minimum $10','ty');
-  if(method==='From Main Balance'&&(u.balance||0)<amt)return toast('Insufficient balance','tr');
+  if(method==='From Main Balance'&&getAvailableBalance(u)<amt)return toast(`Insufficient available balance. Available: $${fmt(getAvailableBalance(u))}`,'tr');
   const unlockDate=new Date(Date.now()+30*86400000);
   await db.collection('savings').add({uid:u.uid,userName:u.name,amount:amt,method,txid,status:method==='From Main Balance'?'active':'pending',dailyProfit:amt*0.03,totalPaid:0,unlockDate:firebase.firestore.Timestamp.fromDate(unlockDate),createdAt:FS().serverTimestamp()});
   if(method==='From Main Balance'){
@@ -8133,11 +8988,48 @@ async function adminApproveDeposit(id,uid,amount){
       t.update(depRef,{status:'approved',approvedAt:FS().serverTimestamp()});
       t.update(userRef,{balance:FS().increment(amount)});
     });
+    const depSnap=await db.collection('deposits').doc(id).get();
+    const dep=depSnap.data()||{};
+    let bonusMsg='';
+    if(dep.promoCode && !dep.promoBonusApplied){
+      try{
+        let promoData=null;
+        if(dep.promoId){
+          const promoDoc=await db.collection('promoCodes').doc(dep.promoId).get();
+          if(promoDoc.exists)promoData={id:promoDoc.id,...promoDoc.data()};
+        }
+        if(!promoData){
+          const promoSnap=await db.collection('promoCodes').where('code','==',dep.promoCode).limit(1).get();
+          if(!promoSnap.empty)promoData={id:promoSnap.docs[0].id,...promoSnap.docs[0].data()};
+        }
+        if(promoData && promoData.active!==false && !promoIsExpired(promoData) && promoIsStarted(promoData) && amount>=(dep.promoMinDeposit||0)){
+          const uses=await getPromoUsesForUser(uid, dep.promoCode);
+          const approvedCount=await db.collection('deposits').where('uid','==',uid).where('status','==','approved').get();
+          const firstOnly=(dep.promoDepositScope||promoData.depositScope||'all')==='first';
+          const firstOk=!firstOnly || approvedCount.size<=1;
+          const perUserOk=!(promoData.perUserLimit>0) || uses.length<promoData.perUserLimit;
+          const totalOk=!(promoData.maxUses>0) || (promoData.usedCount||0)<promoData.maxUses;
+          if(firstOk && perUserOk && totalOk){
+            const bonus=promoData.type==='pct'?parseFloat((amount*(promoData.value||0)/100).toFixed(2)):parseFloat(promoData.value||0);
+            if(bonus>0){
+              await db.collection('users').doc(uid).update({balance:FS().increment(bonus),totalEarned:FS().increment(bonus)});
+              await db.collection('deposits').doc(id).update({promoBonusApplied:true,promoBonusAmount:bonus,promoBonusAppliedAt:FS().serverTimestamp()});
+              await db.collection('promoUses').add({uid,code:dep.promoCode,promoId:promoData.id,depositId:id,usedAt:FS().serverTimestamp(),rewardType:promoData.type,rewardValue:bonus});
+              await db.collection('promoCodes').doc(promoData.id).update({usedCount:FS().increment(1)});
+              await logAct(uid,`Deposit promo bonus: ${dep.promoCode}`,bonus,'🎁','deposit');
+              bonusMsg=` Promo bonus +$${fmt(bonus)} applied.`;
+            }
+          }
+        }
+      }catch(promoErr){console.error('promo approval error',promoErr);}
+    }
     await logAct(uid,`Deposit approved +$${fmt(amount)}`,amount,'📥','deposit');
-    await db.collection('userNotifs').add({uid,msg:`Your deposit of $${fmt(amount)} has been approved and added to your balance!`,read:false,createdAt:FS().serverTimestamp()});
-    tg(`✅ <b>Deposit Approved</b>\nUser: ${uid}\nAmount: $${fmt(amount)}`);
+    await db.collection('userNotifs').add({uid,msg:`Your deposit of $${fmt(amount)} has been approved and added to your balance!${bonusMsg}`,read:false,createdAt:FS().serverTimestamp()});
+    tg(`✅ <b>Deposit Approved</b>
+User: ${uid}
+Amount: $${fmt(amount)}`);
     await checkCashbackBonus(uid,amount);
-    toast('Deposit approved ✓ — balance updated');
+    toast('Deposit approved ✓ — balance updated'+bonusMsg);
     loadAdminDeposits();
   }catch(e){
     if(e.message==='ALREADY_PROCESSED'){
@@ -9737,7 +10629,7 @@ async function buyDrawTickets(){
   const u=window.CU;
   const {type,cost,qty}=_drawSel;
   if(type==='points'&&(u.surveyPoints||0)<cost)return toast('Not enough points — need '+cost+' pts','tr');
-  if(type==='balance'&&(u.balance||0)<cost)return toast('Insufficient balance','tr');
+  if(type==='balance'&&getAvailableBalance(u)<cost)return toast(`Insufficient available balance. Available: $${fmt(getAvailableBalance(u))}`,'tr');
   try{
     const batch=db.batch();
     // Deduct cost
@@ -9831,7 +10723,7 @@ function genPrizeCode(){
 async function adminGeneratePrizeCode(){
   const amount=parseFloat($('pc-amount')?.value);
   const winners=parseInt($('pc-winners')?.value||'5');
-  const expiryHours=parseInt($('pc-expiry')?.value||'24');
+  const expiryHours=parseInt($('prize-expiry-hours')?.value||'24');
   if(!amount||amount<=0)return toast('Enter prize amount','ty');
   const code=genPrizeCode();
   const perWinner=parseFloat((amount/winners).toFixed(2));

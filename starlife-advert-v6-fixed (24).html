@@ -1723,6 +1723,9 @@ function hideMore(){if(window._real_hideMore)window._real_hideMore();}
     </div>
     <!-- Messages -->
     <div id="dm-messages" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:4px"></div>
+    <div style="font-size:.72rem;color:var(--t3);padding:0 14px 8px;line-height:1.4">
+      ⚠️ Be aware of scammers. Chat discussions/deals are between users only; Starlife is not part of private message deals. Never share personal details, password, OTP, or payment credentials.
+    </div>
     <!-- Input -->
     <div style="padding:10px 14px;border-top:1px solid var(--bd);flex-shrink:0">
       <div style="display:flex;gap:8px;align-items:flex-end">
@@ -4495,7 +4498,8 @@ async function openDMChat(uid,userData){
   // Mark as read
   await db.collection('dms').doc(_activeDMId).collection('msgs')
     .where('to','==',u.uid).where('read','==',false).get()
-    .then(snap=>snap.docs.forEach(d=>d.ref.update({read:true})));
+    .then(snap=>Promise.all(snap.docs.map(d=>d.ref.update({read:true}))));
+  await db.collection('dms').doc(_activeDMId).set({[`unread_${u.uid}`]:0},{merge:true});
   loadDMList();
 }
 

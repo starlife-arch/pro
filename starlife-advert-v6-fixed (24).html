@@ -4475,7 +4475,7 @@ async function startNewDM(){
   openDMChat(match.id,{id:match.id,...match.data()});
 }
 
-async function openDMChat(uid,userData){
+async function openDMChat(uid,userData,rowEl){
   const u=window.CU;
   if(!uid||uid==='undefined')return toast('Invalid user','ty');
   if(!userData||typeof userData==='string'){
@@ -4487,6 +4487,10 @@ async function openDMChat(uid,userData){
   }
   _activeDMUser=userData;
   _activeDMId=getDMId(u.uid,uid);
+  if(rowEl){
+    const b=rowEl.querySelector('[data-unread-badge]');
+    if(b)b.remove();
+  }
   // Update header
   const av=$('dm-chat-av'),nameEl=$('dm-chat-name'),statusEl=$('dm-chat-status');
   if(av)av.textContent=(userData.name||'U')[0].toUpperCase();
@@ -4510,7 +4514,10 @@ async function loadDMMessages(){
   try{
     const snap=await db.collection('dms').doc(_activeDMId).collection('msgs').get();
     const msgs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
-    if(!msgs.length){el.innerHTML='<div style="text-align:center;padding:30px;color:var(--t3);font-size:.82rem">No messages yet. Say hello! 👋</div>';return;}
+    if(!msgs.length){
+      el.innerHTML='<div style="font-size:.72rem;color:var(--t3);line-height:1.4;padding:8px 8px 14px;text-align:center">⚠️ Be aware of scammers. Any transaction or discussion in this chat is between users only. Starlife is not part of private deals made in messages. Do not share your personal details, password, OTP, or payment credentials.</div><div style="text-align:center;padding:20px 30px;color:var(--t3);font-size:.82rem">No messages yet. Say hello! 👋</div>';
+      return;
+    }
     el.innerHTML=msgs.map(m=>{
       const mine=m.from===u.uid;
       const time=m.createdAt?new Date(m.createdAt.seconds*1000).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):'';
@@ -4558,7 +4565,7 @@ async function loadDMList(){
       const otherUid=c.participants.find(p=>p!==u.uid);
       const otherName=c.names?.[otherUid]||'Member';
       const unread=c[`unread_${u.uid}`]||0;
-      return`<div class="dm-list-item" onclick="openDMChat('${otherUid}')">
+      return`<div class="dm-list-item" onclick="openDMChat('${otherUid}',null,this)">
         <div class="dm-av" style="width:42px;height:42px;font-size:.95rem">${(otherName||'M')[0].toUpperCase()}</div>
         <div style="flex:1;min-width:0">
           <div style="display:flex;justify-content:space-between;align-items:center">
@@ -4567,7 +4574,7 @@ async function loadDMList(){
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px">
             <div style="font-size:.78rem;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${c.lastMsg||'...'}</div>
-            ${unread>0?`<span style="background:var(--g);color:#000;font-size:.68rem;font-weight:700;padding:2px 6px;border-radius:10px;flex-shrink:0;margin-left:6px">${unread}</span>`:''}
+            ${unread>0?`<span data-unread-badge="1" style="background:var(--g);color:#000;font-size:.68rem;font-weight:700;padding:2px 6px;border-radius:10px;flex-shrink:0;margin-left:6px">${unread}</span>`:''}
           </div>
         </div>
       </div>`;

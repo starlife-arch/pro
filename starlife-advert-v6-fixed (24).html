@@ -3695,7 +3695,8 @@ async function doInvest(){
   const u=window.CU;
   if(!amt||amt<10)return toast('Minimum $10','ty');
   if(amt>800000)return toast('Maximum $800,000','ty');
-  if((u.balance||0)<amt)return toast('Insufficient balance — deposit funds first','tr');
+  const spendable=getAvailableBalance(u);
+  if(spendable<amt)return toast(`Insufficient available balance. Available: $${fmt(spendable)}${(u.heldAmount||0)>0?' ($'+fmt(u.heldAmount)+' on hold)':''}`,'tr');
   try{
     const batch=db.batch();
     const invRef=db.collection('investments').doc();
@@ -3756,7 +3757,7 @@ async function doWithdraw(){
   const u=window.CU;
   if(!amt||amt<10)return toast('Minimum withdrawal $10','ty');
   if(!details)return toast('Enter your payment details','ty');
-  const availBal=Math.max(0,(u.balance||0)-(u.heldAmount||0));
+  const availBal=getAvailableBalance(u);
   if(availBal<amt)return toast(`Insufficient available balance. Available: $${fmt(availBal)}${(u.heldAmount||0)>0?' ($'+fmt(u.heldAmount)+' on hold)':''}`, 'tr');
   // KYC check
   if(u.kycStatus!=='approved'){
@@ -3865,7 +3866,8 @@ async function doStake(){
   const amt=parseFloat($('sh-amt').value);
   const u=window.CU;
   if(!amt||amt<25)return toast('Minimum stake is $25','ty');
-  if((u.balance||0)<amt)return toast('Insufficient balance — deposit funds first','tr');
+  const spendable=getAvailableBalance(u);
+  if(spendable<amt)return toast(`Insufficient available balance. Available: $${fmt(spendable)}${(u.heldAmount||0)>0?' ($'+fmt(u.heldAmount)+' on hold)':''}`,'tr');
   try{
     const batch=db.batch();
     const stakeRef=db.collection('stakes').doc();
@@ -4088,7 +4090,8 @@ async function loadMyLoans(){
 
 async function repayLoan(loanId,total){
   const u=window.CU;
-  if((u.balance||0)<total)return toast('Insufficient balance to repay','tr');
+  const spendable=getAvailableBalance(u);
+  if(spendable<total)return toast(`Insufficient available balance to repay. Available: $${fmt(spendable)}`,'tr');
   await db.collection('users').doc(u.uid).update({balance:FS().increment(-total)});
   await db.collection('loans').doc(loanId).update({status:'repaid',repaidAt:FS().serverTimestamp()});
   logAct(u.uid,`Loan repaid $${fmt(total)}`,-total,'💰','loan');
@@ -4320,7 +4323,7 @@ async function applyVerification(){
     toast('✅ Blue verified badge activated instantly!','tg',4000);
   } else {
     // Paid — $10/month, instant
-    const avail=Math.max(0,(u.balance||0)-(u.heldAmount||0));
+    const avail=getAvailableBalance(u);
     if(avail<10)return toast(`Insufficient balance — need $10. Available: $${fmt(avail)}`,'tr');
     if(!confirm('Pay $10/month for blue verified badge? Deducted from your balance now, then monthly automatically.'))return;
     try{
@@ -5983,9 +5986,8 @@ async function adminHoldFunds(uid, name, balance, currentHeld){
 }
 
 // Block withdraw/transfer/invest if held funds would make balance insufficient
-function getAvailableBalance(){
-  const u=window.CU;
-  return Math.max(0,(u.balance||0)-(u.heldAmount||0));
+function getAvailableBalance(u=window.CU){
+  return Math.max(0,(u?.balance||0)-(u?.heldAmount||0));
 }
 
 // ════════════════════════════════════════════════════════
@@ -6066,7 +6068,7 @@ function initiateTransfer(){
   if(!amt||amt<=0)return toast('Enter an amount','ty');
   if(_tfType==='cash'){
     if(amt<1)return toast('Minimum transfer is $1','ty');
-    const tfAvail=Math.max(0,(u.balance||0)-(u.heldAmount||0));
+    const tfAvail=getAvailableBalance(u);
     if(tfAvail<amt)return toast(`Insufficient available balance. Available: $${fmt(tfAvail)}${(u.heldAmount||0)>0?' ($'+fmt(u.heldAmount)+' on hold)':''}`, 'tr');
   } else {
     if(amt<10)return toast('Minimum transfer is 10 points','ty');
@@ -6220,7 +6222,7 @@ async function postP2PAd(){
   if(max>amt)return toast('Max order cannot exceed total amount','ty');
   if(_p2pAdType==='sell'&&!details)return toast('Enter your payment details','ty');
   if(_p2pAdType==='sell'){
-    const avail=Math.max(0,(u.balance||0)-(u.heldAmount||0));
+    const avail=getAvailableBalance(u);
     if(avail<amt)return toast(`Insufficient balance. Available: $${fmt(avail)}`,'tr');
   }
   try{
@@ -6337,7 +6339,7 @@ async function confirmOpenTrade(){
   const isSelling=ad.type==='buy'; // user selling to buy ad
   if(isSelling){
     // User is selling their USD to a buy ad — check balance
-    const avail=Math.max(0,(u.balance||0)-(u.heldAmount||0));
+    const avail=getAvailableBalance(u);
     if(avail<amt)return toast(`Insufficient balance. Available: $${fmt(avail)}`,'tr');
   }
   closeModal('m-p2p-open');
@@ -7038,7 +7040,7 @@ async function lockInVault(){
   const u=window.CU;
   const amt=parseFloat($('vault-amt')?.value);
   if(!amt||amt<10)return toast('Minimum $10 to lock in vault','ty');
-  const avail=Math.max(0,(u.balance||0)-(u.heldAmount||0));
+  const avail=getAvailableBalance(u);
   if(avail<amt)return toast(`Insufficient balance. Available: $${fmt(avail)}`,'tr');
   const bonus=parseFloat((amt*_vaultPlan.rate/100).toFixed(4));
   const receive=parseFloat((amt+bonus).toFixed(4));
@@ -7155,7 +7157,7 @@ async function addToGoal(goalId,target,saved){
   const u=window.CU;
   const amt=parseFloat($('gs-'+goalId)?.value)||0;
   if(!amt||amt<1)return toast('Enter amount to add','ty');
-  const avail=Math.max(0,(u.balance||0)-(u.heldAmount||0));
+  const avail=getAvailableBalance(u);
   if(avail<amt)return toast(`Insufficient balance. Available: $${fmt(avail)}`,'tr');
   const newSaved=parseFloat((saved+amt).toFixed(4));
   const achieved=newSaved>=target;
@@ -8177,7 +8179,7 @@ async function buyTickets(){
   const ptsCost=_ticketType==='pts'?qty*50:0;
   const cashCost=_ticketType==='bal'?qty*0.50:0;
   if(ptsCost>0&&(u.surveyPoints||0)<ptsCost)return toast('Not enough points. Need '+ptsCost+' pts','tr');
-  if(cashCost>0&&(u.balance||0)<cashCost)return toast('Insufficient balance','tr');
+  if(cashCost>0&&getAvailableBalance(u)<cashCost)return toast(`Insufficient available balance. Available: $${fmt(getAvailableBalance(u))}`,'tr');
   const allowed=qty;
   const actualPtsCost=_ticketType==='pts'?allowed*50:0;
   const actualCashCost=_ticketType==='bal'?allowed*0.50:0;
@@ -8744,7 +8746,7 @@ async function doSavDeposit(){
   const txid=$('sav-txid').value.trim();
   const u=window.CU;
   if(!amt||amt<10)return toast('Minimum $10','ty');
-  if(method==='From Main Balance'&&(u.balance||0)<amt)return toast('Insufficient balance','tr');
+  if(method==='From Main Balance'&&getAvailableBalance(u)<amt)return toast(`Insufficient available balance. Available: $${fmt(getAvailableBalance(u))}`,'tr');
   const unlockDate=new Date(Date.now()+30*86400000);
   await db.collection('savings').add({uid:u.uid,userName:u.name,amount:amt,method,txid,status:method==='From Main Balance'?'active':'pending',dailyProfit:amt*0.03,totalPaid:0,unlockDate:firebase.firestore.Timestamp.fromDate(unlockDate),createdAt:FS().serverTimestamp()});
   if(method==='From Main Balance'){
@@ -10624,7 +10626,7 @@ async function buyDrawTickets(){
   const u=window.CU;
   const {type,cost,qty}=_drawSel;
   if(type==='points'&&(u.surveyPoints||0)<cost)return toast('Not enough points — need '+cost+' pts','tr');
-  if(type==='balance'&&(u.balance||0)<cost)return toast('Insufficient balance','tr');
+  if(type==='balance'&&getAvailableBalance(u)<cost)return toast(`Insufficient available balance. Available: $${fmt(getAvailableBalance(u))}`,'tr');
   try{
     const batch=db.batch();
     // Deduct cost

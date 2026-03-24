@@ -3042,13 +3042,16 @@ function hideMore(){if(window._real_hideMore)window._real_hideMore();}
 const FIREBASE_CONFIG={apiKey:"AIzaSyCF09qr8P8_BOzWt53wopZlavHFZb7sBnM",authDomain:"starlife-advert-a6587.firebaseapp.com",projectId:"starlife-advert-a6587",storageBucket:"starlife-advert-a6587.firebasestorage.app",messagingSenderId:"946780590831",appId:"1:946780590831:web:dd22e4879ec0786a31011a"};
 const ADMIN_EMAIL="starlifeadvert@gmail.com";
 const SUPPORT_EMAIL="support@starlifeadvert.com";
-const TG_TOKEN="7703654969:AAHQ_wDrgFtvOzmSrSRglZwgPd4VXDFOMps";
-const TG_CHAT_ID="8403840295"; // Telegram Chat ID
 
 async function tg(msg){
-  if(!TG_CHAT_ID)return;
-  const url=`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`;
-  try{await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:TG_CHAT_ID,text:msg,parse_mode:'HTML'})});}
+  if(!msg)return;
+  try{
+    await fetch('/.netlify/functions/send-telegram',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({message:msg})
+    });
+  }
   catch(e){console.warn('TG error',e);}
 }
 firebase.initializeApp(FIREBASE_CONFIG);

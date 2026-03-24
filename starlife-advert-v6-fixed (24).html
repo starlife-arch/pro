@@ -4504,7 +4504,7 @@ async function openDMChat(uid,userData,rowEl){
     .where('to','==',u.uid).where('read','==',false).get()
     .then(snap=>Promise.all(snap.docs.map(d=>d.ref.update({read:true}))));
   await db.collection('dms').doc(_activeDMId).set({[`unread_${u.uid}`]:0},{merge:true});
-  await loadDMList();
+  loadDMList();
 }
 
 async function loadDMMessages(){

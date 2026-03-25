@@ -3731,10 +3731,17 @@
                 <!-- PROFILE EDIT CARD -->
                 <div class="card" style="margin-bottom:10px" id="edit-profile-card">
                     <div style="display:flex;justify-content:space-between;align-items:center">
-                        <div style="font-size:.88rem;font-weight:600">?? Edit Profile</div>
-                        <button class="btn btn-gh btn-sm" id="prof-edit-btn" style="font-size:.72rem" onclick="openProfileEdit()">Edit Settings</button>
+                        <div style="font-size:.88rem;font-weight:600">?? Profile & Settings</div>
+                        <div>
+                            <button class="btn btn-gh btn-sm" id="prof-ann-btn" style="font-size:.72rem;margin-right:6px" onclick="openAnnouncements()">Announcements</button>
+                            <button class="btn btn-gh btn-sm" id="prof-rc-btn" style="font-size:.72rem;margin-right:6px" onclick="openReportCenter()">Report Center</button>
+                            <button class="btn btn-gh btn-sm" id="prof-edit-btn" style="font-size:.72rem" onclick="openProfileEdit()">Edit Settings</button>
+                        </div>
                     </div>
                     <div id="prof-edit-wrap" style="display:none;margin-top:12px">
+                        <label class="fl">Profile Photo</label>
+                        <input class="fi" id="edit-photo" type="file" accept="image/*" style="margin-bottom:8px">
+                        
                         <label class="fl">Display Name</label>
                         <input class="fi" id="edit-displayName" type="text" placeholder="Public Display Name" style="margin-bottom:8px">
                         
@@ -6242,7 +6249,8 @@
             const u = window.CU; if (!u) return;
             const b = fmt(getAvailableBalance(u));
             $('nav-bal').textContent = b;
-            $('nav-av').textContent = (u.name || 'U')[0].toUpperCase();
+            if (u.avatarBase64) { $('nav-av').innerHTML = `<img src="${u.avatarBase64}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`; }
+            else { $('nav-av').textContent = (u.name || 'U')[0].toUpperCase(); }
             $('h-bal').textContent = b;
             $('h-pts').textContent = Math.floor(u.balance || 0);
             $('wd-bal').textContent = b;
@@ -6273,7 +6281,8 @@
             $('sv-done').textContent = u.surveysCompleted || 0;
             $('sv-skip').textContent = u.surveysSkipped || 0;
             // profile
-            $('prof-av').textContent = (u.name || 'U')[0].toUpperCase();
+            if (u.avatarBase64) { $('prof-av').innerHTML = `<img src="${u.avatarBase64}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`; }
+            else { $('prof-av').textContent = (u.name || 'U')[0].toUpperCase(); }
             $('prof-name').textContent = u.name || 'User';
             updateProfileBadges(u);
             $('prof-email').textContent = u.email;
@@ -7329,7 +7338,10 @@
             const u = { id: uid, ...snap.data() };
             const me = window.CU;
             // Populate modal
-            if ($('pp-av')) $('pp-av').textContent = (getPublicDisplayName(u) || 'U')[0].toUpperCase();
+            if ($('pp-av')) {
+                if (u.avatarBase64) $('pp-av').innerHTML = `<img src="${u.avatarBase64}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+                else $('pp-av').textContent = (getPublicDisplayName(u) || 'U')[0].toUpperCase();
+            }
             if ($('pp-name')) $('pp-name').textContent = getPublicDisplayName(u);
             if ($('pp-badges-row')) $('pp-badges-row').innerHTML = getBadgeHTML(u);
             if ($('pp-tags')) $('pp-tags').innerHTML = getTagsHTML(u);
@@ -7504,7 +7516,10 @@
             }
             // Update header
             const av = $('dm-chat-av'), nameEl = $('dm-chat-name'), statusEl = $('dm-chat-status');
-            if (av) av.textContent = (userData.name || 'U')[0].toUpperCase();
+            if (av) {
+                if (userData.avatarBase64) av.innerHTML = `<img src="${userData.avatarBase64}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+                else av.textContent = (userData.name || 'U')[0].toUpperCase();
+            }
             if (nameEl) nameEl.innerHTML = getPublicDisplayName(userData) + getBadgeHTML(userData);
             if (statusEl) statusEl.innerHTML = getTagsHTML(userData) || 'Member';
             await refreshDMModerationState();
@@ -7629,13 +7644,20 @@
                 const others = [...new Set(convs.map(c => (c.participants || []).find(p => p !== u.uid)).filter(Boolean))];
                 const otherDocs = await Promise.all(others.map(uid => db.collection('users').doc(uid).get()));
                 const publicNameMap = {};
-                otherDocs.forEach(s => { if (s.exists) publicNameMap[s.id] = getPublicDisplayName({ id: s.id, ...s.data() }); });
+                const avatarMap = {};
+                otherDocs.forEach(s => { 
+                    if (s.exists) {
+                        publicNameMap[s.id] = getPublicDisplayName({ id: s.id, ...s.data() }); 
+                        if (s.data().avatarBase64) avatarMap[s.id] = s.data().avatarBase64;
+                    }
+                });
                 el.innerHTML = convs.map(c => {
                     const otherUid = c.participants.find(p => p !== u.uid);
                     const otherName = publicNameMap[otherUid] || c.publicNames?.[otherUid] || getPublicDisplayName({ name: c.names?.[otherUid] || 'Member' });
                     const unread = c[`unread_${u.uid}`] || 0;
+                    const avHTML = avatarMap[otherUid] ? `<img class="dm-av" src="${avatarMap[otherUid]}" style="width:42px;height:42px;border-radius:50%;object-fit:cover;padding:0;border:none;flex-shrink:0;">` : `<div class="dm-av" style="width:42px;height:42px;font-size:.95rem">${(otherName || 'M')[0].toUpperCase()}</div>`;
                     return `<div class="dm-list-item" onclick="openDMChat('${otherUid}',null,this)">
-        <div class="dm-av" style="width:42px;height:42px;font-size:.95rem">${(otherName || 'M')[0].toUpperCase()}</div>
+        ${avHTML}
         <div style="flex:1;min-width:0">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <div style="font-weight:600;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${otherName}</div>
@@ -9855,8 +9877,9 @@ Message: ${message}`);
             const followCls = following ? 'btn-gh' : 'btn-p';
             const pId = p.id;
             const pName = publicName.replace(/'/g, "\'").replace(/"/g, '&quot;');
+            const avHTML = p.avatarBase64 ? `<img src="${p.avatarBase64}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer" onclick="viewPublicProfile('${pId}')">` : `<div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--gd),#004D20);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:1.1rem;flex-shrink:0;cursor:pointer" onclick="viewPublicProfile('${pId}')">${(publicName || 'U')[0].toUpperCase()}</div>`;
             return `<div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--s1);border:1px solid var(--bd);border-radius:12px;margin-bottom:8px">
-    <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--gd),#004D20);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:1.1rem;flex-shrink:0;cursor:pointer" onclick="viewPublicProfile('${pId}')">${(publicName || 'U')[0].toUpperCase()}</div>
+    ${avHTML}
     <div style="flex:1;min-width:0;cursor:pointer" onclick="viewPublicProfile('${pId}')">
       <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">${getNameWithBadges(p)}</div>
       <div style="font-size:.72rem;color:var(--t3)">👥 ${fmtNum(totalFollowers)} followers${vip.level !== 'starter' ? ' · ' + vip.icon + ' ' + vip.label : ''}${p.isVerified ? ' · ✅' : ''}</div>
@@ -13889,9 +13912,31 @@ Prize: $${fmt(prize)}`);
         }
 
         // ═══ PROFILE EDIT ═══
+        async function compressImage(file, maxSize) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let w = img.width, h = img.height;
+                        if (w > maxSize) { h *= maxSize/w; w = maxSize; }
+                        if (h > maxSize) { w *= maxSize/h; h = maxSize; }
+                        canvas.width = w; canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, w, h);
+                        resolve(canvas.toDataURL('image/jpeg', 0.6));
+                    };
+                    img.src = e.target.result;
+                };
+            });
+        }
+
         async function openProfileEdit() {
             var u = window.CU;
             if(!u) return;
+            $('edit-photo').value = '';
             $('edit-displayName').value = u.displayName || '';
             $('edit-username').value = u.username || '';
             $('edit-bio').value = u.bio || '';
@@ -13905,17 +13950,72 @@ Prize: $${fmt(prize)}`);
             var dName = $('edit-displayName').value.trim();
             var uName = $('edit-username').value.trim();
             var bio = $('edit-bio').value.trim();
+            var file = $('edit-photo').files[0];
+            var b64 = u.avatarBase64;
+            
+            if (uName) {
+                if (!/^[a-zA-Z0-9_]{3,20}$/.test(uName)) {
+                    toast('Username must be 3-20 characters long and contain only letters, numbers, or underscores.', 'tr', 4000);
+                    return;
+                }
+                if (uName !== (u.username || '')) {
+                    if (u.usernameLastChanged) {
+                        let ms = u.usernameLastChanged.toMillis ? u.usernameLastChanged.toMillis() : u.usernameLastChanged;
+                        const daysSince = (Date.now() - ms) / (1000 * 60 * 60 * 24);
+                        if (daysSince < 7) {
+                            toast(`You can only change your username once every 7 days. (${Math.ceil(7 - daysSince)} days left)`, 'tr', 4000);
+                            return;
+                        }
+                    }
+                    try {
+                        const snap = await db.collection('users').where('username', '==', uName).get();
+                        if (!snap.empty) {
+                            toast('That username is already taken. Please choose another.', 'tr', 3000);
+                            return;
+                        }
+                    } catch(e) {
+                        toast('Error checking username availability.', 'tr');
+                        return;
+                    }
+                }
+            }
             
             try {
-                await db.collection('users').doc(u.uid).update({
+                if (file) {
+                    b64 = await compressImage(file, 200);
+                }
+                
+                const updateData = {
                     displayName: dName,
                     username: uName,
-                    bio: bio
-                });
+                    bio: bio,
+                    avatarBase64: b64 || null
+                };
+                
+                if (uName && uName !== (u.username || '')) {
+                    updateData.usernameLastChanged = FS().serverTimestamp();
+                    window.CU.usernameLastChanged = Date.now();
+                }
+                
+                await db.collection('users').doc(u.uid).update(updateData);
                 window.CU.displayName = dName;
                 window.CU.username = uName;
                 window.CU.bio = bio;
+                window.CU.avatarBase64 = b64 || null;
+                
                 updateProfileBadges(window.CU);
+                
+                // Update local HTML avatars immediately
+                if(b64) {
+                    const imgHtml = `<img src="${b64}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+                    if($('nav-av')) $('nav-av').innerHTML = imgHtml;
+                    if($('prof-av')) $('prof-av').innerHTML = imgHtml;
+                } else {
+                    const fb = (getPublicDisplayName(window.CU) || 'U')[0].toUpperCase();
+                    if($('nav-av')) $('nav-av').textContent = fb;
+                    if($('prof-av')) $('prof-av').textContent = fb;
+                }
+                
                 $('prof-edit-wrap').style.display = 'none';
                 $('prof-edit-btn').style.display = 'inline-block';
                 toast('? Profile updated successfully!', 'tg');
@@ -14090,7 +14190,120 @@ Prize: $${fmt(prize)}`);
                 if (window.submitKYC) window.submitKYC();
             });
         })();
+        // ═══ ANNOUNCEMENTS CENTER ═══
+        async function openAnnouncements() {
+            openModal('m-announcements');
+            const listEl = $('ann-list');
+            try {
+                listEl.innerHTML = '<div class="es">Loading announcements...</div>';
+                const snap = await db.collection('broadcasts')
+                    .orderBy('createdAt', 'desc')
+                    .limit(50)
+                    .get();
+                
+                if (snap.empty) {
+                    listEl.innerHTML = '<div class="es">No announcements right now.</div>';
+                    return;
+                }
+                
+                let html = '';
+                for (let d of snap.docs) {
+                    const b = d.data();
+                    let icon = '??';
+                    if (b.title && b.title.includes('Maintenance')) icon = '??';
+                    else if (b.title && b.title.includes('Winner')) icon = '??';
+                    else if (b.title && (b.title.includes('Update') || b.title.includes('Feature'))) icon = '?';
+                    
+                    html += `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:12px;margin-bottom:10px">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+                            <div style="font-weight:600;font-size:.9rem;color:var(--t1)">${icon} ${b.title || 'Announcement'}</div>
+                        </div>
+                        <div style="font-size:.85rem;color:var(--t2);line-height:1.4">${b.message || ''}</div>
+                        <div style="font-size:.7rem;color:var(--t3);margin-top:8px">${fmtDT(b.createdAt)}</div>
+                    </div>`;
+                }
+                listEl.innerHTML = html;
+            } catch (e) {
+                listEl.innerHTML = `<div class="es" style="color:var(--red)">Failed to load announcements: ${e.message}</div>`;
+            }
+        }
+
+        // ═══ REPORT CENTER ═══
+        async function openReportCenter() {
+            openModal('m-report-center');
+            const listEl = $('rc-list');
+            try {
+                listEl.innerHTML = '<div class="es">Loading reports...</div>';
+                const snap = await db.collection('dmReports')
+                    .where('reporterUid', '==', window.CU.uid)
+                    .get();
+                
+                if (snap.empty) {
+                    listEl.innerHTML = '<div class="es">You have not submitted any reports.</div>';
+                    return;
+                }
+                
+                let docs = snap.docs.map(d => d.data());
+                docs.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                
+                let html = '';
+                for (let r of docs) {
+                    let statusBadge = '';
+                    if (r.status === 'pending') statusBadge = '<span class="badge bgold">Pending</span>';
+                    else if (r.status === 'reviewed') statusBadge = '<span class="badge bg">Reviewed</span>';
+                    else statusBadge = `<span class="badge bmut">${r.status || 'Pending'}</span>`;
+                    
+                    let actionText = '';
+                    if (r.status === 'reviewed') {
+                        if (r.action === 'warned') actionText = '<div style="font-size:.75rem;color:var(--gold);margin-top:4px">?? Action: User Warned</div>';
+                        else if (r.dmMuted) actionText = '<div style="font-size:.75rem;color:var(--g);margin-top:4px">?? Action: DM Muted</div>';
+                        else if (r.hiddenFromDiscover) actionText = '<div style="font-size:.75rem;color:var(--sky);margin-top:4px">?? Action: Hidden from Discover</div>';
+                        else if (r.moderationNotes) actionText = `<div style="font-size:.75rem;color:var(--g);margin-top:4px">?? Note: ${r.moderationNotes}</div>`;
+                        else actionText = '<div style="font-size:.75rem;color:var(--g);margin-top:4px">?? Action: Reviewed by Staff</div>';
+                    }
+                    
+                    html += `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:12px;margin-bottom:10px">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+                            <div style="font-weight:600;font-size:.9rem">Reported: User #${r.reportedMemberId || '?'}</div>
+                            ${statusBadge}
+                        </div>
+                        <div style="font-size:.8rem;color:var(--t2)">Reason: <span style="color:var(--t1)">${r.reason}</span></div>
+                        ${r.note ? `<div style="font-size:.75rem;color:var(--t3);margin-top:2px">Note: ${r.note}</div>` : ''}
+                        <div style="font-size:.7rem;color:var(--t3);margin-top:8px">${fmtDT(r.createdAt)}</div>
+                        ${actionText}
+                    </div>`;
+                }
+                listEl.innerHTML = html;
+            } catch (e) {
+                listEl.innerHTML = `<div class="es" style="color:var(--red)">Failed to load reports: ${e.message}</div>`;
+            }
+        }
     </script>
+
+    <!-- REPORT CENTER MODAL -->
+    <div class="modal" id="m-report-center">
+        <div class="modal-content" style="max-width:500px">
+            <div class="modal-close" onclick="closeModal('m-report-center')">?</div>
+            <div class="modal-title">My Report Center</div>
+            <div style="font-size:.85rem;color:var(--t2);margin-bottom:16px;">Track the status of users you have reported.</div>
+            
+            <div id="rc-list" style="max-height:60vh;overflow-y:auto;padding-right:4px">
+                <div class="es">Loading reports...</div>
+            </div>
+        </div>
+    </div>
+    <!-- ANNOUNCEMENTS MODAL -->
+    <div class="modal" id="m-announcements">
+        <div class="modal-content" style="max-width:500px">
+            <div class="modal-close" onclick="closeModal('m-announcements')">?</div>
+            <div class="modal-title">Announcements</div>
+            <div style="font-size:.85rem;color:var(--t2);margin-bottom:16px;">System updates, winners, and alerts.</div>
+            
+            <div id="ann-list" style="max-height:60vh;overflow-y:auto;padding-right:4px">
+                <div class="es">Loading announcements...</div>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

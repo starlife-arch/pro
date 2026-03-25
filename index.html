@@ -903,7 +903,7 @@ function hideMore(){if(window._real_hideMore)window._real_hideMore();}
     <div class="bal-card">
       <div class="bal-lbl">Available Balance</div>
       <div class="bal-amt"><span style="font-size:1.2rem;opacity:.7">$</span><span id="h-bal">0.00</span></div>
-      <div class="bal-sub">Points: <span id="h-pts">0</span> · Daily Profit: <span id="h-dp" style="color:var(--g)">$0.00</span></div>
+      <div class="bal-sub">Points: <span id="h-pts">0</span> · Daily Profit: <span id="h-dp" style="color:var(--g)">$0.00</span> · Held: <span id="h-held" style="color:var(--red)">$0.00</span></div>
       <div style="margin-top:10px;margin-bottom:4px" id="h-rank-wrap"></div>
       <div style="margin-top:10px;display:flex;gap:7px;flex-wrap:wrap">
         <button class="btn btn-p btn-sm" onclick="tab('invest')">+ Invest</button>
@@ -3317,7 +3317,7 @@ window._doForgot = window.doForgot = async function(){
 // ════════════════════════════════════════════════════════
 function updateUI(){
   const u=window.CU;if(!u)return;
-  const b=fmt(u.balance);
+  const b=fmt(getAvailableBalance(u));
   $('nav-bal').textContent=b;
   $('nav-av').textContent=(u.name||'U')[0].toUpperCase();
   $('h-bal').textContent=b;
@@ -3326,6 +3326,8 @@ function updateUI(){
   // daily profit estimate
   const dp=fmt((u.totalInvested||0)*0.02);
   $('h-dp').textContent='$'+dp;
+  const held=(u.heldAmount||0);
+  const heldEl=$('h-held');if(heldEl)heldEl.textContent='$'+fmt(held);
   $('h-inv').textContent=fmt(u.totalInvested);
   $('h-ern').textContent=fmt(u.totalEarned);
   $('h-sh').textContent=fmt(u.shareholderEarned||0);
@@ -4234,6 +4236,9 @@ function getTagsHTML(u){
   else if(u.vipLevel==='Silver')tags+='<span class="user-tag tag-vip-silver">🥈 Silver</span>';
   return tags;
 }
+function getPublicDisplayName(u){
+  return (u&&((u.displayName||'').trim()||(u.username||'').trim()||(u.publicName||'').trim()||(u.name||'').trim()))||'Member';
+}
 
 function updateProfileBadges(u=window.CU){
   if(!u)return;
@@ -4401,8 +4406,8 @@ async function viewPublicProfile(uid){
   const u={id:uid,...snap.data()};
   const me=window.CU;
   // Populate modal
-  if($('pp-av'))$('pp-av').textContent=(u.name||'U')[0].toUpperCase();
-  if($('pp-name'))$('pp-name').textContent=u.name||'Member';
+  if($('pp-av'))$('pp-av').textContent=(getPublicDisplayName(u)||'U')[0].toUpperCase();
+  if($('pp-name'))$('pp-name').textContent=getPublicDisplayName(u);
   if($('pp-badges-row'))$('pp-badges-row').innerHTML=getBadgeHTML(u);
   if($('pp-tags'))$('pp-tags').innerHTML=getTagsHTML(u);
   const followers=getTotalFollowers(u);
@@ -4577,7 +4582,7 @@ async function openDMChat(uid,userData,rowEl){
   // Update header
   const av=$('dm-chat-av'),nameEl=$('dm-chat-name'),statusEl=$('dm-chat-status');
   if(av)av.textContent=(userData.name||'U')[0].toUpperCase();
-  if(nameEl)nameEl.innerHTML=(userData.name||'Member')+getBadgeHTML(userData);
+  if(nameEl)nameEl.innerHTML=getPublicDisplayName(userData)+getBadgeHTML(userData);
   if(statusEl)statusEl.innerHTML=getTagsHTML(userData)||'Member';
   await refreshDMModerationState();
   // Load messages
@@ -4634,7 +4639,8 @@ async function sendDM(){
       lastMsgAt:FS().serverTimestamp(),
       lastMsgFrom:u.uid,
       [`unread_${_activeDMUser.id}`]:firebase.firestore.FieldValue.increment(1),
-      names:{[u.uid]:u.name,[_activeDMUser.id]:_activeDMUser.name}
+      names:{[u.uid]:u.name,[_activeDMUser.id]:_activeDMUser.name},
+      publicNames:{[u.uid]:getPublicDisplayName(u),[_activeDMUser.id]:getPublicDisplayName(_activeDMUser)}
     },{merge:true});
     await loadDMMessages();
     // Notify recipient
@@ -4697,9 +4703,13 @@ async function loadDMList(){
     const snap=await db.collection('dms').where('participants','array-contains',u.uid).get();
     const convs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.lastMsgAt?.seconds||0)-(a.lastMsgAt?.seconds||0));
     if(!convs.length){el.innerHTML='<div class="es">No messages yet.<br><span style="font-size:.78rem;color:var(--t3)">Enter a Member ID above to start chatting</span></div>';return;}
+    const others=[...new Set(convs.map(c=>(c.participants||[]).find(p=>p!==u.uid)).filter(Boolean))];
+    const otherDocs=await Promise.all(others.map(uid=>db.collection('users').doc(uid).get()));
+    const publicNameMap={};
+    otherDocs.forEach(s=>{ if(s.exists)publicNameMap[s.id]=getPublicDisplayName({id:s.id,...s.data()}); });
     el.innerHTML=convs.map(c=>{
       const otherUid=c.participants.find(p=>p!==u.uid);
-      const otherName=c.names?.[otherUid]||'Member';
+      const otherName=publicNameMap[otherUid]||c.publicNames?.[otherUid]||getPublicDisplayName({name:c.names?.[otherUid]||'Member'});
       const unread=c[`unread_${u.uid}`]||0;
       return`<div class="dm-list-item" onclick="openDMChat('${otherUid}',null,this)">
         <div class="dm-av" style="width:42px;height:42px;font-size:.95rem">${(otherName||'M')[0].toUpperCase()}</div>
@@ -6759,7 +6769,7 @@ function getBadgeHTML(u, size='normal'){
 }
 
 function getNameWithBadges(u){
-  return`<span style="font-weight:700">${u.name||'Member'}</span>${getBadgeHTML(u)}`;
+  return`<span style="font-weight:700">${getPublicDisplayName(u)}</span>${getBadgeHTML(u)}`;
 }
 
 // Check and auto-grant verified badge if eligible
@@ -6787,7 +6797,8 @@ async function renewVerifiedSubscriptions(){
     if(!u.verifiedNextRenewal)continue;
     const renewal=new Date(u.verifiedNextRenewal.seconds*1000);
     if(today>=renewal){
-      if((u.balance||0)>=10){
+      const avail=getAvailableBalance(u);
+      if(avail>=10){
         // Deduct and renew
         await doc.ref.update({
           balance:FS().increment(-10),
@@ -6913,12 +6924,13 @@ function renderSocialCard(p,context){
   const following=isFollowing(p.id);
   const vip=getVIPLevel(p.totalInvested||0);
   const totalFollowers=getTotalFollowers(p);
+  const publicName=getPublicDisplayName(p);
   const followLabel=following?'Following':'Follow';
   const followCls=following?'btn-gh':'btn-p';
   const pId=p.id;
-  const pName=(p.name||'Member').replace(/'/g,"\'").replace(/"/g,'&quot;');
+  const pName=publicName.replace(/'/g,"\'").replace(/"/g,'&quot;');
   return`<div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--s1);border:1px solid var(--bd);border-radius:12px;margin-bottom:8px">
-    <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--gd),#004D20);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:1.1rem;flex-shrink:0;cursor:pointer" onclick="viewPublicProfile('${pId}')">${(p.name||'U')[0].toUpperCase()}</div>
+    <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--gd),#004D20);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:1.1rem;flex-shrink:0;cursor:pointer" onclick="viewPublicProfile('${pId}')">${(publicName||'U')[0].toUpperCase()}</div>
     <div style="flex:1;min-width:0;cursor:pointer" onclick="viewPublicProfile('${pId}')">
       <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">${getNameWithBadges(p)}</div>
       <div style="font-size:.72rem;color:var(--t3)">👥 ${fmtNum(totalFollowers)} followers${vip.level!=='starter'?' · '+vip.icon+' '+vip.label:''}${p.isVerified?' · ✅':''}</div>

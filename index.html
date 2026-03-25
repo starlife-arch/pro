@@ -4873,8 +4873,87 @@
             <div class="more-item" onclick="tab('followers');loadFollowers();hideMore()">👥 Following</div>
             <div class="more-item" onclick="tab('messages');loadDMList();hideMore()">💬 Messages</div>
             <div class="more-item" onclick="tab('profile');hideMore()">👤 Profile</div>
+            <div class="more-item" id="nav-agent" style="display:none" onclick="go('pg-agent');hideMore()">💼 Agent Dashboard</div>
         </div>
     </div><!-- /pg-app -->
+
+    <!-- ══════════════════════════════════════════
+     AGENT DASHBOARD
+══════════════════════════════════════════ -->
+    <div class="page" id="pg-agent">
+        <nav>
+            <div class="nav-logo">Starlife<b>.</b> <span
+                    style="color:var(--gold);font-size:.78rem;font-weight:400">Agent</span></div>
+            <div class="nav-r">
+                <button class="btn btn-o btn-sm" onclick="go('pg-app')">Back</button>
+            </div>
+        </nav>
+        <div class="wrap">
+            <div class="sh">
+                <h3>Agent Performance & Rewards</h3>
+            </div>
+            
+            <div class="sgrid" style="grid-template-columns:1fr;gap:14px">
+                <!-- Salary Section -->
+                <div class="card card-glow" style="background:linear-gradient(135deg, #1A1A1A, #060A07);border-color:var(--gold)">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                        <div style="font-size:1.1rem;font-weight:700;color:var(--gold)">Monthly Salary</div>
+                        <span class="badge bgold" id="agent-salary-status">Pending</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+                        <div style="color:var(--t2)">Salary Amount</div>
+                        <div style="font-family:'JetBrains Mono', monospace;font-weight:600;font-size:1.1rem" id="agent-salary-amt">$0</div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between">
+                        <div style="color:var(--t2)">Secretary Allowance</div>
+                        <div style="font-family:'JetBrains Mono', monospace;font-weight:600;font-size:1.1rem" id="agent-sec-allow">$0</div>
+                    </div>
+                </div>
+
+                <!-- Office Progress -->
+                <div class="card">
+                    <div style="font-size:.9rem;font-weight:700;margin-bottom:12px;color:var(--sky)">🏢 Office Progress</div>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+                        <div style="color:var(--t2)">Status</div>
+                        <div style="font-weight:600" id="agent-office-status">Not started</div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between">
+                        <div style="color:var(--t2)">Region</div>
+                        <div style="font-weight:600" id="agent-region">—</div>
+                    </div>
+                </div>
+
+                <!-- Team Activity & Rank -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+                    <div class="sc">
+                        <div class="sl">Total Referrals</div>
+                        <div class="sv g" id="agent-referrals">0</div>
+                    </div>
+                    <div class="sc">
+                        <div class="sl">Active Investors</div>
+                        <div class="sv sky" id="agent-active-inv">0</div>
+                    </div>
+                </div>
+
+                <div class="card" style="text-align:center">
+                    <div style="color:var(--t3);text-transform:uppercase;font-size:.7rem;font-weight:600;letter-spacing:.5px;margin-bottom:6px">Performance Rank</div>
+                    <div style="font-size:1.8rem;font-weight:700;color:var(--gd)" id="agent-perf-rank">Bronze</div>
+                </div>
+
+                <!-- Benefits Summary -->
+                <div class="card">
+                    <div style="font-size:.9rem;font-weight:700;margin-bottom:12px;color:var(--purple)">🌟 Agent Benefits</div>
+                    <ul style="padding-left:18px;color:var(--t1);font-size:.85rem;line-height:1.6;color:var(--t2)">
+                        <li>Fixed monthly salary and allowances based on performance.</li>
+                        <li>Company-sponsored physical office space for your region.</li>
+                        <li>Higher direct and indirect referral commissions.</li>
+                        <li>Access to exclusive Agent promotions and investor leads.</li>
+                    </ul>
+                </div>
+            </div>
+            <br>
+        </div>
+    </div>
 
     <!-- ══════════════════════════════════════════
      ADMIN
@@ -5325,6 +5404,13 @@
                     <div class="es">Loading…</div>
                 </div>
             </div>
+            <div class="card" style="margin-top:14px">
+                <div style="font-weight:600;margin-bottom:8px">System Risk Flags (Anti-Scam)</div>
+                <div style="font-size:.75rem;color:var(--t2);margin-bottom:8px">Automatically detected risky DM behavior.</div>
+                <div id="dm-risk-list">
+                    <div class="es">Loading…</div>
+                </div>
+            </div>
         </div>
 
         <div id="at-analytics" class="atab">
@@ -5573,6 +5659,33 @@
             <div class="fg"><label class="fl">Email</label><input class="fi" id="eu-email" type="email"
                     placeholder="Email"></div>
             <div class="fg"><label class="fl">Phone</label><input class="fi" id="eu-phone" placeholder="Phone"></div>
+            <!-- Agent Fields -->
+            <div class="fg"><label class="fl">Salary Amount ($)</label><input class="fi" id="eu-salary-amt" type="number" placeholder="250"></div>
+            <div class="fg"><label class="fl">Secretary Allowance ($)</label><input class="fi" id="eu-sec-allow" type="number" placeholder="150"></div>
+            <div class="fg"><label class="fl">Salary Status</label>
+                <select class="fi" id="eu-salary-status">
+                    <option value="Pending">Pending</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Paid">Paid</option>
+                </select>
+            </div>
+            <div class="fg"><label class="fl">Office Status</label>
+                <select class="fi" id="eu-office-status">
+                    <option value="Not started">Not started</option>
+                    <option value="In progress">In progress</option>
+                    <option value="Completed">Completed</option>
+                </select>
+            </div>
+            <div class="fg"><label class="fl">Performance Rank</label>
+                <select class="fi" id="eu-perf-rank">
+                    <option value="Bronze">Bronze</option>
+                    <option value="Silver">Silver</option>
+                    <option value="Gold">Gold</option>
+                    <option value="Elite">Elite</option>
+                </select>
+            </div>
+            <div class="fg"><label class="fl">Agent Region</label><input class="fi" id="eu-agent-region" placeholder="Region"></div>
+            
             <div class="modal-acts">
                 <button class="btn btn-p" onclick="confirmEditUser()">Save</button>
                 <button class="btn btn-gh" onclick="closeModal('m-edit-user')">Cancel</button>
@@ -6308,6 +6421,21 @@
                 } else {
                     $('sh-countdown-wrap').style.display = 'none';
                 }
+            }
+            
+            // Agent Dashboard
+            if (u.isAgent) {
+                const navAg = $('nav-agent'); if(navAg) navAg.style.display = 'block';
+                const agSalSt = $('agent-salary-status'); if(agSalSt) agSalSt.textContent = u.salaryStatus || 'Pending';
+                const agSalAmt = $('agent-salary-amt'); if(agSalAmt) agSalAmt.textContent = '$' + fmt(u.salaryAmount || 0);
+                const agSecAll = $('agent-sec-allow'); if(agSecAll) agSecAll.textContent = '$' + fmt(u.secretaryAllowance || 0);
+                const agOffSt = $('agent-office-status'); if(agOffSt) agOffSt.textContent = u.officeStatus || 'Not started';
+                const agReg = $('agent-region'); if(agReg) agReg.textContent = u.agentRegion || '—';
+                const agRef = $('agent-referrals'); if(agRef) agRef.textContent = (u.referrals || []).length;
+                const agActInv = $('agent-active-inv'); if(agActInv) agActInv.textContent = u.activeInvestors || 0;
+                const agPerf = $('agent-perf-rank'); if(agPerf) agPerf.textContent = u.performanceRank || 'Bronze';
+            } else {
+                const navAg = $('nav-agent'); if(navAg) navAg.style.display = 'none';
             }
         }
 
@@ -7546,6 +7674,13 @@
                     return;
                 }
                 el.innerHTML = msgs.map(m => {
+                    if (m.system || m.from === 'system') {
+                        return `<div style="margin: 10px 0; text-align: center;">
+                            <div style="display:inline-block; background:rgba(255,213,79,0.1); border:1px solid rgba(255,213,79,0.3); border-radius:8px; padding:8px 12px; font-size:0.75rem; color:var(--gold); max-width:85%; line-height:1.4;">
+                                ${m.text}
+                            </div>
+                        </div>`;
+                    }
                     const mine = m.from === u.uid;
                     const time = m.createdAt ? new Date(m.createdAt.seconds * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
                     return `<div style="display:flex;flex-direction:column;align-items:${mine ? 'flex-end' : 'flex-start'};margin-bottom:6px">
@@ -7567,22 +7702,72 @@
             if (_dmBlockState.iBlocked) return toast('Unblock this user to send messages', 'ty');
             const u = window.CU;
             inp.value = '';
+            
+            const lowKeywords = ['whatsapp me', 'contact me on telegram', 'send money', 'pay me'];
+            const medKeywords = ['outside the app', 'investment proof', 'support me on whatsapp', 'bank details', 'm-pesa number', 'mpesa number'];
+            const highKeywords = ['send otp', 'share password', 'give me your code', 'withdraw for you', 'admin asked me', 'crypto wallet address', 'seed phrase'];
+            
+            let maxSeverity = 'none';
+            let matched = [];
+
+            const checkMatch = (arr) => arr.filter(k => new RegExp(`\\b${k}\\b`, 'i').test(text));
+
+            const highMatches = checkMatch(highKeywords);
+            const medMatches = checkMatch(medKeywords);
+            const lowMatches = checkMatch(lowKeywords);
+
+            if (highMatches.length > 0) { maxSeverity = 'high'; matched = highMatches; }
+            else if (medMatches.length > 0) { maxSeverity = 'medium'; matched = medMatches; }
+            else if (lowMatches.length > 0) { maxSeverity = 'low'; matched = lowMatches; }
+
+            const userRiskCount = u.dmRiskCount || 0;
+            if (userRiskCount >= 2 && maxSeverity === 'low') maxSeverity = 'medium';
+            if (userRiskCount >= 4 && maxSeverity === 'medium') maxSeverity = 'high';
+
+            const isRisky = maxSeverity !== 'none';
+
             try {
                 const msgRef = db.collection('dms').doc(_activeDMId).collection('msgs').doc();
                 await msgRef.set({ from: u.uid, to: _activeDMUser.id, text, read: false, createdAt: FS().serverTimestamp() });
+                
+                let lastMsgStr = text.substring(0, 60);
+
+                if (isRisky) {
+                    let warningText = '⚠️ Warning: This message contains risky terms. Be careful sharing contact info or payment details.';
+                    if (maxSeverity === 'medium') warningText = '⚠️ Warning: This message contains terms often linked to scams. Do not move transactions outside Starlife.';
+                    if (maxSeverity === 'high') warningText = '⛔ CRITICAL: Never share passwords, OTP codes, or allow anyone to withdraw for you. Starlife admins will never ask you for this privately.';
+
+                    await db.collection('dms').doc(_activeDMId).collection('msgs').doc().set({
+                        from: 'system', system: true, to: _activeDMUser.id,
+                        text: warningText,
+                        read: true, createdAt: FS().serverTimestamp()
+                    });
+                    
+                    if (maxSeverity === 'medium' || maxSeverity === 'high') {
+                        db.collection('dmRiskFlags').add({
+                            senderUid: u.uid, receiverUid: _activeDMUser.id, conversationId: _activeDMId,
+                            messageText: text.substring(0, 150), matchedKeywords: matched,
+                            createdAt: FS().serverTimestamp(), riskLevel: maxSeverity, status: 'pending'
+                        });
+                        db.collection('users').doc(u.uid).set({ dmRiskCount: FS().increment(1) }, { merge: true });
+                    }
+                    toast(maxSeverity === 'high' ? '⛔ Message flagged for CRITICAL risky content.' : '⚠️ Message sent, but flagged for risky content.', 'ty');
+                    lastMsgStr = maxSeverity === 'high' ? '⛔ System Security Warning' : '⚠️ System Risk Warning';
+                }
+
                 // Update DM meta
                 await db.collection('dms').doc(_activeDMId).set({
                     participants: [u.uid, _activeDMUser.id],
-                    lastMsg: text.substring(0, 60),
+                    lastMsg: lastMsgStr,
                     lastMsgAt: FS().serverTimestamp(),
-                    lastMsgFrom: u.uid,
-                    [`unread_${_activeDMUser.id}`]: firebase.firestore.FieldValue.increment(1),
+                    lastMsgFrom: isRisky ? 'system' : u.uid,
+                    [`unread_${_activeDMUser.id}`]: firebase.firestore.FieldValue.increment(isRisky ? 2 : 1),
                     names: { [u.uid]: u.name, [_activeDMUser.id]: _activeDMUser.name },
                     publicNames: { [u.uid]: getPublicDisplayName(u), [_activeDMUser.id]: getPublicDisplayName(_activeDMUser) }
                 }, { merge: true });
                 await loadDMMessages();
                 // Notify recipient
-                await db.collection('userNotifs').add({ uid: _activeDMUser.id, msg: `💬 ${u.name}: ${text.substring(0, 60)}`, read: false, createdAt: FS().serverTimestamp() });
+                await db.collection('userNotifs').add({ uid: _activeDMUser.id, msg: `💬 ${u.name}: ${lastMsgStr}`, read: false, createdAt: FS().serverTimestamp() });
             } catch (e) { toast('Error: ' + e.message, 'tr'); inp.value = text; }
         }
 
@@ -8162,11 +8347,35 @@
         }
 
         window._editTarget = null;
-        function openEditUser(id, name, email, phone) { window._editTarget = id; $('eu-name').value = name; $('eu-email').value = email; $('eu-phone').value = phone; openModal('m-edit-user'); }
+        function openEditUser(id, name, email, phone) {
+            window._editTarget = id;
+            $('eu-name').value = name; $('eu-email').value = email; $('eu-phone').value = phone;
+            const u = (window.AU || []).find(x => x.id === id);
+            if(u) {
+                $('eu-salary-amt').value = u.salaryAmount || '';
+                $('eu-sec-allow').value = u.secretaryAllowance || '';
+                $('eu-salary-status').value = u.salaryStatus || 'Pending';
+                $('eu-office-status').value = u.officeStatus || 'Not started';
+                $('eu-perf-rank').value = u.performanceRank || 'Bronze';
+                $('eu-agent-region').value = u.agentRegion || '';
+            }
+            openModal('m-edit-user');
+        }
         async function confirmEditUser() {
             const id = window._editTarget; if (!id) return;
             const n = $('eu-name').value.trim(); const e = $('eu-email').value.trim(); const p = $('eu-phone').value.trim();
-            await db.collection('users').doc(id).update({ name: n, phone: p });
+            const sAmt = parseFloat($('eu-salary-amt').value) || 0;
+            const sAllow = parseFloat($('eu-sec-allow').value) || 0;
+            const sStat = $('eu-salary-status').value;
+            const oStat = $('eu-office-status').value;
+            const pRank = $('eu-perf-rank').value;
+            const aReg = $('eu-agent-region').value.trim();
+            await db.collection('users').doc(id).update({ 
+                name: n, phone: p,
+                salaryAmount: sAmt, secretaryAllowance: sAllow,
+                salaryStatus: sStat, officeStatus: oStat,
+                performanceRank: pRank, agentRegion: aReg
+            });
             toast('User updated ✓'); closeModal('m-edit-user'); loadAdminAll();
         }
 
@@ -10224,19 +10433,22 @@ You will receive $${fmt(receive)} (+${_vaultPlan.rate}%) on ${unlock.toLocaleDat
             } catch (e) { toast('Could not update password: ' + e.message, 'tr'); }
         }
         async function loadAdminSecurity() {
-            const blockedEl = $('blocked-ip-list'), eventsEl = $('security-events-list'), reportsEl = $('dm-report-list');
+            const blockedEl = $('blocked-ip-list'), eventsEl = $('security-events-list'), reportsEl = $('dm-report-list'), riskEl = $('dm-risk-list');
             if (blockedEl) blockedEl.innerHTML = '<div class="es">Loading…</div>';
             if (eventsEl) eventsEl.innerHTML = '<div class="es">Loading…</div>';
             if (reportsEl) reportsEl.innerHTML = '<div class="es">Loading…</div>';
+            if (riskEl) riskEl.innerHTML = '<div class="es">Loading…</div>';
             try {
-                const [blockedSnap, eventsSnap, reportsSnap] = await Promise.all([db.collection('blockedIps').get(), db.collection('securityEvents').limit(50).get(), db.collection('dmReports').limit(100).get()]);
+                const [blockedSnap, eventsSnap, reportsSnap, riskSnap] = await Promise.all([db.collection('blockedIps').get(), db.collection('securityEvents').limit(50).get(), db.collection('dmReports').limit(100).get(), db.collection('dmRiskFlags').limit(100).get()]);
                 const blocked = blockedSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
                 const events = eventsSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
                 const reports = reportsSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                const risks = riskSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
                 if (blockedEl) blockedEl.innerHTML = blocked.length ? blocked.map(b => `<div class="ai"><div class="ai-l"><div class="ai-ico r">⛔</div><div><div class="ai-desc">${b.ip}</div><div class="ai-time">${b.reason || 'Blocked IP'} · ${fmtDT(b.createdAt)}</div></div></div><button class="btn btn-gh btn-sm" onclick="adminUnblockIp('${b.id}')">Unblock</button></div>`).join('') : '<div class="es">No blocked IPs</div>';
                 if (eventsEl) eventsEl.innerHTML = events.length ? events.map(e => `<div class="ai"><div class="ai-l"><div class="ai-ico gold">🛡️</div><div><div class="ai-desc">${(e.type || 'event').replace(/_/g, ' ')} ${e.email ? `— ${e.email}` : ''}</div><div class="ai-time">${e.ip && e.ip !== 'Unavailable' ? e.ip : 'IP unavailable'} · ${e.location && e.location !== 'Unavailable' ? e.location : 'Location unavailable / approximate'} · ${e.device || 'Browser device estimate'} · ${fmtDT(e.createdAt)}</div></div></div>${e.resolved ? '<span class="badge bg">Resolved</span>' : '<span class="badge bgold">Unresolved</span>'}</div>`).join('') : '<div class="es">No suspicious logins yet</div>';
                 if (reportsEl) reportsEl.innerHTML = reports.length ? reports.map(r => `<div class="ai"><div class="ai-l"><div class="ai-ico ${r.status === 'pending' ? 'gold' : 'g'}">🚩</div><div><div class="ai-desc">${(r.reason || 'report').toUpperCase()} · ${r.status || 'pending'}</div><div class="ai-time">Reporter: ${r.reporterMemberId || memberIdFromUid(r.reporterUid)} · Reported: ${r.reportedMemberId || memberIdFromUid(r.reportedUid)} · ${fmtDT(r.createdAt)}</div><div class="ai-time">${r.note ? ('Note: ' + r.note) : 'No user note'}</div></div></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-gh btn-sm" onclick="adminOpenDMReportChat('${r.id}')">View Chat</button><button class="btn btn-gh btn-sm" onclick="adminUpdateDMReportStatus('${r.id}','reviewed')">Mark Reviewed</button><button class="btn btn-gold btn-sm" onclick="adminWarnDMUser('${r.reportedUid}','${r.id}')">Warn/Strike</button><button class="btn btn-d btn-sm" onclick="adminToggleDMMute('${r.reportedUid}',${!!r.dmMuted},'${r.id}')">${r.dmMuted ? 'Unmute DM' : 'Mute DM'}</button><button class="btn btn-gh btn-sm" onclick="adminToggleHideFromDiscover('${r.reportedUid}',${!!r.hiddenFromDiscover},'${r.id}')">${r.hiddenFromDiscover ? 'Show Discover' : 'Hide Discover'}</button><button class="btn btn-gh btn-sm" onclick="adminAddDMModerationNote('${r.id}')">Add Note</button></div></div>`).join('') : '<div class="es">No DM reports yet</div>';
-            } catch (e) { if (blockedEl) blockedEl.innerHTML = '<div class="es">Error</div>'; if (eventsEl) eventsEl.innerHTML = '<div class="es">Error</div>'; }
+                if (riskEl) riskEl.innerHTML = risks.length ? risks.map(r => `<div class="ai"><div class="ai-l"><div class="ai-ico ${r.status === 'pending' ? 'r' : 'g'}">⚠️</div><div><div class="ai-desc">${(r.riskLevel||'').toUpperCase()} RISK FLAG · ${r.status || 'pending'}</div><div class="ai-time">Sender: ${memberIdFromUid(r.senderUid)} · Receiver: ${memberIdFromUid(r.receiverUid)} · ${fmtDT(r.createdAt)}</div><div class="ai-time">Keywords: ${(r.matchedKeywords || []).join(', ')}</div><div class="ai-time" style="font-style:italic">"${r.messageText}"</div></div></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-gh btn-sm" onclick="adminOpenDMRiskChat('${r.id}')">View Chat</button><button class="btn btn-gh btn-sm" onclick="adminUpdateRiskStatus('${r.id}','reviewed')">Mark Reviewed</button><button class="btn btn-gold btn-sm" onclick="adminWarnRiskUser('${r.senderUid}','${r.id}')">Warn/Strike</button><button class="btn btn-d btn-sm" onclick="adminToggleRiskMute('${r.senderUid}',${!!r.dmMuted},'${r.id}')">${r.dmMuted ? 'Unmute DM' : 'Mute DM'}</button></div></div>`).join('') : '<div class="es">No system risk flags yet</div>';
+            } catch (e) { if (blockedEl) blockedEl.innerHTML = '<div class="es">Error</div>'; if (eventsEl) eventsEl.innerHTML = '<div class="es">Error</div>'; if (riskEl) riskEl.innerHTML = '<div class="es">Error</div>'; }
         }
         async function adminBlockIp() {
             const ip = $('block-ip-input')?.value.trim(); if (!ip) return toast('Enter an IP address', 'ty');
@@ -10265,6 +10477,59 @@ You will receive $${fmt(receive)} (+${_vaultPlan.rate}%) on ${unlock.toLocaleDat
             await db.collection('dmReports').doc(reportId).set({ status, reviewedBy: window.CU?.uid || null, reviewedAt: FS().serverTimestamp() }, { merge: true });
             if (rep?.reporterUid) await db.collection('userNotifs').add({ uid: rep.reporterUid, msg: '✅ Your DM report has been reviewed by support.', read: false, createdAt: FS().serverTimestamp() });
             toast('Report updated');
+            loadAdminSecurity();
+        }
+
+        async function adminOpenDMRiskChat(flagId) {
+            const metaEl = $('adm-dm-meta'), msgsEl = $('adm-dm-msgs');
+            if (metaEl) metaEl.textContent = 'Loading…';
+            if (msgsEl) msgsEl.innerHTML = '<div class="es">Loading chat…</div>';
+            try {
+                const repSnap = await db.collection('dmRiskFlags').doc(flagId).get();
+                if (!repSnap.exists) return toast('Flag not found', 'ty');
+                const rep = { id: repSnap.id, ...repSnap.data() };
+                const mSnap = await db.collection('dms').doc(rep.conversationId).collection('msgs').get();
+                const msgs = mSnap.docs.map(d => d.data()).sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+                if (metaEl) metaEl.textContent = `Risk Flag on ${memberIdFromUid(rep.senderUid)} · Status: ${rep.status || 'pending'}`;
+                if (msgsEl) msgsEl.innerHTML = msgs.length ? msgs.map(m => `<div style="margin-bottom:8px"><div style="font-size:.72rem;color:var(--t3)">${m.system || m.from === 'system' ? 'SYSTEM' : memberIdFromUid(m.from)} · ${fmtDT(m.createdAt)}</div><div style="background:${m.from === rep.senderUid ? 'rgba(255,213,79,.1)' : 'var(--s1)'};border:1px solid var(--bd);border-radius:10px;padding:8px">${m.text || ''}</div></div>`).join('') : '<div class="es">No messages in this conversation</div>';
+                openModal('m-admin-dm-review');
+            } catch (e) { if (msgsEl) msgsEl.innerHTML = '<div class="es">Could not load risk chat</div>'; }
+        }
+
+        async function adminUpdateRiskStatus(flagId, status = 'reviewed') {
+            await db.collection('dmRiskFlags').doc(flagId).set({ status, reviewedBy: window.CU?.uid || null, reviewedAt: FS().serverTimestamp() }, { merge: true });
+            toast('Risk flag updated');
+            loadAdminSecurity();
+        }
+
+        async function adminWarnRiskUser(uid, flagId) {
+            if (!uid) return;
+            const strike = confirm('Press OK to STRIKE (48h DM restriction). Press Cancel to WARN.');
+            if (strike) {
+                const until = new Date(Date.now() + 48 * 60 * 60 * 1000);
+                await db.collection('users').doc(uid).set({ dmStrikeUntil: firebase.firestore.Timestamp.fromDate(until) }, { merge: true });
+                await db.collection('dmRiskFlags').doc(flagId).set({ status: 'reviewed', action: 'striked', reviewedBy: window.CU?.uid || null, reviewedAt: FS().serverTimestamp() }, { merge: true });
+                await db.collection('userNotifs').add({ uid, msg: '⛔ You have been striked and cannot send direct messages for 48 hours for violating safety rules.', read: false, createdAt: FS().serverTimestamp() });
+                toast('User striked for 48h');
+            } else {
+                const uRef = db.collection('users').doc(uid);
+                await uRef.set({ dmWarnings: FS().increment(1) }, { merge: true });
+                const fresh = await uRef.get();
+                const count = fresh.data()?.dmWarnings || 1;
+                const remaining = Math.max(0, 3 - count);
+                await db.collection('dmRiskFlags').doc(flagId).set({ status: 'reviewed', action: 'warned', reviewedBy: window.CU?.uid || null, reviewedAt: FS().serverTimestamp() }, { merge: true });
+                await db.collection('userNotifs').add({ uid, msg: `⚠️ You have received a warning from support regarding risky direct messages. Please follow platform rules. ${remaining} warnings remaining.`, read: false, createdAt: FS().serverTimestamp() });
+                toast('User warned');
+            }
+            loadAdminSecurity();
+        }
+
+        async function adminToggleRiskMute(uid, current, flagId) {
+            if (!uid) return;
+            await db.collection('users').doc(uid).set({ dmMuted: !current, dmMutedAt: FS().serverTimestamp(), dmMutedBy: window.CU?.uid || null }, { merge: true });
+            await db.collection('dmRiskFlags').doc(flagId).set({ dmMuted: !current, status: 'reviewed', reviewedBy: window.CU?.uid || null, reviewedAt: FS().serverTimestamp() }, { merge: true });
+            await db.collection('userNotifs').add({ uid, msg: !current ? '⛔ Support has muted your direct messages.' : '✅ Your direct message mute has been lifted.', read: false, createdAt: FS().serverTimestamp() });
+            toast(!current ? 'DM muted' : 'DM unmuted');
             loadAdminSecurity();
         }
         async function adminWarnDMUser(uid, reportId) {

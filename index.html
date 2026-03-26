@@ -4355,6 +4355,9 @@
                                 <div style="font-size:.72rem;color:var(--t3)">Trades</div>
                             </div>
                         </div>
+                        <div id="pp-bio-wrap" style="display:none;margin-bottom:14px;background:var(--s2);border-radius:10px;padding:12px;font-size:.82rem;line-height:1.4;text-align:center;color:var(--t2)">
+                            <div id="pp-bio-text"></div>
+                        </div>
                         <div
                             style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;font-size:.8rem">
                             <div style="background:var(--s2);border-radius:10px;padding:10px;text-align:center">
@@ -7494,6 +7497,17 @@
             if ($('pp-followers')) $('pp-followers').textContent = fmtNum(followers);
             if ($('pp-following')) $('pp-following').textContent = fmtNum((u.followingCount || 0) + (u.following || []).length);
             if ($('pp-trades')) $('pp-trades').textContent = u.p2pRatingCount || 0;
+            
+            const bioWrap = $('pp-bio-wrap');
+            if (bioWrap) {
+                if (u.bio && u.bio.trim()) {
+                    $('pp-bio-text').textContent = u.bio.trim();
+                    bioWrap.style.display = 'block';
+                } else {
+                    bioWrap.style.display = 'none';
+                }
+            }
+            
             if ($('pp-joined')) $('pp-joined').textContent = fmtD(u.createdAt);
             if ($('pp-rank')) $('pp-rank').textContent = u.rank || 'Starter';
             // Check if already following
@@ -7847,22 +7861,28 @@
                 const otherDocs = await Promise.all(others.map(uid => db.collection('users').doc(uid).get()));
                 const publicNameMap = {};
                 const avatarMap = {};
+                const userObjMap = {};
                 otherDocs.forEach(s => { 
                     if (s.exists) {
-                        publicNameMap[s.id] = getPublicDisplayName({ id: s.id, ...s.data() }); 
-                        if (s.data().avatarBase64) avatarMap[s.id] = s.data().avatarBase64;
+                        const data = s.data();
+                        const obj = { id: s.id, ...data };
+                        userObjMap[s.id] = obj;
+                        publicNameMap[s.id] = getPublicDisplayName(obj); 
+                        if (data.avatarBase64) avatarMap[s.id] = data.avatarBase64;
                     }
                 });
                 el.innerHTML = convs.map(c => {
                     const otherUid = c.participants.find(p => p !== u.uid);
+                    const uObj = userObjMap[otherUid];
                     const otherName = publicNameMap[otherUid] || c.publicNames?.[otherUid] || getPublicDisplayName({ name: c.names?.[otherUid] || 'Member' });
+                    const nameHTML = uObj ? getNameWithBadges(uObj, true) : `<span style="font-weight:600;font-size:.88rem">${otherName}</span>`;
                     const unread = c[`unread_${u.uid}`] || 0;
                     const avHTML = avatarMap[otherUid] ? `<img class="dm-av" src="${avatarMap[otherUid]}" style="width:42px;height:42px;border-radius:50%;object-fit:cover;padding:0;border:none;flex-shrink:0;">` : `<div class="dm-av" style="width:42px;height:42px;font-size:.95rem">${(otherName || 'M')[0].toUpperCase()}</div>`;
                     return `<div class="dm-list-item" onclick="openDMChat('${otherUid}',null,this)">
         ${avHTML}
         <div style="flex:1;min-width:0">
           <div style="display:flex;justify-content:space-between;align-items:center">
-            <div style="font-weight:600;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${otherName}</div>
+            <div style="display:flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nameHTML}</div>
             <div style="font-size:.7rem;color:var(--t3);flex-shrink:0;margin-left:8px">${c.lastMsgAt ? fmtDT(c.lastMsgAt) : ''}</div>
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px">

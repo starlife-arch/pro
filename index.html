@@ -5659,6 +5659,23 @@
             <div class="fg"><label class="fl">Email</label><input class="fi" id="eu-email" type="email"
                     placeholder="Email"></div>
             <div class="fg"><label class="fl">Phone</label><input class="fi" id="eu-phone" placeholder="Phone"></div>
+            
+            <!-- Official Roles -->
+            <div class="fg"><label class="fl">Official/Company Roles</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:.8rem;background:var(--s1);padding:10px;border-radius:8px;border:1px solid var(--bd)">
+                    <label><input type="checkbox" class="cb-off" value="CEO"> CEO</label>
+                    <label><input type="checkbox" class="cb-off" value="Director"> Director</label>
+                    <label><input type="checkbox" class="cb-off" value="Official"> Official</label>
+                    <label><input type="checkbox" class="cb-off" value="Support"> Support</label>
+                    <label><input type="checkbox" class="cb-off" value="Finance"> Finance</label>
+                    <label><input type="checkbox" class="cb-off" value="Security"> Security</label>
+                    <label><input type="checkbox" class="cb-off" value="Transfers"> Transfers</label>
+                    <label><input type="checkbox" class="cb-off" value="Marketing"> Marketing</label>
+                    <label><input type="checkbox" class="cb-off" value="Sales"> Sales</label>
+                    <label><input type="checkbox" class="cb-off" value="HR"> HR</label>
+                </div>
+            </div>
+
             <!-- Agent Fields -->
             <div class="fg"><label class="fl">Salary Amount ($)</label><input class="fi" id="eu-salary-amt" type="number" placeholder="250"></div>
             <div class="fg"><label class="fl">Secretary Allowance ($)</label><input class="fi" id="eu-sec-allow" type="number" placeholder="150"></div>
@@ -7648,7 +7665,7 @@
                 if (userData.avatarBase64) av.innerHTML = `<img src="${userData.avatarBase64}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
                 else av.textContent = (userData.name || 'U')[0].toUpperCase();
             }
-            if (nameEl) nameEl.innerHTML = getPublicDisplayName(userData) + getBadgeHTML(userData);
+            if (nameEl) nameEl.innerHTML = getNameWithBadges(userData, true);
             if (statusEl) statusEl.innerHTML = getTagsHTML(userData) || 'Member';
             await refreshDMModerationState();
             // Load messages
@@ -8352,6 +8369,9 @@
             $('eu-name').value = name; $('eu-email').value = email; $('eu-phone').value = phone;
             const u = (window.AU || []).find(x => x.id === id);
             if(u) {
+                const roles = u.officialRoles || [];
+                document.querySelectorAll('.cb-off').forEach(cb => cb.checked = roles.includes(cb.value));
+
                 $('eu-salary-amt').value = u.salaryAmount || '';
                 $('eu-sec-allow').value = u.secretaryAllowance || '';
                 $('eu-salary-status').value = u.salaryStatus || 'Pending';
@@ -8370,8 +8390,12 @@
             const oStat = $('eu-office-status').value;
             const pRank = $('eu-perf-rank').value;
             const aReg = $('eu-agent-region').value.trim();
+            
+            const roles = Array.from(document.querySelectorAll('.cb-off:checked')).map(cb => cb.value);
+
             await db.collection('users').doc(id).update({ 
                 name: n, phone: p,
+                officialRoles: roles,
                 salaryAmount: sAmt, secretaryAllowance: sAllow,
                 salaryStatus: sStat, officeStatus: oStat,
                 performanceRank: pRank, agentRegion: aReg
@@ -9908,25 +9932,53 @@ Message: ${message}`);
             return { level: 'starter', label: 'Starter', css: '', icon: '⭐' };
         }
 
-        function getBadgeHTML(u, size = 'normal') {
-            // u = user object with isVerified, isAgent, totalInvested fields
+        function getBadgeHTML(u, compact = false) {
             let html = '';
             if (u.isVerified) {
                 html += `<span class="badge-verified" title="Verified Member">✓</span>`;
             }
+            
+            const PRIORITY = ['CEO', 'Director', 'Official', 'Support', 'Finance', 'Security', 'Transfers', 'Marketing', 'Sales', 'HR'];
+            let roles = (u.officialRoles || []).slice();
+            roles.sort((a,b) => {
+                let ia = PRIORITY.indexOf(a); if(ia===-1) ia=99;
+                let ib = PRIORITY.indexOf(b); if(ib===-1) ib=99;
+                return ia - ib;
+            });
+            
+            let badges = [];
+            for(let r of roles) {
+                if(r === 'Support') badges.push(`<span class="tag-vip vip-gold" style="background:#00c853;color:#000;border-color:#00e676">🎧 Support</span>`);
+                else if(r === 'CEO') badges.push(`<span class="tag-vip vip-platinum" style="background:#212121;color:#ffd700;border-color:#ffd700">👑 CEO</span>`);
+                else if(r === 'Director') badges.push(`<span class="tag-vip vip-platinum" style="background:#424242;color:#ffd700;border-color:#ffd700">👔 Director</span>`);
+                else if(r === 'Official') badges.push(`<span class="tag-vip vip-silver" style="background:var(--p);color:#fff;border-color:var(--p)">★ Official</span>`);
+                else if(r === 'Finance') badges.push(`<span class="tag-vip vip-silver" style="background:#00b0ff;color:#000;border-color:#00b0ff">💰 Finance</span>`);
+                else if(r === 'Transfers') badges.push(`<span class="tag-vip vip-silver" style="background:#f50057;color:#fff;border-color:#ff4081">💸 Transfers</span>`);
+                else if(r === 'Security') badges.push(`<span class="tag-vip vip-silver" style="background:#d50000;color:#fff;border-color:#ff1744">🛡️ Security</span>`);
+                else if(r === 'Marketing') badges.push(`<span class="tag-vip vip-silver" style="background:#ff9100;color:#000;border-color:#ffab40">📈 Marketing</span>`);
+                else if(r === 'Sales') badges.push(`<span class="tag-vip vip-silver" style="background:#00e5ff;color:#000;border-color:#18ffff">🤝 Sales</span>`);
+                else if(r === 'HR') badges.push(`<span class="tag-vip vip-silver" style="background:#aa00ff;color:#fff;border-color:#e040fb">👥 HR</span>`);
+                else badges.push(`<span class="tag-vip vip-silver" style="background:#000;color:#fff;border-color:#fff">${r}</span>`);
+            }
+            
             if (u.isAgent) {
-                html += `<span class="badge-agent" title="Starlife Agent">★</span>`;
-                html += `<span class="tag-agent">Agent</span>`;
+                badges.push(`<span class="tag-agent">Agent</span>`);
             }
             const vip = getVIPLevel(u.totalInvested || 0);
             if (vip.level !== 'starter') {
-                html += `<span class="tag-vip ${vip.css}">${vip.icon} ${vip.label}</span>`;
+                badges.push(`<span class="tag-vip ${vip.css}">${vip.icon} ${vip.label}</span>`);
             }
+            
+            if (compact && badges.length > 2) {
+                badges = badges.slice(0, 2);
+            }
+            
+            html += badges.join('');
             return html;
         }
 
-        function getNameWithBadges(u) {
-            return `<span style="font-weight:700">${getPublicDisplayName(u)}</span>${getBadgeHTML(u)}`;
+        function getNameWithBadges(u, compact = true) {
+            return `<span style="font-weight:700">${getPublicDisplayName(u)}</span>${getBadgeHTML(u, compact)}`;
         }
 
         // Check and auto-grant verified badge if eligible
@@ -10308,25 +10360,43 @@ You will receive $${fmt(receive)} (+${_vaultPlan.rate}%) on ${unlock.toLocaleDat
                 const bal = u.balance || 0;
                 el.innerHTML = list.map(g => {
                     const pct = Math.min(100, Math.round((g.saved || 0) / g.target * 100));
-                    const done = pct >= 100;
-                    return `<div class="card" style="margin-bottom:10px;padding:14px">
+                    const isReleased = g.status === 'released';
+                    const done = pct >= 100 || g.status === 'achieved';
+                    
+                    let statusHtml = '';
+                    if (isReleased) statusHtml = '<span style="font-size:.8rem;color:var(--g)">✅ Released</span>';
+                    else if (done) statusHtml = '<span style="font-size:.8rem;color:var(--g)">✅ Achieved!</span>';
+                    else statusHtml = `<span style="font-size:.8rem;color:var(--gold)">$${fmt(g.saved || 0)} / $${fmt(g.target)}</span>`;
+
+                    const safeName = (g.name || '').replace(/'/g, "\\'");
+
+                    return `<div class="card" style="margin-bottom:10px;padding:14px; opacity: ${isReleased ? '0.7' : '1'}">
         <div style="display:flex;justify-content:space-between;margin-bottom:4px">
           <span style="font-weight:700">${g.name}</span>
-          <span style="font-size:.8rem;color:${done ? 'var(--g)' : 'var(--gold)'}">${done ? '✅ Achieved!' : '$' + fmt(g.saved || 0) + ' / $' + fmt(g.target)}</span>
+          ${statusHtml}
         </div>
         <div class="goal-bar"><div class="goal-fill" style="width:${pct}%"></div></div>
-        <div style="font-size:.72rem;color:var(--t3);margin-top:4px">${pct}% complete</div>
-        ${!done ? `<div style="display:flex;gap:6px;margin-top:8px">
-          <input type="number" class="fi" placeholder="Add amount" id="gs-${g.id}" style="flex:1;font-size:.8rem">
-          <button class="btn btn-p btn-sm" onclick="addToGoal('${g.id}',${g.target},${g.saved || 0})">Add</button>
-          <button class="btn btn-d btn-sm" onclick="deleteGoal('${g.id}')">🗑</button>
-        </div>`: `<button class="btn btn-d btn-sm" style="margin-top:8px" onclick="deleteGoal('${g.id}')">Remove</button>`}
+        <div style="font-size:.72rem;color:var(--t3);margin-top:4px">${pct}% complete ${isReleased ? '(Closed)' : ''}</div>
+        
+        ${isReleased ? `
+          <button class="btn btn-d btn-sm" style="margin-top:8px" onclick="deleteGoal('${g.id}', 0)">Remove Record</button>
+        ` : (done ? `
+          <button class="btn btn-p btn-sm" style="margin-top:8px" onclick="releaseGoal('${g.id}')">🔓 Release Savings</button>
+          <button class="btn btn-d btn-sm" style="margin-top:8px; margin-left:6px" onclick="deleteGoal('${g.id}', ${g.saved || 0})">Remove</button>
+        ` : `
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <input type="number" class="fi" placeholder="Add amount" id="gs-${g.id}" style="flex:1;font-size:.8rem">
+            <button class="btn btn-p btn-sm" onclick="addToGoal('${g.id}',${g.target},${g.saved || 0}, '${safeName}')">Add</button>
+            ${(g.saved || 0) > 0 ? `<button class="btn btn-gh btn-sm" onclick="releaseGoal('${g.id}')">Release</button>` : ''}
+            <button class="btn btn-d btn-sm" onclick="deleteGoal('${g.id}', ${g.saved || 0})">🗑</button>
+          </div>
+        `)}
       </div>`;
                 }).join('');
             } catch (e) { el.innerHTML = '<div class="es">Error</div>'; }
         }
 
-        async function addToGoal(goalId, target, saved) {
+        async function addToGoal(goalId, target, saved, goalName = 'Goal') {
             const u = window.CU;
             const amt = parseFloat($('gs-' + goalId)?.value) || 0;
             if (!amt || amt < 1) return toast('Enter amount to add', 'ty');
@@ -10342,15 +10412,40 @@ You will receive $${fmt(receive)} (+${_vaultPlan.rate}%) on ${unlock.toLocaleDat
             if (achieved) {
                 toast('🎉 Goal achieved! Congratulations!', 'tg', 5000);
                 await db.collection('userNotifs').add({ uid: u.uid, msg: `🎉 You achieved your savings goal! Great work!`, read: false, createdAt: FS().serverTimestamp() });
+                tg(`🎯 *Goal Achieved*\nUser: ${u.email || u.uid}\nGoal: ${goalName}\nTarget: $${fmt(target)} reached!`);
             } else {
                 toast(`Added $${fmt(amt)} to goal ✓`);
             }
             loadSavingsGoals();
         }
 
-        async function deleteGoal(goalId) {
-            if (!confirm('Delete this goal?')) return;
+        async function deleteGoal(goalId, savedAmount = 0) {
+            if (savedAmount > 0) return toast('Please release your savings first before removing the goal.', 'tr', 4000);
+            if (!confirm('Remove this goal permanently?')) return;
             await db.collection('savingsGoals').doc(goalId).delete();
+            loadSavingsGoals();
+        }
+
+        async function releaseGoal(goalId) {
+            const u = window.CU;
+            const snap = await db.collection('savingsGoals').doc(goalId).get();
+            if (!snap.exists) return toast('Goal not found', 'ty');
+            const g = snap.data();
+            
+            if (g.status === 'released') return toast('This goal is already released.', 'ty');
+            if ((g.saved || 0) <= 0) return toast('No funds to release.', 'ty');
+            
+            if (!confirm(`Release $${fmt(g.saved)} back to your main balance?`)) return;
+            
+            await db.collection('savingsGoals').doc(goalId).update({ status: 'released', releasedAt: FS().serverTimestamp() });
+            
+            await db.collection('users').doc(u.uid).update({ balance: FS().increment(g.saved) });
+            window.CU.balance = (u.balance || 0) + g.saved;
+            updateUI();
+            
+            await logAct(u.uid, `Released savings from goal: ${g.name}`, g.saved, '🎯', 'deposit');
+            tg(`🔓 *Savings Released*\nUser: ${u.email || u.uid}\nGoal: ${g.name}\nAmount: $${fmt(g.saved)} returned to balance.`);
+            toast(`✅ $${fmt(g.saved)} released to your main balance!`, 'tg', 4000);
             loadSavingsGoals();
         }
 

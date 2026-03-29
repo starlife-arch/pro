@@ -3438,26 +3438,26 @@
                             </div>
                             <div style="text-align:right">
                                 <div style="font-size:.72rem;color:var(--t3)">Exchange Rates</div>
-                                <div style="font-size:.72rem;color:var(--gold)">75pts=$0.30 · 100pts=$0.70 ·
-                                    300pts=$1.00</div>
+                                <div style="font-size:.72rem;color:var(--gold)">1000pts=$1.00 · 2000pts=$2.00 ·
+                                    5000pts=$5.00</div>
                             </div>
                         </div>
                         <div style="font-size:.82rem;font-weight:600;margin-bottom:10px">Select Amount:</div>
                         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
-                            <div class="rdm-chip" onclick="selectRedeem(this,75,0.30)"
+                            <div class="rdm-chip" onclick="selectRedeem(this,1000,1.00)"
                                 style="border:1.5px solid var(--bds);border-radius:10px;padding:12px 6px;text-align:center;cursor:pointer;background:var(--s1)">
-                                <div style="font-weight:700;color:var(--sky)">75 pts</div>
-                                <div style="font-size:.78rem;color:var(--g);margin-top:3px">= $0.30</div>
-                            </div>
-                            <div class="rdm-chip" onclick="selectRedeem(this,100,0.70)"
-                                style="border:1.5px solid var(--bds);border-radius:10px;padding:12px 6px;text-align:center;cursor:pointer;background:var(--s1)">
-                                <div style="font-weight:700;color:var(--sky)">100 pts</div>
-                                <div style="font-size:.78rem;color:var(--g);margin-top:3px">= $0.70</div>
-                            </div>
-                            <div class="rdm-chip" onclick="selectRedeem(this,300,1.00)"
-                                style="border:1.5px solid var(--bds);border-radius:10px;padding:12px 6px;text-align:center;cursor:pointer;background:var(--s1)">
-                                <div style="font-weight:700;color:var(--sky)">300 pts</div>
+                                <div style="font-weight:700;color:var(--sky)">1000 pts</div>
                                 <div style="font-size:.78rem;color:var(--g);margin-top:3px">= $1.00</div>
+                            </div>
+                            <div class="rdm-chip" onclick="selectRedeem(this,2000,2.00)"
+                                style="border:1.5px solid var(--bds);border-radius:10px;padding:12px 6px;text-align:center;cursor:pointer;background:var(--s1)">
+                                <div style="font-weight:700;color:var(--sky)">2000 pts</div>
+                                <div style="font-size:.78rem;color:var(--g);margin-top:3px">= $2.00</div>
+                            </div>
+                            <div class="rdm-chip" onclick="selectRedeem(this,5000,5.00)"
+                                style="border:1.5px solid var(--bds);border-radius:10px;padding:12px 6px;text-align:center;cursor:pointer;background:var(--s1)">
+                                <div style="font-weight:700;color:var(--sky)">5000 pts</div>
+                                <div style="font-size:.78rem;color:var(--g);margin-top:3px">= $5.00</div>
                             </div>
                         </div>
                         <div id="rdm-selected"
@@ -3466,7 +3466,7 @@
                             <div style="font-weight:700;color:var(--gold)" id="rdm-sel-txt">—</div>
                         </div>
                         <button class="btn btn-p btn-full" onclick="submitRedeem()">🔄 Redeem → Cash</button>
-                        <div style="font-size:.72rem;color:var(--t3);margin-top:8px;text-align:center">Min 75 pts ·
+                        <div style="font-size:.72rem;color:var(--t3);margin-top:8px;text-align:center">Min 1000 pts ·
                             Admin approves within 24h · Cash added to balance</div>
                     </div>
                     <div class="sh">
@@ -3593,7 +3593,8 @@
                                 <div style="font-size:.72rem;color:var(--g);display:flex;align-items:center;gap:4px">
                                     <span
                                         style="width:6px;height:6px;border-radius:50%;background:var(--g);display:inline-block"></span>Live
-                                    Support</div>
+                                    Support
+                                </div>
                             </div>
                         </div>
                         <!-- Chat Area -->
@@ -3733,27 +3734,35 @@
                     <div style="display:flex;justify-content:space-between;align-items:center">
                         <div style="font-size:.88rem;font-weight:600">?? Profile & Settings</div>
                         <div>
-                            <button class="btn btn-gh btn-sm" id="prof-ann-btn" style="font-size:.72rem;margin-right:6px" onclick="openAnnouncements()">Announcements</button>
-                            <button class="btn btn-gh btn-sm" id="prof-rc-btn" style="font-size:.72rem;margin-right:6px" onclick="openReportCenter()">Report Center</button>
-                            <button class="btn btn-gh btn-sm" id="prof-edit-btn" style="font-size:.72rem" onclick="openProfileEdit()">Edit Settings</button>
+                            <button class="btn btn-gh btn-sm" id="prof-ann-btn"
+                                style="font-size:.72rem;margin-right:6px"
+                                onclick="openAnnouncements()">Announcements</button>
+                            <button class="btn btn-gh btn-sm" id="prof-rc-btn" style="font-size:.72rem;margin-right:6px"
+                                onclick="openReportCenter()">Report Center</button>
+                            <button class="btn btn-gh btn-sm" id="prof-edit-btn" style="font-size:.72rem"
+                                onclick="openProfileEdit()">Edit Settings</button>
                         </div>
                     </div>
                     <div id="prof-edit-wrap" style="display:none;margin-top:12px">
                         <label class="fl">Profile Photo</label>
                         <input class="fi" id="edit-photo" type="file" accept="image/*" style="margin-bottom:8px">
-                        
+
                         <label class="fl">Display Name</label>
-                        <input class="fi" id="edit-displayName" type="text" placeholder="Public Display Name" style="margin-bottom:8px">
-                        
+                        <input class="fi" id="edit-displayName" type="text" placeholder="Public Display Name"
+                            style="margin-bottom:8px">
+
                         <label class="fl">Username</label>
-                        <input class="fi" id="edit-username" type="text" placeholder="@username" style="margin-bottom:8px">
+                        <input class="fi" id="edit-username" type="text" placeholder="@username"
+                            style="margin-bottom:8px">
 
                         <label class="fl">Bio</label>
-                        <textarea class="fi" id="edit-bio" placeholder="Tell us about yourself" style="margin-bottom:12px;min-height:50px"></textarea>
-                        
+                        <textarea class="fi" id="edit-bio" placeholder="Tell us about yourself"
+                            style="margin-bottom:12px;min-height:50px"></textarea>
+
                         <div style="display:flex;gap:8px">
                             <button class="btn btn-p btn-sm" onclick="saveUserProfile()">Save Profile</button>
-                            <button class="btn btn-gh btn-sm" onclick="$('prof-edit-wrap').style.display='none';$('prof-edit-btn').style.display='inline-block'">Cancel</button>
+                            <button class="btn btn-gh btn-sm"
+                                onclick="$('prof-edit-wrap').style.display='none';$('prof-edit-btn').style.display='inline-block'">Cancel</button>
                         </div>
                     </div>
                 </div>
@@ -3920,7 +3929,8 @@
                         <div id="sav-wd-locked-msg"
                             style="display:none;background:rgba(64,196,255,.08);border:1px solid rgba(64,196,255,.2);border-radius:8px;padding:12px;margin-bottom:12px">
                             <div style="font-size:.82rem;color:var(--sky)">🔒 Your savings are still locked. Unlocks on:
-                                <span id="sav-wd-unlock-date" style="color:var(--gold)"></span></div>
+                                <span id="sav-wd-unlock-date" style="color:var(--gold)"></span>
+                            </div>
                         </div>
                         <div id="sav-wd-form">
                             <div class="fg"><label class="fl">Amount (USD)</label><input class="fi" id="sav-wd-amt"
@@ -4355,7 +4365,8 @@
                                 <div style="font-size:.72rem;color:var(--t3)">Trades</div>
                             </div>
                         </div>
-                        <div id="pp-bio-wrap" style="display:none;margin-bottom:14px;background:var(--s2);border-radius:10px;padding:12px;font-size:.82rem;line-height:1.4;text-align:center;color:var(--t2)">
+                        <div id="pp-bio-wrap"
+                            style="display:none;margin-bottom:14px;background:var(--s2);border-radius:10px;padding:12px;font-size:.82rem;line-height:1.4;text-align:center;color:var(--t2)">
                             <div id="pp-bio-text"></div>
                         </div>
                         <div
@@ -4876,7 +4887,8 @@
             <div class="more-item" onclick="tab('followers');loadFollowers();hideMore()">👥 Following</div>
             <div class="more-item" onclick="tab('messages');loadDMList();hideMore()">💬 Messages</div>
             <div class="more-item" onclick="tab('profile');hideMore()">👤 Profile</div>
-            <div class="more-item" id="nav-agent" style="display:none" onclick="go('pg-agent');hideMore()">💼 Agent Dashboard</div>
+            <div class="more-item" id="nav-agent" style="display:none" onclick="go('pg-agent');hideMore()">💼 Agent
+                Dashboard</div>
         </div>
     </div><!-- /pg-app -->
 
@@ -4895,27 +4907,31 @@
             <div class="sh">
                 <h3>Agent Performance & Rewards</h3>
             </div>
-            
+
             <div class="sgrid" style="grid-template-columns:1fr;gap:14px">
                 <!-- Salary Section -->
-                <div class="card card-glow" style="background:linear-gradient(135deg, #1A1A1A, #060A07);border-color:var(--gold)">
+                <div class="card card-glow"
+                    style="background:linear-gradient(135deg, #1A1A1A, #060A07);border-color:var(--gold)">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
                         <div style="font-size:1.1rem;font-weight:700;color:var(--gold)">Monthly Salary</div>
                         <span class="badge bgold" id="agent-salary-status">Pending</span>
                     </div>
                     <div style="display:flex;justify-content:space-between;margin-bottom:8px">
                         <div style="color:var(--t2)">Salary Amount</div>
-                        <div style="font-family:'JetBrains Mono', monospace;font-weight:600;font-size:1.1rem" id="agent-salary-amt">$0</div>
+                        <div style="font-family:'JetBrains Mono', monospace;font-weight:600;font-size:1.1rem"
+                            id="agent-salary-amt">$0</div>
                     </div>
                     <div style="display:flex;justify-content:space-between">
                         <div style="color:var(--t2)">Secretary Allowance</div>
-                        <div style="font-family:'JetBrains Mono', monospace;font-weight:600;font-size:1.1rem" id="agent-sec-allow">$0</div>
+                        <div style="font-family:'JetBrains Mono', monospace;font-weight:600;font-size:1.1rem"
+                            id="agent-sec-allow">$0</div>
                     </div>
                 </div>
 
                 <!-- Office Progress -->
                 <div class="card">
-                    <div style="font-size:.9rem;font-weight:700;margin-bottom:12px;color:var(--sky)">🏢 Office Progress</div>
+                    <div style="font-size:.9rem;font-weight:700;margin-bottom:12px;color:var(--sky)">🏢 Office Progress
+                    </div>
                     <div style="display:flex;justify-content:space-between;margin-bottom:8px">
                         <div style="color:var(--t2)">Status</div>
                         <div style="font-weight:600" id="agent-office-status">Not started</div>
@@ -4939,13 +4955,16 @@
                 </div>
 
                 <div class="card" style="text-align:center">
-                    <div style="color:var(--t3);text-transform:uppercase;font-size:.7rem;font-weight:600;letter-spacing:.5px;margin-bottom:6px">Performance Rank</div>
+                    <div
+                        style="color:var(--t3);text-transform:uppercase;font-size:.7rem;font-weight:600;letter-spacing:.5px;margin-bottom:6px">
+                        Performance Rank</div>
                     <div style="font-size:1.8rem;font-weight:700;color:var(--gd)" id="agent-perf-rank">Bronze</div>
                 </div>
 
                 <!-- Benefits Summary -->
                 <div class="card">
-                    <div style="font-size:.9rem;font-weight:700;margin-bottom:12px;color:var(--purple)">🌟 Agent Benefits</div>
+                    <div style="font-size:.9rem;font-weight:700;margin-bottom:12px;color:var(--purple)">🌟 Agent
+                        Benefits</div>
                     <ul style="padding-left:18px;color:var(--t1);font-size:.85rem;line-height:1.6;color:var(--t2)">
                         <li>Fixed monthly salary and allowances based on performance.</li>
                         <li>Company-sponsored physical office space for your region.</li>
@@ -5318,6 +5337,44 @@
             </div>
         </div>
 
+        <!-- FEES TAB -->
+        <div id="at-fees" class="atab" style="display:none">
+            <div style="font-weight:700;margin-bottom:12px;font-size:1.1rem;color:var(--g)">💵 Platform Fees Collected</div>
+            <div class="card" style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,var(--gd),#004D20)">
+                <div style="color:#fff">
+                    <div style="font-size:0.8rem;opacity:0.9">Total Fees Recovered</div>
+                    <div style="font-size:1.8rem;font-weight:700" id="at-fees-total">$0.00</div>
+                </div>
+                <div style="font-size:2.5rem;opacity:0.2">💰</div>
+            </div>
+            
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+                <div class="card" style="padding:12px">
+                    <div style="font-size:0.75rem;color:var(--t3)">Transfers (5%)</div>
+                    <div style="font-weight:700;color:var(--t1);font-size:1.1rem" id="at-fees-tf">$0.00</div>
+                </div>
+                <div class="card" style="padding:12px">
+                    <div style="font-size:0.75rem;color:var(--t3)">Withdrawals</div>
+                    <div style="font-weight:700;color:var(--t1);font-size:1.1rem" id="at-fees-wd">$0.00</div>
+                </div>
+                <div class="card" style="padding:12px">
+                    <div style="font-size:0.75rem;color:var(--t3)">Loans</div>
+                    <div style="font-weight:700;color:var(--t1);font-size:1.1rem" id="at-fees-ln">$0.00</div>
+                </div>
+                <div class="card" style="padding:12px">
+                    <div style="font-size:0.75rem;color:var(--t3)">P2P Trades</div>
+                    <div style="font-weight:700;color:var(--t1);font-size:1.1rem" id="at-fees-p2p">$0.00</div>
+                </div>
+            </div>
+
+            <div class="sh" style="margin-top:20px;margin-bottom:10px">
+                <h3>Recent Transactions (Last 100)</h3>
+            </div>
+            <div id="at-fees-list">
+                <div class="es">Loading...</div>
+            </div>
+        </div>
+
         <div id="at-promocodes" class="atab">
             <div style="font-weight:700;margin-bottom:12px">🎁 Promo Codes</div>
             <div class="card" style="margin-bottom:14px">
@@ -5409,7 +5466,8 @@
             </div>
             <div class="card" style="margin-top:14px">
                 <div style="font-weight:600;margin-bottom:8px">System Risk Flags (Anti-Scam)</div>
-                <div style="font-size:.75rem;color:var(--t2);margin-bottom:8px">Automatically detected risky DM behavior.</div>
+                <div style="font-size:.75rem;color:var(--t2);margin-bottom:8px">Automatically detected risky DM
+                    behavior.</div>
                 <div id="dm-risk-list">
                     <div class="es">Loading…</div>
                 </div>
@@ -5662,10 +5720,11 @@
             <div class="fg"><label class="fl">Email</label><input class="fi" id="eu-email" type="email"
                     placeholder="Email"></div>
             <div class="fg"><label class="fl">Phone</label><input class="fi" id="eu-phone" placeholder="Phone"></div>
-            
+
             <!-- Official Roles -->
             <div class="fg"><label class="fl">Official/Company Roles</label>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:.8rem;background:var(--s1);padding:10px;border-radius:8px;border:1px solid var(--bd)">
+                <div
+                    style="display:flex;gap:8px;flex-wrap:wrap;font-size:.8rem;background:var(--s1);padding:10px;border-radius:8px;border:1px solid var(--bd)">
                     <label><input type="checkbox" class="cb-off" value="CEO"> CEO</label>
                     <label><input type="checkbox" class="cb-off" value="Director"> Director</label>
                     <label><input type="checkbox" class="cb-off" value="Official"> Official</label>
@@ -5680,8 +5739,10 @@
             </div>
 
             <!-- Agent Fields -->
-            <div class="fg"><label class="fl">Salary Amount ($)</label><input class="fi" id="eu-salary-amt" type="number" placeholder="250"></div>
-            <div class="fg"><label class="fl">Secretary Allowance ($)</label><input class="fi" id="eu-sec-allow" type="number" placeholder="150"></div>
+            <div class="fg"><label class="fl">Salary Amount ($)</label><input class="fi" id="eu-salary-amt"
+                    type="number" placeholder="250"></div>
+            <div class="fg"><label class="fl">Secretary Allowance ($)</label><input class="fi" id="eu-sec-allow"
+                    type="number" placeholder="150"></div>
             <div class="fg"><label class="fl">Salary Status</label>
                 <select class="fi" id="eu-salary-status">
                     <option value="Pending">Pending</option>
@@ -5704,8 +5765,9 @@
                     <option value="Elite">Elite</option>
                 </select>
             </div>
-            <div class="fg"><label class="fl">Agent Region</label><input class="fi" id="eu-agent-region" placeholder="Region"></div>
-            
+            <div class="fg"><label class="fl">Agent Region</label><input class="fi" id="eu-agent-region"
+                    placeholder="Region"></div>
+
             <div class="modal-acts">
                 <button class="btn btn-p" onclick="confirmEditUser()">Save</button>
                 <button class="btn btn-gh" onclick="closeModal('m-edit-user')">Cancel</button>
@@ -6442,20 +6504,20 @@
                     $('sh-countdown-wrap').style.display = 'none';
                 }
             }
-            
+
             // Agent Dashboard
             if (u.isAgent) {
-                const navAg = $('nav-agent'); if(navAg) navAg.style.display = 'block';
-                const agSalSt = $('agent-salary-status'); if(agSalSt) agSalSt.textContent = u.salaryStatus || 'Pending';
-                const agSalAmt = $('agent-salary-amt'); if(agSalAmt) agSalAmt.textContent = '$' + fmt(u.salaryAmount || 0);
-                const agSecAll = $('agent-sec-allow'); if(agSecAll) agSecAll.textContent = '$' + fmt(u.secretaryAllowance || 0);
-                const agOffSt = $('agent-office-status'); if(agOffSt) agOffSt.textContent = u.officeStatus || 'Not started';
-                const agReg = $('agent-region'); if(agReg) agReg.textContent = u.agentRegion || '—';
-                const agRef = $('agent-referrals'); if(agRef) agRef.textContent = (u.referrals || []).length;
-                const agActInv = $('agent-active-inv'); if(agActInv) agActInv.textContent = u.activeInvestors || 0;
-                const agPerf = $('agent-perf-rank'); if(agPerf) agPerf.textContent = u.performanceRank || 'Bronze';
+                const navAg = $('nav-agent'); if (navAg) navAg.style.display = 'block';
+                const agSalSt = $('agent-salary-status'); if (agSalSt) agSalSt.textContent = u.salaryStatus || 'Pending';
+                const agSalAmt = $('agent-salary-amt'); if (agSalAmt) agSalAmt.textContent = '$' + fmt(u.salaryAmount || 0);
+                const agSecAll = $('agent-sec-allow'); if (agSecAll) agSecAll.textContent = '$' + fmt(u.secretaryAllowance || 0);
+                const agOffSt = $('agent-office-status'); if (agOffSt) agOffSt.textContent = u.officeStatus || 'Not started';
+                const agReg = $('agent-region'); if (agReg) agReg.textContent = u.agentRegion || '—';
+                const agRef = $('agent-referrals'); if (agRef) agRef.textContent = (u.referrals || []).length;
+                const agActInv = $('agent-active-inv'); if (agActInv) agActInv.textContent = u.activeInvestors || 0;
+                const agPerf = $('agent-perf-rank'); if (agPerf) agPerf.textContent = u.performanceRank || 'Bronze';
             } else {
-                const navAg = $('nav-agent'); if(navAg) navAg.style.display = 'none';
+                const navAg = $('nav-agent'); if (navAg) navAg.style.display = 'none';
             }
         }
 
@@ -6939,9 +7001,76 @@
         async function loadReferrals() {
             const u = window.CU;
             if (!u.referrals || !u.referrals.length) { $('ref-list').innerHTML = '<div class="es"><div class="ei">👥</div>No referrals yet</div>'; return; }
-            const snap = await db.collection('users').where('referredBy', '==', u.uid).get();
-            const list = snap.docs.map(d => d.data());
-            $('ref-list').innerHTML = list.map(r => `<div class="ai"><div class="ai-l"><div class="ai-ico g" style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--gd),#004D20)">${(r.name || 'U')[0]}</div><div><div class="ai-desc">${r.name}</div><div class="ai-time">Joined ${fmtD(r.createdAt)}</div></div></div><span class="badge bg">Active</span></div>`).join('') || '<div class="es"><div class="ei">👥</div>No referrals yet</div>';
+            $('ref-list').innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:.85rem;">Loading downlines...</div>';
+            let uplineHtml = '';
+            if (u.referredBy) {
+                try {
+                    const upSnap = await db.collection('users').doc(u.referredBy).get();
+                    if (upSnap.exists) {
+                        uplineHtml = `<div style="padding:12px;background:var(--s2);border:1px solid var(--bds);border-radius:var(--rs);margin-bottom:16px;font-size:0.85rem">
+                            <span style="color:var(--t3)">Referred by:</span> <strong style="color:var(--gold)">${upSnap.data().name || 'Member'}</strong>
+                        </div>`;
+                    }
+                } catch(e) {}
+            }
+            try {
+                const l1Snap = await db.collection('users').where('referredBy', '==', u.uid).get();
+                let allRefs = [];
+                let l2Promises = [];
+                l1Snap.docs.forEach(d => {
+                    const r = d.data();
+                    allRefs.push({ level: 1, ...r });
+                    l2Promises.push(db.collection('users').where('referredBy', '==', r.uid).get());
+                });
+                const l2Snaps = await Promise.all(l2Promises);
+                let l3Promises = [];
+                l2Snaps.forEach(snap => {
+                    snap.docs.forEach(d => {
+                        const r = d.data();
+                        allRefs.push({ level: 2, ...r });
+                        l3Promises.push(db.collection('users').where('referredBy', '==', r.uid).get());
+                    });
+                });
+                const l3Snaps = await Promise.all(l3Promises);
+                l3Snaps.forEach(snap => {
+                    snap.docs.forEach(d => {
+                        allRefs.push({ level: 3, ...d.data() });
+                    });
+                });
+                allRefs.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                if (!allRefs.length) {
+                    $('ref-list').innerHTML = uplineHtml + '<div class="es"><div class="ei">👥</div>No downlines yet</div>';
+                    return;
+                }
+                $('ref-list').innerHTML = uplineHtml + allRefs.map(r => {
+                    const invAmt = r.totalInvested || 0;
+                    const isActive = invAmt > 0;
+                    const statusBadge = isActive 
+                        ? `<span class="badge bg" style="margin-bottom:4px">Active</span>` 
+                        : `<span class="badge br" style="margin-bottom:4px">Inactive</span>`;
+                    const lvlColor = r.level === 1 ? 'var(--gold)' : r.level === 2 ? 'var(--sky)' : 'var(--purple)';
+                    const init = (r.name || r.username || 'U')[0].toUpperCase();
+                    return `<div class="ai" style="align-items:flex-start">
+                        <div class="ai-l" style="align-items:flex-start">
+                            <div class="ai-ico" style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--gd),#004D20);color:#fff">${init}</div>
+                            <div>
+                                <div class="ai-desc" style="display:flex;align-items:center;gap:6px">
+                                    <strong>${r.name || r.username || 'Unknown'}</strong> 
+                                    <span style="font-size:0.65rem;color:${lvlColor};border:1px solid ${lvlColor};padding:1px 4px;border-radius:4px">Lvl ${r.level}</span>
+                                </div>
+                                <div class="ai-time">Joined ${fmtD(r.createdAt)}</div>
+                            </div>
+                        </div>
+                        <div style="text-align:right">
+                            ${statusBadge}<br>
+                            <span style="font-size:0.75rem;color:var(--t2)">$${fmt(invAmt)} invested</span>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch (e) {
+                console.error(e);
+                $('ref-list').innerHTML = uplineHtml + '<div class="es"><div class="ei">⚠️</div>Error loading downlines</div>';
+            }
         }
 
         // ════════════════════════════════════════════════════════
@@ -7497,7 +7626,7 @@
             if ($('pp-followers')) $('pp-followers').textContent = fmtNum(followers);
             if ($('pp-following')) $('pp-following').textContent = fmtNum((u.followingCount || 0) + (u.following || []).length);
             if ($('pp-trades')) $('pp-trades').textContent = u.p2pRatingCount || 0;
-            
+
             const bioWrap = $('pp-bio-wrap');
             if (bioWrap) {
                 if (u.bio && u.bio.trim()) {
@@ -7507,7 +7636,7 @@
                     bioWrap.style.display = 'none';
                 }
             }
-            
+
             if ($('pp-joined')) $('pp-joined').textContent = fmtD(u.createdAt);
             if ($('pp-rank')) $('pp-rank').textContent = u.rank || 'Starter';
             // Check if already following
@@ -7733,11 +7862,11 @@
             if (_dmBlockState.iBlocked) return toast('Unblock this user to send messages', 'ty');
             const u = window.CU;
             inp.value = '';
-            
+
             const lowKeywords = ['whatsapp me', 'contact me on telegram', 'send money', 'pay me'];
             const medKeywords = ['outside the app', 'investment proof', 'support me on whatsapp', 'bank details', 'm-pesa number', 'mpesa number'];
             const highKeywords = ['send otp', 'share password', 'give me your code', 'withdraw for you', 'admin asked me', 'crypto wallet address', 'seed phrase'];
-            
+
             let maxSeverity = 'none';
             let matched = [];
 
@@ -7760,7 +7889,7 @@
             try {
                 const msgRef = db.collection('dms').doc(_activeDMId).collection('msgs').doc();
                 await msgRef.set({ from: u.uid, to: _activeDMUser.id, text, read: false, createdAt: FS().serverTimestamp() });
-                
+
                 let lastMsgStr = text.substring(0, 60);
 
                 if (isRisky) {
@@ -7773,7 +7902,7 @@
                         text: warningText,
                         read: true, createdAt: FS().serverTimestamp()
                     });
-                    
+
                     if (maxSeverity === 'medium' || maxSeverity === 'high') {
                         db.collection('dmRiskFlags').add({
                             senderUid: u.uid, receiverUid: _activeDMUser.id, conversationId: _activeDMId,
@@ -7862,12 +7991,12 @@
                 const publicNameMap = {};
                 const avatarMap = {};
                 const userObjMap = {};
-                otherDocs.forEach(s => { 
+                otherDocs.forEach(s => {
                     if (s.exists) {
                         const data = s.data();
                         const obj = { id: s.id, ...data };
                         userObjMap[s.id] = obj;
-                        publicNameMap[s.id] = getPublicDisplayName(obj); 
+                        publicNameMap[s.id] = getPublicDisplayName(obj);
                         if (data.avatarBase64) avatarMap[s.id] = data.avatarBase64;
                     }
                 });
@@ -7901,11 +8030,11 @@
         const ADMIN_ROLES = {
             superadmin: {
                 label: '⭐ Super Admin', color: 'var(--gold)',
-                tabs: ['investments', 'deposits', 'withdrawals', 'users', 'kyc', 'leaderboard', 'community', 'stakes', 'loans', 'tickets', 'surveys', 'redemptions', 'activity', 'revenue', 'analytics', 'security', 'maintenance', 'testi', 'prizecodes', 'luckydraw', 'contest', 'p2p', 'broadcast', 'ads', 'admins', 'promocodes']
+                tabs: ['investments', 'deposits', 'withdrawals', 'users', 'kyc', 'leaderboard', 'community', 'stakes', 'loans', 'tickets', 'surveys', 'redemptions', 'activity', 'revenue', 'analytics', 'security', 'maintenance', 'testi', 'prizecodes', 'luckydraw', 'contest', 'p2p', 'broadcast', 'ads', 'admins', 'promocodes', 'fees']
             },
             finance: {
                 label: '💰 Finance', color: 'var(--g)',
-                tabs: ['deposits', 'withdrawals', 'revenue', 'analytics', 'activity', 'users', 'promocodes']
+                tabs: ['deposits', 'withdrawals', 'revenue', 'analytics', 'activity', 'users', 'promocodes', 'fees']
             },
             support: {
                 label: '🎧 Support', color: 'var(--sky)',
@@ -7949,6 +8078,7 @@
             ads: () => loadAds(),
             admins: () => loadAdminsList(),
             promocodes: () => loadAdminPromoCodes(),
+            fees: () => loadAdminFees(),
         };
 
         const ALL_ADMIN_TABS = [
@@ -7978,6 +8108,7 @@
             { id: 'ads', label: '📢 Ads' },
             { id: 'admins', label: '👥 Admins' },
             { id: 'promocodes', label: '🎁 Promo Codes' },
+            { id: 'fees', label: '💵 Fees' },
         ];
 
         function getAdminRole() {
@@ -8160,8 +8291,8 @@
             // Referral bonus — first investment check
             const userSnap = await db.collection('users').doc(uid).get();
             const u = userSnap.data();
-            const actSnap = await db.collection('investments').where('uid', '==', uid).where('status', '==', 'active').get();
-            if (actSnap.size === 1 && u.referredBy) {
+            if (!u.referralBonusPaid && u.referredBy) {
+                await db.collection('users').doc(uid).update({ referralBonusPaid: true });
                 // Level 1 — direct referrer gets 10%
                 const bonus = parseFloat((amount * 0.10).toFixed(4));
                 await db.collection('users').doc(u.referredBy).update({ balance: FS().increment(bonus), totalEarned: FS().increment(bonus), referralEarned: FS().increment(bonus) });
@@ -8388,7 +8519,7 @@
             window._editTarget = id;
             $('eu-name').value = name; $('eu-email').value = email; $('eu-phone').value = phone;
             const u = (window.AU || []).find(x => x.id === id);
-            if(u) {
+            if (u) {
                 const roles = u.officialRoles || [];
                 document.querySelectorAll('.cb-off').forEach(cb => cb.checked = roles.includes(cb.value));
 
@@ -8410,10 +8541,10 @@
             const oStat = $('eu-office-status').value;
             const pRank = $('eu-perf-rank').value;
             const aReg = $('eu-agent-region').value.trim();
-            
+
             const roles = Array.from(document.querySelectorAll('.cb-off:checked')).map(cb => cb.value);
 
-            await db.collection('users').doc(id).update({ 
+            await db.collection('users').doc(id).update({
                 name: n, phone: p,
                 officialRoles: roles,
                 salaryAmount: sAmt, secretaryAllowance: sAllow,
@@ -9957,30 +10088,30 @@ Message: ${message}`);
             if (u.isVerified) {
                 html += `<span class="badge-verified" title="Verified Member">✓</span>`;
             }
-            
+
             const PRIORITY = ['CEO', 'Director', 'Official', 'Support', 'Finance', 'Security', 'Transfers', 'Marketing', 'Sales', 'HR'];
             let roles = (u.officialRoles || []).slice();
-            roles.sort((a,b) => {
-                let ia = PRIORITY.indexOf(a); if(ia===-1) ia=99;
-                let ib = PRIORITY.indexOf(b); if(ib===-1) ib=99;
+            roles.sort((a, b) => {
+                let ia = PRIORITY.indexOf(a); if (ia === -1) ia = 99;
+                let ib = PRIORITY.indexOf(b); if (ib === -1) ib = 99;
                 return ia - ib;
             });
-            
+
             let badges = [];
-            for(let r of roles) {
-                if(r === 'Support') badges.push(`<span class="tag-vip vip-gold" style="background:#00c853;color:#000;border-color:#00e676">🎧 Support</span>`);
-                else if(r === 'CEO') badges.push(`<span class="tag-vip vip-platinum" style="background:#212121;color:#ffd700;border-color:#ffd700">👑 CEO</span>`);
-                else if(r === 'Director') badges.push(`<span class="tag-vip vip-platinum" style="background:#424242;color:#ffd700;border-color:#ffd700">👔 Director</span>`);
-                else if(r === 'Official') badges.push(`<span class="tag-vip vip-silver" style="background:var(--p);color:#fff;border-color:var(--p)">★ Official</span>`);
-                else if(r === 'Finance') badges.push(`<span class="tag-vip vip-silver" style="background:#00b0ff;color:#000;border-color:#00b0ff">💰 Finance</span>`);
-                else if(r === 'Transfers') badges.push(`<span class="tag-vip vip-silver" style="background:#f50057;color:#fff;border-color:#ff4081">💸 Transfers</span>`);
-                else if(r === 'Security') badges.push(`<span class="tag-vip vip-silver" style="background:#d50000;color:#fff;border-color:#ff1744">🛡️ Security</span>`);
-                else if(r === 'Marketing') badges.push(`<span class="tag-vip vip-silver" style="background:#ff9100;color:#000;border-color:#ffab40">📈 Marketing</span>`);
-                else if(r === 'Sales') badges.push(`<span class="tag-vip vip-silver" style="background:#00e5ff;color:#000;border-color:#18ffff">🤝 Sales</span>`);
-                else if(r === 'HR') badges.push(`<span class="tag-vip vip-silver" style="background:#aa00ff;color:#fff;border-color:#e040fb">👥 HR</span>`);
+            for (let r of roles) {
+                if (r === 'Support') badges.push(`<span class="tag-vip vip-gold" style="background:#00c853;color:#000;border-color:#00e676">🎧 Support</span>`);
+                else if (r === 'CEO') badges.push(`<span class="tag-vip vip-platinum" style="background:#212121;color:#ffd700;border-color:#ffd700">👑 CEO</span>`);
+                else if (r === 'Director') badges.push(`<span class="tag-vip vip-platinum" style="background:#424242;color:#ffd700;border-color:#ffd700">👔 Director</span>`);
+                else if (r === 'Official') badges.push(`<span class="tag-vip vip-silver" style="background:var(--p);color:#fff;border-color:var(--p)">★ Official</span>`);
+                else if (r === 'Finance') badges.push(`<span class="tag-vip vip-silver" style="background:#00b0ff;color:#000;border-color:#00b0ff">💰 Finance</span>`);
+                else if (r === 'Transfers') badges.push(`<span class="tag-vip vip-silver" style="background:#f50057;color:#fff;border-color:#ff4081">💸 Transfers</span>`);
+                else if (r === 'Security') badges.push(`<span class="tag-vip vip-silver" style="background:#d50000;color:#fff;border-color:#ff1744">🛡️ Security</span>`);
+                else if (r === 'Marketing') badges.push(`<span class="tag-vip vip-silver" style="background:#ff9100;color:#000;border-color:#ffab40">📈 Marketing</span>`);
+                else if (r === 'Sales') badges.push(`<span class="tag-vip vip-silver" style="background:#00e5ff;color:#000;border-color:#18ffff">🤝 Sales</span>`);
+                else if (r === 'HR') badges.push(`<span class="tag-vip vip-silver" style="background:#aa00ff;color:#fff;border-color:#e040fb">👥 HR</span>`);
                 else badges.push(`<span class="tag-vip vip-silver" style="background:#000;color:#fff;border-color:#fff">${r}</span>`);
             }
-            
+
             if (u.isAgent) {
                 badges.push(`<span class="tag-agent">Agent</span>`);
             }
@@ -9988,11 +10119,11 @@ Message: ${message}`);
             if (vip.level !== 'starter') {
                 badges.push(`<span class="tag-vip ${vip.css}">${vip.icon} ${vip.label}</span>`);
             }
-            
+
             if (compact && badges.length > 2) {
                 badges = badges.slice(0, 2);
             }
-            
+
             html += badges.join('');
             return html;
         }
@@ -10382,7 +10513,7 @@ You will receive $${fmt(receive)} (+${_vaultPlan.rate}%) on ${unlock.toLocaleDat
                     const pct = Math.min(100, Math.round((g.saved || 0) / g.target * 100));
                     const isReleased = g.status === 'released';
                     const done = pct >= 100 || g.status === 'achieved';
-                    
+
                     let statusHtml = '';
                     if (isReleased) statusHtml = '<span style="font-size:.8rem;color:var(--g)">✅ Released</span>';
                     else if (done) statusHtml = '<span style="font-size:.8rem;color:var(--g)">✅ Achieved!</span>';
@@ -10451,18 +10582,18 @@ You will receive $${fmt(receive)} (+${_vaultPlan.rate}%) on ${unlock.toLocaleDat
             const snap = await db.collection('savingsGoals').doc(goalId).get();
             if (!snap.exists) return toast('Goal not found', 'ty');
             const g = snap.data();
-            
+
             if (g.status === 'released') return toast('This goal is already released.', 'ty');
             if ((g.saved || 0) <= 0) return toast('No funds to release.', 'ty');
-            
+
             if (!confirm(`Release $${fmt(g.saved)} back to your main balance?`)) return;
-            
+
             await db.collection('savingsGoals').doc(goalId).update({ status: 'released', releasedAt: FS().serverTimestamp() });
-            
+
             await db.collection('users').doc(u.uid).update({ balance: FS().increment(g.saved) });
             window.CU.balance = (u.balance || 0) + g.saved;
             updateUI();
-            
+
             await logAct(u.uid, `Released savings from goal: ${g.name}`, g.saved, '🎯', 'deposit');
             tg(`🔓 *Savings Released*\nUser: ${u.email || u.uid}\nGoal: ${g.name}\nAmount: $${fmt(g.saved)} returned to balance.`);
             toast(`✅ $${fmt(g.saved)} released to your main balance!`, 'tg', 4000);
@@ -10562,7 +10693,7 @@ You will receive $${fmt(receive)} (+${_vaultPlan.rate}%) on ${unlock.toLocaleDat
                 if (blockedEl) blockedEl.innerHTML = blocked.length ? blocked.map(b => `<div class="ai"><div class="ai-l"><div class="ai-ico r">⛔</div><div><div class="ai-desc">${b.ip}</div><div class="ai-time">${b.reason || 'Blocked IP'} · ${fmtDT(b.createdAt)}</div></div></div><button class="btn btn-gh btn-sm" onclick="adminUnblockIp('${b.id}')">Unblock</button></div>`).join('') : '<div class="es">No blocked IPs</div>';
                 if (eventsEl) eventsEl.innerHTML = events.length ? events.map(e => `<div class="ai"><div class="ai-l"><div class="ai-ico gold">🛡️</div><div><div class="ai-desc">${(e.type || 'event').replace(/_/g, ' ')} ${e.email ? `— ${e.email}` : ''}</div><div class="ai-time">${e.ip && e.ip !== 'Unavailable' ? e.ip : 'IP unavailable'} · ${e.location && e.location !== 'Unavailable' ? e.location : 'Location unavailable / approximate'} · ${e.device || 'Browser device estimate'} · ${fmtDT(e.createdAt)}</div></div></div>${e.resolved ? '<span class="badge bg">Resolved</span>' : '<span class="badge bgold">Unresolved</span>'}</div>`).join('') : '<div class="es">No suspicious logins yet</div>';
                 if (reportsEl) reportsEl.innerHTML = reports.length ? reports.map(r => `<div class="ai"><div class="ai-l"><div class="ai-ico ${r.status === 'pending' ? 'gold' : 'g'}">🚩</div><div><div class="ai-desc">${(r.reason || 'report').toUpperCase()} · ${r.status || 'pending'}</div><div class="ai-time">Reporter: ${r.reporterMemberId || memberIdFromUid(r.reporterUid)} · Reported: ${r.reportedMemberId || memberIdFromUid(r.reportedUid)} · ${fmtDT(r.createdAt)}</div><div class="ai-time">${r.note ? ('Note: ' + r.note) : 'No user note'}</div></div></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-gh btn-sm" onclick="adminOpenDMReportChat('${r.id}')">View Chat</button><button class="btn btn-gh btn-sm" onclick="adminUpdateDMReportStatus('${r.id}','reviewed')">Mark Reviewed</button><button class="btn btn-gold btn-sm" onclick="adminWarnDMUser('${r.reportedUid}','${r.id}')">Warn/Strike</button><button class="btn btn-d btn-sm" onclick="adminToggleDMMute('${r.reportedUid}',${!!r.dmMuted},'${r.id}')">${r.dmMuted ? 'Unmute DM' : 'Mute DM'}</button><button class="btn btn-gh btn-sm" onclick="adminToggleHideFromDiscover('${r.reportedUid}',${!!r.hiddenFromDiscover},'${r.id}')">${r.hiddenFromDiscover ? 'Show Discover' : 'Hide Discover'}</button><button class="btn btn-gh btn-sm" onclick="adminAddDMModerationNote('${r.id}')">Add Note</button></div></div>`).join('') : '<div class="es">No DM reports yet</div>';
-                if (riskEl) riskEl.innerHTML = risks.length ? risks.map(r => `<div class="ai"><div class="ai-l"><div class="ai-ico ${r.status === 'pending' ? 'r' : 'g'}">⚠️</div><div><div class="ai-desc">${(r.riskLevel||'').toUpperCase()} RISK FLAG · ${r.status || 'pending'}</div><div class="ai-time">Sender: ${memberIdFromUid(r.senderUid)} · Receiver: ${memberIdFromUid(r.receiverUid)} · ${fmtDT(r.createdAt)}</div><div class="ai-time">Keywords: ${(r.matchedKeywords || []).join(', ')}</div><div class="ai-time" style="font-style:italic">"${r.messageText}"</div></div></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-gh btn-sm" onclick="adminOpenDMRiskChat('${r.id}')">View Chat</button><button class="btn btn-gh btn-sm" onclick="adminUpdateRiskStatus('${r.id}','reviewed')">Mark Reviewed</button><button class="btn btn-gold btn-sm" onclick="adminWarnRiskUser('${r.senderUid}','${r.id}')">Warn/Strike</button><button class="btn btn-d btn-sm" onclick="adminToggleRiskMute('${r.senderUid}',${!!r.dmMuted},'${r.id}')">${r.dmMuted ? 'Unmute DM' : 'Mute DM'}</button></div></div>`).join('') : '<div class="es">No system risk flags yet</div>';
+                if (riskEl) riskEl.innerHTML = risks.length ? risks.map(r => `<div class="ai"><div class="ai-l"><div class="ai-ico ${r.status === 'pending' ? 'r' : 'g'}">⚠️</div><div><div class="ai-desc">${(r.riskLevel || '').toUpperCase()} RISK FLAG · ${r.status || 'pending'}</div><div class="ai-time">Sender: ${memberIdFromUid(r.senderUid)} · Receiver: ${memberIdFromUid(r.receiverUid)} · ${fmtDT(r.createdAt)}</div><div class="ai-time">Keywords: ${(r.matchedKeywords || []).join(', ')}</div><div class="ai-time" style="font-style:italic">"${r.messageText}"</div></div></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-gh btn-sm" onclick="adminOpenDMRiskChat('${r.id}')">View Chat</button><button class="btn btn-gh btn-sm" onclick="adminUpdateRiskStatus('${r.id}','reviewed')">Mark Reviewed</button><button class="btn btn-gold btn-sm" onclick="adminWarnRiskUser('${r.senderUid}','${r.id}')">Warn/Strike</button><button class="btn btn-d btn-sm" onclick="adminToggleRiskMute('${r.senderUid}',${!!r.dmMuted},'${r.id}')">${r.dmMuted ? 'Unmute DM' : 'Mute DM'}</button></div></div>`).join('') : '<div class="es">No system risk flags yet</div>';
             } catch (e) { if (blockedEl) blockedEl.innerHTML = '<div class="es">Error</div>'; if (eventsEl) eventsEl.innerHTML = '<div class="es">Error</div>'; if (riskEl) riskEl.innerHTML = '<div class="es">Error</div>'; }
         }
         async function adminBlockIp() {
@@ -11374,9 +11505,9 @@ ${names}${ids.length > 6 ? ' ...' : ''}`;
         // ════════════════════════════════════════════════════════
         const SCRATCH_PRIZES = ['💎', '⭐', '🎯', '🍀', '🎁'];
         const SCRATCH_REWARDS = {
-            '💎': { cash: 2.00, pts: 0, label: '$2.00' },
-            '⭐': { cash: 1.00, pts: 0, label: '$1.00' },
-            '🎯': { cash: 0, pts: 50, label: '50 pts' },
+            '💎': { cash: 0.50, pts: 0, label: '$0.50' },
+            '⭐': { cash: 0.20, pts: 0, label: '$0.20' },
+            '🎯': { cash: 0, pts: 30, label: '30 pts' },
             '🍀': { cash: 0, pts: 20, label: '20 pts' },
             '🎁': { cash: 0, pts: 10, label: '10 pts' },
         };
@@ -11400,9 +11531,14 @@ ${names}${ids.length > 6 ? ' ...' : ''}`;
             // Generate card (weighted — win is less likely)
             const winRoll = Math.random();
             let sym0, sym1, sym2;
-            if (winRoll < 0.20) {
+            if (winRoll < 0.05) {
                 // Win — all same
-                const prize = SCRATCH_PRIZES[Math.floor(Math.random() * SCRATCH_PRIZES.length)];
+                let prize = '🎁';
+                const pRoll = Math.random();
+                if (pRoll < 0.10) prize = '💎'; // 10% of wins (0.5% overall) for $0.50
+                else if (pRoll < 0.30) prize = '⭐'; // 20% of wins (1% overall) for $0.20
+                else if (pRoll < 0.50) prize = '🎯';
+                else if (pRoll < 0.70) prize = '🍀';
                 sym0 = sym1 = sym2 = prize;
             } else {
                 // No win — guaranteed at least 2 different
@@ -12420,6 +12556,7 @@ Amount: $${fmt(amount)}`);
         async function submitRedeem() {
             const u = window.CU;
             if (!_redeemSel.pts) return toast('Select an amount to redeem', 'ty');
+            if (_redeemSel.pts < 1000) return toast('Minimum redemption is 1000 points', 'tr');
             if ((u.surveyPoints || 0) < _redeemSel.pts) return toast('Not enough points — need ' + _redeemSel.pts + ' pts', 'tr');
             // Check no pending redemption
             const ex = await db.collection('redemptions').where('uid', '==', u.uid).where('status', '==', 'pending').get();
@@ -12865,8 +13002,8 @@ ${points}pts → $${fmt(usd)}`);
             { label: '$0.50', pts: 0, cash: 0.5, color: '#CE93D8' },
             { label: '20 pts', pts: 20, cash: 0, color: '#FF7043' },
             { label: 'Try Again', pts: 0, cash: 0, color: '#4A6452' },
-            { label: '$1.00', pts: 0, cash: 1, color: '#FFD54F' },
-            { label: '15 pts', pts: 15, cash: 0, color: '#00E676' },
+            { label: '$0.20', pts: 0, cash: 0.2, color: '#FFD54F' },
+            { label: '30 pts', pts: 30, cash: 0, color: '#00E676' },
         ];
 
         function drawWheel(rotation) {
@@ -12916,7 +13053,16 @@ ${points}pts → $${fmt(usd)}`);
             $('spin-result').textContent = '';
 
             // Pick winner server-side simulation: use crypto random weighted selection
-            const winIdx = Math.floor(Math.random() * SPIN_PRIZES.length);
+            let winIdx = 5; // Default Try Again
+            const roll = Math.random();
+            if (roll < 0.005) winIdx = 3;      // 0.5% chance for $0.50
+            else if (roll < 0.015) winIdx = 7; // 1% chance for 30 pts
+            else if (roll < 0.035) winIdx = 6; // 2% chance for $0.20
+            else if (roll < 0.10) winIdx = 4;  // 6.5% chance for 20 pts
+            else if (roll < 0.30) winIdx = 1;  // 20% chance for 10 pts
+            else if (roll < 0.60) winIdx = 0;  // 30% chance for 5 pts
+            else if (roll < 0.80) winIdx = 2;  // 20% chance for 2 pts
+            else winIdx = 5;                   // 20% chance for Try Again
             const prize = SPIN_PRIZES[winIdx];
 
             // Animate wheel to winning slice
@@ -14301,8 +14447,8 @@ Prize: $${fmt(prize)}`);
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
                         let w = img.width, h = img.height;
-                        if (w > maxSize) { h *= maxSize/w; w = maxSize; }
-                        if (h > maxSize) { w *= maxSize/h; h = maxSize; }
+                        if (w > maxSize) { h *= maxSize / w; w = maxSize; }
+                        if (h > maxSize) { w *= maxSize / h; h = maxSize; }
                         canvas.width = w; canvas.height = h;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, w, h);
@@ -14315,7 +14461,7 @@ Prize: $${fmt(prize)}`);
 
         async function openProfileEdit() {
             var u = window.CU;
-            if(!u) return;
+            if (!u) return;
             $('edit-photo').value = '';
             $('edit-displayName').value = u.displayName || '';
             $('edit-username').value = u.username || '';
@@ -14326,13 +14472,13 @@ Prize: $${fmt(prize)}`);
 
         async function saveUserProfile() {
             var u = window.CU;
-            if(!u) return;
+            if (!u) return;
             var dName = $('edit-displayName').value.trim();
             var uName = $('edit-username').value.trim();
             var bio = $('edit-bio').value.trim();
             var file = $('edit-photo').files[0];
             var b64 = u.avatarBase64;
-            
+
             if (uName) {
                 if (!/^[a-zA-Z0-9_]{3,20}$/.test(uName)) {
                     toast('Username must be 3-20 characters long and contain only letters, numbers, or underscores.', 'tr', 4000);
@@ -14353,53 +14499,53 @@ Prize: $${fmt(prize)}`);
                             toast('That username is already taken. Please choose another.', 'tr', 3000);
                             return;
                         }
-                    } catch(e) {
+                    } catch (e) {
                         toast('Error checking username availability.', 'tr');
                         return;
                     }
                 }
             }
-            
+
             try {
                 if (file) {
                     b64 = await compressImage(file, 200);
                 }
-                
+
                 const updateData = {
                     displayName: dName,
                     username: uName,
                     bio: bio,
                     avatarBase64: b64 || null
                 };
-                
+
                 if (uName && uName !== (u.username || '')) {
                     updateData.usernameLastChanged = FS().serverTimestamp();
                     window.CU.usernameLastChanged = Date.now();
                 }
-                
+
                 await db.collection('users').doc(u.uid).update(updateData);
                 window.CU.displayName = dName;
                 window.CU.username = uName;
                 window.CU.bio = bio;
                 window.CU.avatarBase64 = b64 || null;
-                
+
                 updateProfileBadges(window.CU);
-                
+
                 // Update local HTML avatars immediately
-                if(b64) {
+                if (b64) {
                     const imgHtml = `<img src="${b64}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
-                    if($('nav-av')) $('nav-av').innerHTML = imgHtml;
-                    if($('prof-av')) $('prof-av').innerHTML = imgHtml;
+                    if ($('nav-av')) $('nav-av').innerHTML = imgHtml;
+                    if ($('prof-av')) $('prof-av').innerHTML = imgHtml;
                 } else {
                     const fb = (getPublicDisplayName(window.CU) || 'U')[0].toUpperCase();
-                    if($('nav-av')) $('nav-av').textContent = fb;
-                    if($('prof-av')) $('prof-av').textContent = fb;
+                    if ($('nav-av')) $('nav-av').textContent = fb;
+                    if ($('prof-av')) $('prof-av').textContent = fb;
                 }
-                
+
                 $('prof-edit-wrap').style.display = 'none';
                 $('prof-edit-btn').style.display = 'inline-block';
                 toast('? Profile updated successfully!', 'tg');
-            } catch(e) {
+            } catch (e) {
                 toast('Error saving profile: ' + e.message, 'tr');
             }
         }
@@ -14580,12 +14726,12 @@ Prize: $${fmt(prize)}`);
                     .orderBy('createdAt', 'desc')
                     .limit(50)
                     .get();
-                
+
                 if (snap.empty) {
                     listEl.innerHTML = '<div class="es">No announcements right now.</div>';
                     return;
                 }
-                
+
                 let html = '';
                 for (let d of snap.docs) {
                     const b = d.data();
@@ -14593,7 +14739,7 @@ Prize: $${fmt(prize)}`);
                     if (b.title && b.title.includes('Maintenance')) icon = '??';
                     else if (b.title && b.title.includes('Winner')) icon = '??';
                     else if (b.title && (b.title.includes('Update') || b.title.includes('Feature'))) icon = '?';
-                    
+
                     html += `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:12px;margin-bottom:10px">
                         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
                             <div style="font-weight:600;font-size:.9rem;color:var(--t1)">${icon} ${b.title || 'Announcement'}</div>
@@ -14617,22 +14763,22 @@ Prize: $${fmt(prize)}`);
                 const snap = await db.collection('dmReports')
                     .where('reporterUid', '==', window.CU.uid)
                     .get();
-                
+
                 if (snap.empty) {
                     listEl.innerHTML = '<div class="es">You have not submitted any reports.</div>';
                     return;
                 }
-                
+
                 let docs = snap.docs.map(d => d.data());
-                docs.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-                
+                docs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
                 let html = '';
                 for (let r of docs) {
                     let statusBadge = '';
                     if (r.status === 'pending') statusBadge = '<span class="badge bgold">Pending</span>';
                     else if (r.status === 'reviewed') statusBadge = '<span class="badge bg">Reviewed</span>';
                     else statusBadge = `<span class="badge bmut">${r.status || 'Pending'}</span>`;
-                    
+
                     let actionText = '';
                     if (r.status === 'reviewed') {
                         if (r.action === 'warned') actionText = '<div style="font-size:.75rem;color:var(--gold);margin-top:4px">?? Action: User Warned</div>';
@@ -14641,7 +14787,7 @@ Prize: $${fmt(prize)}`);
                         else if (r.moderationNotes) actionText = `<div style="font-size:.75rem;color:var(--g);margin-top:4px">?? Note: ${r.moderationNotes}</div>`;
                         else actionText = '<div style="font-size:.75rem;color:var(--g);margin-top:4px">?? Action: Reviewed by Staff</div>';
                     }
-                    
+
                     html += `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:12px;margin-bottom:10px">
                         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
                             <div style="font-weight:600;font-size:.9rem">Reported: User #${r.reportedMemberId || '?'}</div>
@@ -14665,8 +14811,9 @@ Prize: $${fmt(prize)}`);
         <div class="modal-content" style="max-width:500px">
             <div class="modal-close" onclick="closeModal('m-report-center')">?</div>
             <div class="modal-title">My Report Center</div>
-            <div style="font-size:.85rem;color:var(--t2);margin-bottom:16px;">Track the status of users you have reported.</div>
-            
+            <div style="font-size:.85rem;color:var(--t2);margin-bottom:16px;">Track the status of users you have
+                reported.</div>
+
             <div id="rc-list" style="max-height:60vh;overflow-y:auto;padding-right:4px">
                 <div class="es">Loading reports...</div>
             </div>
@@ -14678,7 +14825,7 @@ Prize: $${fmt(prize)}`);
             <div class="modal-close" onclick="closeModal('m-announcements')">?</div>
             <div class="modal-title">Announcements</div>
             <div style="font-size:.85rem;color:var(--t2);margin-bottom:16px;">System updates, winners, and alerts.</div>
-            
+
             <div id="ann-list" style="max-height:60vh;overflow-y:auto;padding-right:4px">
                 <div class="es">Loading announcements...</div>
             </div>

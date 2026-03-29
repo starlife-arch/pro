@@ -5159,6 +5159,37 @@
                 </div>
             </div>
 
+            <div id="at-fees" class="atab">
+                <h3 style="margin-bottom:14px">Platform Fees & Revenue</h3>
+                <div class="sgrid" style="grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:10px;margin-bottom:20px">
+                    <div class="sc">
+                        <div class="sl">Total Fees</div>
+                        <div class="sv gold" id="at-fees-total">$0.00</div>
+                    </div>
+                    <div class="sc">
+                        <div class="sl">Withdrawal Fees</div>
+                        <div class="sv" id="at-fees-wd">$0.00</div>
+                    </div>
+                    <div class="sc">
+                        <div class="sl">Transfer Fees</div>
+                        <div class="sv" id="at-fees-tf">$0.00</div>
+                    </div>
+                    <div class="sc">
+                        <div class="sl">P2P Fees</div>
+                        <div class="sv" id="at-fees-p2p">$0.00</div>
+                    </div>
+                    <div class="sc">
+                        <div class="sl">Loan Interest</div>
+                        <div class="sv" id="at-fees-loan">$0.00</div>
+                    </div>
+                </div>
+                <div class="chart-wrap">
+                    <div style="font-size:.82rem;font-weight:600;margin-bottom:10px">Fee History</div>
+                    <div id="at-fees-list"></div>
+                </div>
+                <div style="font-size:.72rem;color:var(--t3);margin-top:10px">Aggregated from Withdrawals (10%), Transfers (5%), P2P spreads, and Loan interest.</div>
+            </div>
+
             <div id="at-kyc" class="atab">
                 <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
                     <button class="btn btn-gh btn-sm" onclick="loadAdminKYC('pending')">⏳ Pending</button>
@@ -6559,6 +6590,118 @@
         function hideMore() { $('more-menu').style.display = 'none'; }
         document.addEventListener('click', e => { if (!e.target.closest('#more-menu') && !e.target.closest('.bi#bi-more')) hideMore(); });
 
+        async function loadAdminFees() {
+            const el = $('at-fees-list'); if (!el) return;
+            el.innerHTML = '<div class="es">Loading fees...</div>';
+            try {
+                // Fetch from multiple collections to aggregate + new platformFees
+                const [wdSnap, lnSnap, p2pSnap, transSnap, pfSnap] = await Promise.all([
+                    db.collection('withdrawals').where('status', '==', 'paid').get(),
+                    db.collection('loans').where('status', '==', 'active').get(),
+                    db.collection('p2pTrades').where('status', '==', 'completed').get(),
+                    db.collection('activity').where('type', '==', 'transfer').get(),
+                    db.collection('platformFees').get()
+                ]);
+
+                let total = 0, wdTotal = 0, lnTotal = 0, p2pTotal = 0, tfTotal = 0;
+                let list = [];
+                const seenTxIds = new Set();
+
+                // 1. Process new platformFees (Primary Source)
+                pfSnap.docs.forEach(doc => {
+                    const d = doc.data();
+                    const fee = d.amt || 0;
+                    if (fee > 0) {
+                        if (d.txId) seenTxIds.add(d.txId);
+                        const type = d.type === 'withdrawal' ? 'Withdrawal' : d.type === 'loan' ? 'Loan Interest' : d.type === 'p2p' ? 'P2P Fee' : d.type === 'transfer' ? 'Transfer Fee' : 'Platform Fee';
+                        const icon = d.type === 'withdrawal' ? '💳' : d.type === 'loan' ? '💰' : d.type === 'p2p' ? '💱' : d.type === 'transfer' ? '💸' : '💎';
+
+                        if (d.type === 'withdrawal') wdTotal += fee;
+                        else if (d.type === 'loan') lnTotal += fee;
+                        else if (d.type === 'p2p') p2pTotal += fee;
+                        else if (d.type === 'transfer') tfTotal += fee;
+
+                        list.push({ type, amt: fee, user: d.userName || d.uid || 'User', date: d.createdAt, icon });
+                    }
+                });
+
+                // 2. Process historical Withdrawals (Avoid duplicates if logged in platformFees)
+                wdSnap.docs.forEach(doc => {
+                    const d = doc.data();
+                    if (d.txId && seenTxIds.has(d.txId)) return;
+                    const fee = d.fee || 0;
+                    if (fee > 0) {
+                        wdTotal += fee;
+                        list.push({ type: 'Withdrawal', amt: fee, user: d.userName || 'User', date: d.createdAt, icon: '💳' });
+                    }
+                });
+
+                // 3. Process historical Loans
+                lnSnap.docs.forEach(doc => {
+                    const d = doc.data();
+                    if (doc.id && seenTxIds.has(doc.id)) return;
+                    const fee = d.interest || 0;
+                    if (fee > 0) {
+                        lnTotal += fee;
+                        list.push({ type: 'Loan Interest', amt: fee, user: d.userName || 'User', date: d.createdAt, icon: '💰' });
+                    }
+                });
+
+                // 4. Process historical P2P
+                p2pSnap.docs.forEach(doc => {
+                    const d = doc.data();
+                    if (doc.id && seenTxIds.has(doc.id)) return;
+                    const fee = (d.amount || 0) - (d.receive || 0);
+                    if (fee > 0) {
+                        p2pTotal += fee;
+                        list.push({ type: 'P2P Fee', amt: fee, user: d.sellerName || 'Seller', date: d.createdAt, icon: '💱' });
+                    }
+                });
+
+                // 5. Process historical Transfers
+                transSnap.docs.forEach(doc => {
+                    const d = doc.data();
+                    // Transfers don't have txId in activity usually, but we check if we already processed it
+                    // Actually, transfers are the hardest to deduplicate without txId in platformFees
+                    // But since we just added platformFees to executeTransfer, old ones won't be in pfSnap
+                    if (d.amt < 0 && d.desc.includes('fee')) {
+                        const feeMatch = d.desc.match(/fee \$?([0-9\.]+)/i);
+                        const fee = feeMatch ? parseFloat(feeMatch[1]) : 0;
+                        if (fee > 0) {
+                            tfTotal += fee;
+                            list.push({ type: 'Transfer Fee', amt: fee, user: d.uid, date: d.createdAt, icon: '💸' });
+                        }
+                    }
+                });
+
+                total = wdTotal + lnTotal + p2pTotal + tfTotal;
+                list.sort((a, b) => (b.date?.seconds || 0) - (a.date?.seconds || 0));
+
+                $('at-fees-total').textContent = '$' + fmt(total);
+                $('at-fees-wd').textContent = '$' + fmt(wdTotal);
+                $('at-fees-tf').textContent = '$' + fmt(tfTotal);
+                $('at-fees-p2p').textContent = '$' + fmt(p2pTotal);
+                $('at-fees-loan').textContent = '$' + fmt(lnTotal);
+
+                if (!list.length) { el.innerHTML = '<div class="es">No fees recorded yet</div>'; return; }
+
+                el.innerHTML = list.map(f => `
+                    <div class="arow">
+                        <div class="ai-l">
+                            <div class="ai-ico">${f.icon}</div>
+                            <div>
+                                <div class="ar-name">${f.type} — $${fmt(f.amt)}</div>
+                                <div class="ar-sub">${typeof f.user === 'string' && f.user.length > 20 ? 'User ID: ' + f.user.substring(0, 8) : f.user} · ${fmtDT(f.date)}</div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error(e);
+                el.innerHTML = '<div class="es">Error loading fees</div>';
+            }
+        }
+
         function shTab(el, id) { document.querySelectorAll('#t-shareholder .itab').forEach(t => t.classList.remove('on')); el.classList.add('on');['sh-t-stake', 'sh-t-history', 'sh-t-withdraw'].forEach(i => $(i).style.display = 'none'); $(id).style.display = 'block'; }
         function svTab(el, id) { document.querySelectorAll('#t-surveys .itab').forEach(t => t.classList.remove('on')); el.classList.add('on');['sv-t-avail', 'sv-t-done', 'sv-t-redeem'].forEach(i => { if ($(i)) $(i).style.display = 'none'; }); $(id).style.display = 'block'; if (id === 'sv-t-done') loadDoneSurveys(); if (id === 'sv-t-redeem') loadRedeemTab(); }
         function lnTab(el, id) { document.querySelectorAll('#t-loans .itab').forEach(t => t.classList.remove('on')); el.classList.add('on');['ln-t-req', 'ln-t-my'].forEach(i => $(i).style.display = 'none'); $(id).style.display = 'block'; if (id === 'ln-t-my') loadMyLoans(); }
@@ -6951,6 +7094,15 @@
             const batch = db.batch();
             const wdRef = db.collection('withdrawals').doc();
             batch.set(wdRef, { uid: u.uid, userName: u.name, userEmail: u.email, txId, amount: amt, fee, net, method, details, status: 'pending', createdAt: FS().serverTimestamp() });
+            // Log platforms fees for tracking
+            batch.set(db.collection('platformFees').doc(), {
+                type: 'withdrawal',
+                amt: fee,
+                uid: u.uid,
+                userName: u.name,
+                txId: txId,
+                createdAt: FS().serverTimestamp()
+            });
             batch.update(db.collection('users').doc(u.uid), { balance: FS().increment(-amt) });
             await batch.commit();
             await logAct(u.uid, `Withdrawal requested $${fmt(amt)} via ${method} (${txId})`, -amt, '💳', 'withdrawal');
@@ -7362,7 +7514,7 @@
                 var isMe = m.from === 'user';
                 var isAdmin = m.from === 'admin';
                 if (isAdmin) return '<div style="margin-bottom:8px;padding:9px 12px;background:rgba(0,200,83,.1);border:1px solid rgba(0,200,83,.2);border-radius:10px">' + '<div style="font-size:.72rem;color:var(--g);font-weight:600;margin-bottom:3px">⚖️ ' + (m.agentName || m.name || 'Support') + '</div>' + '<div style="font-size:.84rem">' + m.text + '</div>' + (m.image ? '<img src="' + m.image + '" style="max-width:200px;max-height:150px;border-radius:8px;object-fit:contain;display:block;margin-top:6px">' : '') + '<div style="font-size:.67rem;margin-top:3px;color:var(--t3)">' + (m.time ? new Date(m.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '') + '</div>' + '</div>';
-                return '<div style="display:flex;justify-content:' + (isMe ? 'flex-end' : 'flex-start') + ';margin-bottom:8px">' + '<div style="max-width:78%;background:' + (isMe ? 'var(--g)' : 'var(--s1)') + ';color:' + (isMe ? '#000' : 'var(--t1)') + ';border-radius:10px;padding:9px 12px">' + '<div style="font-size:.84rem">' + m.text + '</div>' + (m.image ? '<img src="' + m.image + '" style="max-width:200px;max-height:150px;border-radius:8px;object-fit:contain;display:block;margin-top:6px">' : '') + '<div style="font-size:.67rem;margin-top:3px;opacity:.65;text-align:' + (isMe ? 'right' : 'left') + '">' + (isMe ? 'You' : (m.agentName || m.name || 'Support')) + ' · ' + (m.time ? new Date(m.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '') + '</div>' + '</div></div>';
+                return '<div style="display:flex;justify-content:' + (isMe ? 'flex-end' : 'flex-start') + ';margin-bottom:8px">' + '<div style="max-width:78%;background:' + (isMe ? 'var(--g)' : 'var(--s1)') + ';color:' + (isMe ? '#000' : 'var(--t1)') + ';border-radius:10px;padding:9px 12px">' + '<div style="font-size:.84rem">' + m.text + '</div>' + (m.image ? '<img src="' + m.image + '" style="max-width:200px;max-height:150px;border-radius:8px;object-fit:contain;display:block;margin-top:6px">' + (m.image ? '<img src="' + m.image + '" style="max-width:200px;max-height:150px;border-radius:8px;object-fit:contain;display:block;margin-top:6px">' : '') + '<div style="font-size:.67rem;margin-top:3px;opacity:.65;text-align:' + (isMe ? 'right' : 'left') + '">' + (isMe ? 'You' : (m.agentName || m.name || 'Support')) + ' · ' + (m.time ? new Date(m.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '') + '</div>' + '</div></div>';
             }).join('');
             $('m-utick-msgs').innerHTML = msgs || '<div style="text-align:center;padding:16px;color:var(--t3);font-size:.82rem">No messages yet</div>'
             // Scroll to bottom
@@ -8707,11 +8859,25 @@
         function adminMarkLoanRepaidById(btn) { const id = btn.dataset.id; const d = window['_ln_' + id]; if (d) adminMarkLoanRepaid(d.id, d.uid, d.amount); }
 
         async function adminApproveLoan(id, uid, receive) {
-            await db.collection('loans').doc(id).update({ status: 'active', approvedAt: FS().serverTimestamp() });
-            await db.collection('users').doc(uid).update({ balance: FS().increment(receive) });
+            const snap = await db.collection('loans').doc(id).get();
+            const l = snap.data();
+            const interest = l?.interest || 0;
+            const batch = db.batch();
+            batch.update(db.collection('loans').doc(id), { status: 'active', approvedAt: FS().serverTimestamp() });
+            batch.update(db.collection('users').doc(uid), { balance: FS().increment(receive) });
+            if (interest > 0) {
+                batch.set(db.collection('platformFees').doc(), {
+                    type: 'loan',
+                    amt: interest,
+                    uid: uid,
+                    userName: l?.userName || 'User',
+                    txId: id,
+                    createdAt: FS().serverTimestamp()
+                });
+            }
+            await batch.commit();
             await db.collection('userNotifs').add({ uid, msg: `Your loan has been approved! $${fmt(receive)} added to your balance.`, read: false, createdAt: FS().serverTimestamp() });
             await logAct(uid, `Loan approved — $${fmt(receive)} disbursed`, receive, '💰', 'loan');
-            logAct(uid, `Loan approved, received $${fmt(receive)}`, receive, '💰', 'loan');
             toast('Loan approved ✓'); loadAdminAll();
         }
 
@@ -9890,17 +10056,28 @@ Message: ${message}`);
                 const freshBuyerUid = trade.buyerUid || buyerUid;
                 if (!freshReceive || freshReceive <= 0) return toast('Invalid trade amount — contact support', 'tr');
                 if (!freshBuyerUid || freshBuyerUid === 'undefined') return toast('Buyer not found — contact support', 'tr');
-                // Step 1: Mark trade as completed first
-                await db.collection('p2pTrades').doc(tradeId).update({
+                const fee = (trade.amount || 0) - (trade.receive || 0);
+                const batch = db.batch();
+                batch.update(db.collection('p2pTrades').doc(tradeId), {
                     status: 'completed',
                     sellerReleased: true,
                     completedAt: FS().serverTimestamp()
                 });
-                // Step 2: Add balance to buyer — separate write for clarity
-                await db.collection('users').doc(freshBuyerUid).update({
+                batch.update(db.collection('users').doc(freshBuyerUid), {
                     balance: firebase.firestore.FieldValue.increment(freshReceive),
                     totalEarned: firebase.firestore.FieldValue.increment(freshReceive)
                 });
+                if (fee > 0) {
+                    batch.set(db.collection('platformFees').doc(), {
+                        type: 'p2p',
+                        amt: fee,
+                        uid: trade.sellerUid,
+                        userName: trade.sellerName || 'Seller',
+                        txId: tradeId,
+                        createdAt: FS().serverTimestamp()
+                    });
+                }
+                await batch.commit();
                 // Update ad stats
                 if (trade.adId) {
                     try {

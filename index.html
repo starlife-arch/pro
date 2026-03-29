@@ -6124,6 +6124,7 @@
         }
     </style>
 
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
     <script>
 
 
@@ -7151,48 +7152,61 @@
 
         async function loadReferrals() {
             const u = window.CU;
-            if (!u.referrals || !u.referrals.length) { $('ref-list').innerHTML = '<div class="es"><div class="ei">👥</div>No referrals yet</div>'; return; }
-            $('ref-list').innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:.85rem;">Loading downlines...</div>';
-            let uplineHtml = '';
-            if (u.referredBy) {
-                try {
-                    const upSnap = await db.collection('users').doc(u.referredBy).get();
-                    if (upSnap.exists) {
-                        uplineHtml = `<div style="padding:12px;background:var(--s2);border:1px solid var(--bds);border-radius:var(--rs);margin-bottom:16px;font-size:0.85rem">
-                            <span style="color:var(--t3)">Referred by:</span> <strong style="color:var(--gold)">${upSnap.data().name || 'Member'}</strong>
-                        </div>`;
-                    }
-                } catch(e) {}
-            }
+            // First check for L1 direct refs to see if we even show the list
             try {
                 const l1Snap = await db.collection('users').where('referredBy', '==', u.uid).get();
+                if (l1Snap.empty) {
+                    $('ref-list').innerHTML = '<div class="es"><div class="ei">👥</div>No referrals yet</div>';
+                    return;
+                }
+                $('ref-list').innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:.85rem;">Loading downlines...</div>';
+                
+                let uplineHtml = '';
+                if (u.referredBy) {
+                    try {
+                        const upSnap = await db.collection('users').doc(u.referredBy).get();
+                        if (upSnap.exists) {
+                            uplineHtml = `<div style="padding:12px;background:var(--s2);border:1px solid var(--bds);border-radius:var(--rs);margin-bottom:16px;font-size:0.85rem">
+                                <span style="color:var(--t3)">Referred by:</span> <strong style="color:var(--gold)">${upSnap.data().name || 'Member'}</strong>
+                            </div>`;
+                        }
+                    } catch(e) { console.warn('Upline fetch fail', e); }
+                }
+
                 let allRefs = [];
                 let l2Promises = [];
                 l1Snap.docs.forEach(d => {
                     const r = d.data();
-                    allRefs.push({ level: 1, ...r });
-                    l2Promises.push(db.collection('users').where('referredBy', '==', r.uid).get());
+                    allRefs.push({ level: 1, uid: d.id, ...r });
+                    // Store promise for L2
+                    l2Promises.push(db.collection('users').where('referredBy', '==', d.id).get());
                 });
-                const l2Snaps = await Promise.all(l2Promises);
-                let l3Promises = [];
-                l2Snaps.forEach(snap => {
-                    snap.docs.forEach(d => {
-                        const r = d.data();
-                        allRefs.push({ level: 2, ...r });
-                        l3Promises.push(db.collection('users').where('referredBy', '==', r.uid).get());
+
+                // Fetch Level 2
+                try {
+                    const l2Snaps = await Promise.all(l2Promises);
+                    let l3Promises = [];
+                    l2Snaps.forEach(snap => {
+                        snap.docs.forEach(d => {
+                            const r = d.data();
+                            allRefs.push({ level: 2, uid: d.id, ...r });
+                            l3Promises.push(db.collection('users').where('referredBy', '==', d.id).get());
+                        });
                     });
-                });
-                const l3Snaps = await Promise.all(l3Promises);
-                l3Snaps.forEach(snap => {
-                    snap.docs.forEach(d => {
-                        allRefs.push({ level: 3, ...d.data() });
-                    });
-                });
+
+                    // Fetch Level 3
+                    try {
+                        const l3Snaps = await Promise.all(l3Promises);
+                        l3Snaps.forEach(snap => {
+                            snap.docs.forEach(d => {
+                                allRefs.push({ level: 3, uid: d.id, ...d.data() });
+                            });
+                        });
+                    } catch(e) { console.error('L3 fetch fail', e); }
+                } catch(e) { console.error('L2 fetch fail', e); }
+
                 allRefs.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-                if (!allRefs.length) {
-                    $('ref-list').innerHTML = uplineHtml + '<div class="es"><div class="ei">👥</div>No downlines yet</div>';
-                    return;
-                }
+                
                 $('ref-list').innerHTML = uplineHtml + allRefs.map(r => {
                     const invAmt = r.totalInvested || 0;
                     const isActive = invAmt > 0;
@@ -7219,8 +7233,8 @@
                     </div>`;
                 }).join('');
             } catch (e) {
-                console.error(e);
-                $('ref-list').innerHTML = uplineHtml + '<div class="es"><div class="ei">⚠️</div>Error loading downlines</div>';
+                console.error('Referral load error:', e);
+                $('ref-list').innerHTML = '<div class="es"><div class="ei">⚠️</div>Error loading downlines</div>';
             }
         }
 
@@ -7513,7 +7527,7 @@
                 var isMe = m.from === 'user';
                 var isAdmin = m.from === 'admin';
                 if (isAdmin) return '<div style="margin-bottom:8px;padding:9px 12px;background:rgba(0,200,83,.1);border:1px solid rgba(0,200,83,.2);border-radius:10px">' + '<div style="font-size:.72rem;color:var(--g);font-weight:600;margin-bottom:3px">⚖️ ' + (m.agentName || m.name || 'Support') + '</div>' + '<div style="font-size:.84rem">' + m.text + '</div>' + (m.image ? '<img src="' + m.image + '" style="max-width:200px;max-height:150px;border-radius:8px;object-fit:contain;display:block;margin-top:6px">' : '') + '<div style="font-size:.67rem;margin-top:3px;color:var(--t3)">' + (m.time ? new Date(m.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '') + '</div>' + '</div>';
-                return '<div style="display:flex;justify-content:' + (isMe ? 'flex-end' : 'flex-start') + ';margin-bottom:8px">' + '<div style="max-width:78%;background:' + (isMe ? 'var(--g)' : 'var(--s1)') + ';color:' + (isMe ? '#000' : 'var(--t1)') + ';border-radius:10px;padding:9px 12px">' + '<div style="font-size:.84rem">' + m.text + '</div>' + (m.image ? '<img src="' + m.image + '" style="max-width:200px;max-height:150px;border-radius:8px;object-fit:contain;display:block;margin-top:6px">' : '') + '<div style="font-size:.67rem;margin-top:3px;opacity:.65;text-align:' + (isMe ? 'right' : 'left') + '">' + (isMe ? 'You' : (m.agentName || m.name || 'Support')) + ' · ' + (m.time ? new Date(m.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '') + '</div>' + '</div></div>';
+                return '<div style="display:flex;justify-content:' + (isMe ? 'flex-end' : 'flex-start') + ';margin-bottom:8px">' + '<div style="max-width:78%;background:' + (isMe ? 'var(--g)' : 'var(--s1)') + ';color:' + (isMe ? '#000' : 'var(--t1)') + ';border-radius:10px;padding:9px 12px">' + '<div style="font-size:.84rem">' + m.text + '</div>' + (m.image ? '<img src="' + m.image + '" style="max-width:200px;max-height:150px;border-radius:8px;object-fit:contain;display:block;margin-top:6px">' + (m.image ? '<img src="' + m.image + '" style="max-width:200px;max-height:150px;border-radius:8px;object-fit:contain;display:block;margin-top:6px">' : '') + '<div style="font-size:.67rem;margin-top:3px;opacity:.65;text-align:' + (isMe ? 'right' : 'left') + '">' + (isMe ? 'You' : (m.agentName || m.name || 'Support')) + ' · ' + (m.time ? new Date(m.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '') + '</div>' + '</div></div>';
             }).join('');
             $('m-utick-msgs').innerHTML = msgs || '<div style="text-align:center;padding:16px;color:var(--t3);font-size:.82rem">No messages yet</div>'
             // Scroll to bottom
@@ -11712,8 +11726,8 @@ ${names}${ids.length > 6 ? ' ...' : ''}`;
                 let prize = '🎁';
                 const pRoll = Math.random();
                 if (pRoll < 0.10) prize = '💎'; // 10% of wins (0.5% overall) for $0.50
-                else if (pRoll < 0.30) prize = '⭐'; // 20% of wins (1% overall) for $0.20
-                else if (pRoll < 0.50) prize = '🎯';
+                else if (pRoll < 0.20) prize = '🎯'; // 10% of wins (0.5% overall) for 30 pts
+                else if (pRoll < 0.40) prize = '⭐'; // 20% of wins (1% overall) for $0.20
                 else if (pRoll < 0.70) prize = '🍀';
                 sym0 = sym1 = sym2 = prize;
             } else {
@@ -13232,9 +13246,9 @@ ${points}pts → $${fmt(usd)}`);
             let winIdx = 5; // Default Try Again
             const roll = Math.random();
             if (roll < 0.005) winIdx = 3;      // 0.5% chance for $0.50
-            else if (roll < 0.015) winIdx = 7; // 1% chance for 30 pts
-            else if (roll < 0.035) winIdx = 6; // 2% chance for $0.20
-            else if (roll < 0.10) winIdx = 4;  // 6.5% chance for 20 pts
+            else if (roll < 0.010) winIdx = 7; // 0.5% chance for 30 pts
+            else if (roll < 0.030) winIdx = 6; // 2% chance for $0.20
+            else if (roll < 0.10) winIdx = 4;  // 7% chance for 20 pts
             else if (roll < 0.30) winIdx = 1;  // 20% chance for 10 pts
             else if (roll < 0.60) winIdx = 0;  // 30% chance for 5 pts
             else if (roll < 0.80) winIdx = 2;  // 20% chance for 2 pts

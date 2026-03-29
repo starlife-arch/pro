@@ -7033,7 +7033,7 @@
             try {
                 const batch = db.batch();
                 const invRef = db.collection('investments').doc();
-                batch.set(invRef, { uid: u.uid, userName: u.name, userEmail: u.email, amount: amt, method: 'Main Balance', txid: 'BAL-' + genTxId(), status: 'active', dailyProfit: amt * 0.02, totalPaid: 0, createdAt: FS().serverTimestamp() });
+                batch.set(invRef, { uid: u.uid, userName: u.name, userEmail: u.email, amount: amt, method: 'Main Balance', txid: 'BAL-' + genTxId(), status: 'active', earningEnabled: true, dailyProfit: amt * 0.02, totalPaid: 0, createdAt: FS().serverTimestamp() });
                 batch.update(db.collection('users').doc(u.uid), { balance: FS().increment(-amt), totalInvested: FS().increment(amt) });
                 await batch.commit();
                 await db.collection('adminNotifs').add({ type: 'investment', msg: `New investment $${fmt(amt)} from ${u.name}`, uid: u.uid, read: false, createdAt: FS().serverTimestamp() });
@@ -7048,6 +7048,10 @@
             } catch (e) { toast('Error: ' + e.message, 'tr'); }
         }
 
+        function isInvestmentActiveForEarnings(inv) {
+            return inv?.status === 'active' && (inv?.amount || 0) > 0 && inv?.earningEnabled !== false;
+        }
+
         async function loadInvestments() {
             const u = window.CU;
             const snap = await db.collection('investments').where('uid', '==', u.uid).get();
@@ -7056,7 +7060,7 @@
             const el = $('inv-list');
             if (!list.length) { el.innerHTML = '<div class="es"><div class="ei">📈</div>No investments yet</div>'; return; }
             el.innerHTML = list.map(i => {
-                const b = i.status === 'active' ? '<span class="badge bg">Active</span>' : i.status === 'pending' ? '<span class="badge bgold">Pending</span>' : '<span class="badge br">Rejected</span>';
+                const b = isInvestmentActiveForEarnings(i) ? '<span class="badge bg">Active</span>' : i.status === 'pending' ? '<span class="badge bgold">Pending</span>' : i.status === 'deducted' || i.status === 'inactive' ? '<span class="badge bmut">Inactive</span>' : '<span class="badge br">Rejected</span>';
                 return '<div class="arow"><div class="ar-top"><div>'
                     + '<div class="ar-name">$' + fmt(i.amount) + '</div>'
                     + '<div class="ar-sub">Daily: $' + fmt(i.dailyProfit || i.amount * 0.02) + ' &middot; ' + i.method + ' &middot; Ref: ' + (i.txid || '&mdash;') + '</div>'
@@ -7064,7 +7068,7 @@
                     + '</div>' + b + '</div></div>';
             }).join('');
             // Update active count stat
-            const actCnt = list.filter(i => i.status === 'active').length;
+            const actCnt = list.filter(i => isInvestmentActiveForEarnings(i)).length;
             // h-active-inv if exists
         }
 
@@ -8493,7 +8497,7 @@
 
         async function adminApproveInv(id, uid, amount) {
             const batch = db.batch();
-            batch.update(db.collection('investments').doc(id), { status: 'active', approvedAt: FS().serverTimestamp(), totalPaid: 0 });
+            batch.update(db.collection('investments').doc(id), { status: 'active', earningEnabled: true, approvedAt: FS().serverTimestamp(), totalPaid: 0 });
             batch.update(db.collection('users').doc(uid), { totalInvested: FS().increment(amount) });
             await batch.commit();
             // Referral bonus — first investment check
@@ -8704,19 +8708,72 @@
                 // Create active investment record + update totalInvested
                 const batch = db.batch();
                 const invRef = db.collection('investments').doc();
-                batch.set(invRef, { uid: t.id, userName: t.name, userEmail: t.email, amount: amt, method, txid: 'MANUAL-' + Date.now(), status: 'active', dailyProfit: amt * 0.02, totalPaid: 0, note, approvedAt: FS().serverTimestamp(), createdAt: FS().serverTimestamp() });
+                batch.set(invRef, { uid: t.id, userName: t.name, userEmail: t.email, amount: amt, method, txid: 'MANUAL-' + Date.now(), status: 'active', earningEnabled: true, dailyProfit: amt * 0.02, totalPaid: 0, note, approvedAt: FS().serverTimestamp(), createdAt: FS().serverTimestamp() });
                 batch.update(db.collection('users').doc(t.id), { totalInvested: FS().increment(amt) });
                 await batch.commit();
                 await logAct(t.id, `Manual investment added $${fmt(amt)} (${note})`, amt, '📈', 'deposit');
                 toast(`Investment of $${fmt(amt)} added ✓`);
             } else {
-                // Deduct investment
+                // Deduct from active/earning investments first, then normalize user totalInvested.
+                const invSnap = await db.collection('investments').where('uid', '==', t.id).get();
+                const invList = invSnap.docs
+                    .map(d => ({ id: d.id, ref: d.ref, ...d.data() }))
+                    .sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+                let remaining = amt;
+                const batch = db.batch();
+                let fullyStoppedCount = 0;
+                let partialCount = 0;
+
+                for (const inv of invList) {
+                    const curAmt = parseFloat(inv.amount || 0);
+                    if (remaining <= 0) break;
+                    if (inv.status !== 'active' || curAmt <= 0 || inv.earningEnabled === false) continue;
+
+                    const cut = Math.min(curAmt, remaining);
+                    const nextAmt = parseFloat((curAmt - cut).toFixed(4));
+                    const baseUpdate = {
+                        amount: nextAmt,
+                        dailyProfit: parseFloat((nextAmt * 0.02).toFixed(4)),
+                        adjustedAt: FS().serverTimestamp(),
+                        adjustedByAdmin: true,
+                        adjustmentReason: note
+                    };
+
+                    if (nextAmt <= 0) {
+                        batch.update(inv.ref, {
+                            ...baseUpdate,
+                            amount: 0,
+                            status: 'deducted',
+                            earningEnabled: false,
+                            stoppedAt: FS().serverTimestamp()
+                        });
+                        fullyStoppedCount++;
+                        await logAct(t.id, `Your investment was adjusted by admin and is no longer generating profit. (Reason: ${note})`, 0, '🛑', 'investment');
+                    } else {
+                        batch.update(inv.ref, {
+                            ...baseUpdate,
+                            status: 'active',
+                            earningEnabled: true
+                        });
+                        partialCount++;
+                        await logAct(t.id, `Your investment amount was adjusted by admin from $${fmt(curAmt)} to $${fmt(nextAmt)}.`, 0, '🛠️', 'investment');
+                    }
+                    remaining = parseFloat((remaining - cut).toFixed(4));
+                }
+
+                if (remaining > 0) {
+                    await logAct(t.id, `Admin tried to deduct $${fmt(amt)} but only $${fmt(amt - remaining)} was available in active earning investments.`, 0, '⚠️', 'investment');
+                }
+
                 const uSnap = await db.collection('users').doc(t.id).get();
-                const u = uSnap.data();
-                const newTotal = Math.max(0, (u.totalInvested || 0) - amt);
-                await db.collection('users').doc(t.id).update({ totalInvested: newTotal });
-                await logAct(t.id, `Investment deducted $${fmt(amt)} (${note})`, -amt, '📈', 'deposit');
-                toast(`Investment reduced by $${fmt(amt)} ✓`);
+                const u = uSnap.data() || {};
+                const actualDeducted = amt - remaining;
+                const newTotal = Math.max(0, (u.totalInvested || 0) - actualDeducted);
+                batch.update(db.collection('users').doc(t.id), { totalInvested: newTotal });
+                await batch.commit();
+
+                await logAct(t.id, `Investment deducted $${fmt(actualDeducted)} (${note})`, -actualDeducted, '📉', 'investment');
+                toast(`Investment reduced by $${fmt(actualDeducted)} ✓ (${fullyStoppedCount} stopped, ${partialCount} adjusted)`);
             }
             closeModal('m-inv-adj');
             loadAdminAll();
@@ -11401,6 +11458,9 @@ You will receive $${fmt(receive)} (+${_vaultPlan.rate}%) on ${unlock.toLocaleDat
                     if (!inv || !inv.uid) continue;
                     if (!shouldRunProfitForUid(inv.uid, opts)) continue;
                     if (inv.lastProfitDate === today) continue;
+                    if (inv.earningEnabled === false) continue;
+                    if ((inv.amount || 0) <= 0) continue;
+                    if (['deducted', 'inactive', 'cancelled'].includes(String(inv.status || '').toLowerCase())) continue;
                     const uSnap = await db.collection('users').doc(inv.uid).get();
                     if (!uSnap.exists) continue;
                     const uData = uSnap.data();
@@ -11418,7 +11478,7 @@ You will receive $${fmt(receive)} (+${_vaultPlan.rate}%) on ${unlock.toLocaleDat
                     // If auto-reinvest — create new investment
                     if (reinvestAmt > 0) {
                         const newInvRef = db.collection('investments').doc();
-                        invActBatch.set(newInvRef, { uid: inv.uid, userName: uData.name, userEmail: uData.email, amount: reinvestAmt, method: 'Auto-Reinvest', txid: 'AR-' + genTxId(), status: 'active', dailyProfit: reinvestAmt * 0.02, totalPaid: 0, createdAt: FS().serverTimestamp() });
+                        invActBatch.set(newInvRef, { uid: inv.uid, userName: uData.name, userEmail: uData.email, amount: reinvestAmt, method: 'Auto-Reinvest', txid: 'AR-' + genTxId(), status: 'active', earningEnabled: true, dailyProfit: reinvestAmt * 0.02, totalPaid: 0, createdAt: FS().serverTimestamp() });
                         invActBatch.set(db.collection('activity').doc(), { uid: inv.uid, desc: `Auto-reinvested $${fmt(reinvestAmt)} (${uData.autoReinvestPct}% of $${fmt(profit)} profit)`, amt: -reinvestAmt, icon: '🔄', type: 'profit', createdAt: FS().serverTimestamp() });
                     }
                     const aRef = db.collection('activity').doc();

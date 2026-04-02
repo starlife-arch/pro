@@ -34,6 +34,22 @@ const KB_TOPICS = {
   support: {
     title: 'Agent/support help',
     guidance: 'Users can contact support for account-specific issues. Sensitive actions are handled by human support/admin only.'
+  },
+  official_support: {
+    title: 'Official support contacts',
+    guidance: 'Official support email is support@starlifeadvert.com. Official payment email shown on platform deposit section is starlife.payment@starlifeadvert.com.'
+  },
+  deposit_methods: {
+    title: 'Configured deposit methods',
+    guidance: 'Configured deposit methods shown in platform UI: M-Pesa, PayPal, USDT (BEP20), USDT (TRC20).'
+  },
+  withdrawal_methods: {
+    title: 'Configured withdrawal methods',
+    guidance: 'Configured withdrawal methods shown in platform UI: M-Pesa, Bank Transfer, PayPal, USDT (BEP20), USDT (TRC20).'
+  },
+  security_guidance: {
+    title: 'Security guidance',
+    guidance: 'Never share password, OTP, seed phrase, PIN, or payment credentials. Report suspicious account activity immediately.'
   }
 };
 
@@ -77,6 +93,22 @@ function normalizeText(value = '') {
   return String(value).toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
+function detectUserTone(message = '') {
+  const normalized = normalizeText(message);
+  if (!normalized) return 'friendly';
+
+  const thankful = ['thanks', 'thank you', 'appreciate', 'grateful'];
+  const frustrated = ['angry', 'frustrated', 'terrible', 'useless', 'annoyed', 'fed up'];
+  const upset = ['upset', 'sad', 'worried', 'concerned', 'scared', 'stressed'];
+  const confused = ['confused', "don't understand", 'not sure', 'how does this work', 'explain'];
+
+  if (thankful.some((x) => normalized.includes(x))) return 'thankful';
+  if (frustrated.some((x) => normalized.includes(x)) || /!{2,}/.test(message)) return 'frustrated';
+  if (upset.some((x) => normalized.includes(x))) return 'upset';
+  if (confused.some((x) => normalized.includes(x)) || normalized.includes('?')) return 'confused';
+  return 'friendly';
+}
+
 function detectHighRiskTriggers(message) {
   const normalized = normalizeText(message);
   return HIGH_RISK_TRIGGERS.filter((trigger) => normalized.includes(trigger));
@@ -116,5 +148,6 @@ module.exports = {
   inferFaqCategory,
   buildKnowledgeBaseText,
   styleForIntent,
+  detectUserTone,
   normalizeText
 };

@@ -1,4 +1,4 @@
-# Starlife AI Support Assistant
+# Starlife AI Support Assistant (Emy)
 
 ## Endpoint
 - Netlify Function: `/.netlify/functions/ai-support-assistant`
@@ -14,7 +14,7 @@
 ```
 
 ## What it does
-1. Uses Groq (OpenAI-compatible API) to classify and generate a support reply.
+1. Uses Groq (OpenAI-compatible API) to classify and generate support replies in Emy's warm, calm, professional support tone.
 2. Restricts assistant scope to Starlife-related support only.
 3. Distinguishes FAQ vs complaint/risk intent.
 4. Stores every interaction in Firestore `ai_support_logs` with:

@@ -5,7 +5,8 @@ const {
   inferFaqCategory,
   buildKnowledgeBaseText,
   RESPONSE_STYLES,
-  styleForIntent
+  styleForIntent,
+  detectUserTone
 } = require('./_lib/support-assistant');
 
 const SUPPORTED_TOPICS = [
@@ -45,6 +46,7 @@ exports.handler = async function handler(event) {
   const highRiskMatches = detectHighRiskTriggers(userMessage);
   const fallbackCategory = inferFaqCategory(userMessage);
   const forceHuman = Boolean(payload.forceHuman);
+  const userTone = detectUserTone(userMessage);
 
   let aiResult = null;
   let modelFailureReason = null;
@@ -54,7 +56,8 @@ exports.handler = async function handler(event) {
       userMessage,
       highRiskMatches,
       fallbackCategory,
-      forceHuman
+      forceHuman,
+      userTone
     });
     providerUsed = 'groq';
   } catch (error) {
@@ -67,7 +70,8 @@ exports.handler = async function handler(event) {
     fallbackCategory,
     highRiskMatches,
     forceHuman,
-    modelFailureReason
+    modelFailureReason,
+    userTone
   });
 
   const inScope = normalizedResult.in_scope;
@@ -106,6 +110,7 @@ exports.handler = async function handler(event) {
     forceHuman,
     responseStyle: styleForIntent({ inScope, intentType: normalizedResult.intent_type, severity, forceHuman }),
     modelFailureReason,
+    userTone,
     intentType: isComplaint ? 'complaint' : 'faq',
     inScope,
     createdAt: admin.firestore.FieldValue.serverTimestamp()
@@ -185,7 +190,7 @@ exports.handler = async function handler(event) {
     modelFailureReason,
     telegramAlertError,
     providerUsed,
-    defaultGreeting: RESPONSE_STYLES.greeting,
+    defaultGreeting: "Hi 👋 I’m Emy, Starlife Support Assistant. How can I help you today?",
     supportedTopics: SUPPORTED_TOPICS
   });
 };
@@ -209,7 +214,7 @@ function sanitizeCategory(category) {
   return null;
 }
 
-async function generateSupportReply({ userMessage, highRiskMatches, fallbackCategory }) {
+async function generateSupportReply({ userMessage, highRiskMatches, fallbackCategory, userTone }) {
   const apiKey = process.env.GROQ_API_KEY;
   const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
   const baseUrl = (process.env.GROQ_BASE_URL || 'https://api.groq.com/openai/v1').replace(/\/$/, '');
@@ -221,10 +226,12 @@ async function generateSupportReply({ userMessage, highRiskMatches, fallbackCate
   const knowledgeBase = buildKnowledgeBaseText();
 
   const systemPrompt = [
-    'You are Starlife AI Support Assistant.',
-    `Default greeting to use naturally for first contact: "${RESPONSE_STYLES.greeting}"`,
-    'Tone must always be professional, calm, and confident.',
+    'You are Emy, Starlife Support Assistant.',
+    'Tone must always be human, warm, calm, professional, and helpful.',
+    'If user says hi/hello/hey, greet naturally: "Hi 👋 I’m Emy, Starlife Support Assistant. How can I help you today?"',
     'Keep responses short, clear, and structured in 2-4 bullet points or numbered steps when useful.',
+    'Adjust tone for friendly, confused, upset, frustrated, or thankful users without sounding fake.',
+    'Use polite closings where appropriate: "You’re welcome.", "I’m glad I could help.", "Please check My Tickets for updates.", "Have a great day."',
     'You only answer Starlife platform support and guidance.',
     'Allowed topics: what is starlife, deposits, withdrawals, investments, referrals, loans, points, kyc, support, and general platform guidance.',
     'If user asks unrelated topic, set in_scope=false and provide a brief refusal.',
@@ -235,6 +242,7 @@ async function generateSupportReply({ userMessage, highRiskMatches, fallbackCate
 
   const userPrompt = {
     user_message: userMessage,
+    user_tone: userTone,
     high_risk_matches: highRiskMatches,
     fallback_category: fallbackCategory,
     knowledge_base: knowledgeBase
@@ -298,9 +306,9 @@ async function generateSupportReply({ userMessage, highRiskMatches, fallbackCate
   return JSON.parse(content);
 }
 
-function normalizeAiResult({ aiResult, userMessage, fallbackCategory, highRiskMatches, forceHuman, modelFailureReason }) {
+function normalizeAiResult({ aiResult, userMessage, fallbackCategory, highRiskMatches, forceHuman, modelFailureReason, userTone }) {
   if (!aiResult || typeof aiResult !== 'object') {
-    return buildFallbackModelResult({ userMessage, fallbackCategory, highRiskMatches, forceHuman, modelFailureReason });
+    return buildFallbackModelResult({ userMessage, fallbackCategory, highRiskMatches, forceHuman, modelFailureReason, userTone });
   }
 
   const inScope = typeof aiResult.in_scope === 'boolean'
@@ -320,7 +328,8 @@ function normalizeAiResult({ aiResult, userMessage, fallbackCategory, highRiskMa
     forceHuman,
     modelFailureReason,
     fallbackCategory: category,
-    highRiskMatches
+    highRiskMatches,
+    userTone
   });
 
   return {
@@ -332,7 +341,7 @@ function normalizeAiResult({ aiResult, userMessage, fallbackCategory, highRiskMa
   };
 }
 
-function buildFallbackModelResult({ userMessage, fallbackCategory, highRiskMatches, forceHuman, modelFailureReason }) {
+function buildFallbackModelResult({ userMessage, fallbackCategory, highRiskMatches, forceHuman, modelFailureReason, userTone }) {
   const normalized = String(userMessage || '').toLowerCase();
   const inScope = normalized.includes('starlife') || fallbackCategory !== 'general_guidance' || highRiskMatches.length > 0 || forceHuman;
   const complaintHints = ['issue', 'problem', 'failed', 'error', 'pending', 'not working', 'help', 'deducted', 'missing', 'hacked'];
@@ -350,7 +359,8 @@ function buildFallbackModelResult({ userMessage, fallbackCategory, highRiskMatch
       forceHuman,
       modelFailureReason,
       fallbackCategory,
-      highRiskMatches
+      highRiskMatches,
+      userTone
     })
   };
 }
@@ -362,27 +372,34 @@ function buildFallbackReply({
   forceHuman,
   modelFailureReason,
   fallbackCategory,
-  highRiskMatches
+  highRiskMatches,
+  userTone
 }) {
   const category = sanitizeCategory(fallbackCategory) || 'general_guidance';
   const highRisk = Array.isArray(highRiskMatches) && highRiskMatches.length > 0;
+  const tonePrefix = tonePrefixFor(userTone);
+  const trimmed = String(userMessage || '').trim();
+  const isGreetingOnly = /^(hi|hello|hey|good morning|good afternoon|good evening)\b/i.test(trimmed);
 
   if (!inScope) return formatOutOfScopeReply();
+  if (isGreetingOnly) {
+    return "Hi 👋 I’m Emy, Starlife Support Assistant. How can I help you today?";
+  }
   if (forceHuman) {
-    return 'I have handed this over to a human support agent. A support ticket has been created. Please check My Tickets for updates.';
+    return `${tonePrefix}I’ve handed this over to a human support agent. A support ticket has been created. Please check My Tickets for updates.`;
   }
   if (highRisk) {
-    return 'Your issue appears to require urgent review. A support ticket has been created and the support team will review it. Please check My Tickets for updates.';
+    return `${tonePrefix}Your issue appears to require urgent review. A support ticket has been created and the support team will review it. Please check My Tickets for updates.`;
   }
   if (intentType === 'complaint') {
     const reason = modelFailureReason ? ' (AI is temporarily unavailable)' : '';
-    return `Your issue has been logged for support review${reason}. Please check My Tickets for updates and add any transaction ID or screenshot for faster resolution.`;
+    return `${tonePrefix}Your issue has been logged for support review${reason}. Please check My Tickets for updates and add any transaction ID or screenshot for faster resolution.`;
   }
 
   const faqAnswer = getRuleBasedFaqFallback(category, userMessage);
-  if (faqAnswer) return faqAnswer;
+  if (faqAnswer) return `${tonePrefix}${faqAnswer}`;
 
-  return 'I can assist with Starlife support and platform guidance. Please ask about deposits, withdrawals, investments, referrals, loans, points, KYC, or support.';
+  return `${tonePrefix}I can assist with Starlife support and platform guidance. Please ask about deposits, withdrawals, investments, referrals, loans, points, KYC, or support.`;
 }
 
 function getRuleBasedFaqFallback(category, userMessage) {
@@ -396,7 +413,7 @@ function getRuleBasedFaqFallback(category, userMessage) {
     loans: 'To request a loan, open the Loan section, check eligibility, choose your preferred term, and submit your request.',
     points: 'Points are earned from platform activities and can affect rewards or eligibility based on current Starlife rules.',
     kyc: 'KYC review may take some time. Make sure your submitted documents are clear, valid, and match your account details.',
-    support: 'For support, open the Support page or use Talk to human. You can track responses in My Tickets.',
+    support: 'For support, open the Support page or use Talk to human. You can track responses in My Tickets. Official support email is support@starlifeadvert.com.',
     general_guidance: 'I can help with Starlife deposits, withdrawals, investments, referrals, loans, points, KYC, and support guidance.'
   };
 
@@ -410,6 +427,10 @@ function getRuleBasedFaqFallback(category, userMessage) {
   if (normalized.includes('loan')) return categoryResponses.loans;
   if (normalized.includes('point')) return categoryResponses.points;
   if (normalized.includes('support') || normalized.includes('agent')) return categoryResponses.support;
+  if (normalized.includes('official email') || normalized.includes('support email')) return 'Official Starlife support email is support@starlifeadvert.com. For payment email on deposit page, use starlife.payment@starlifeadvert.com.';
+  if (normalized.includes('deposit method') || normalized.includes('how to deposit')) return 'Deposit methods currently shown in Starlife are M-Pesa, PayPal, USDT (BEP20), and USDT (TRC20).';
+  if (normalized.includes('withdrawal method') || normalized.includes('how to withdraw')) return 'Withdrawal methods currently shown in Starlife are M-Pesa, Bank Transfer, PayPal, USDT (BEP20), and USDT (TRC20).';
+  if (normalized.includes('security') || normalized.includes('hacked') || normalized.includes('fraud')) return 'For security, never share your password, OTP, PIN, or seed phrase. Report suspicious activity immediately through Support so it can be escalated.';
   if (normalized.includes('what is starlife') || normalized.includes('about starlife')) return categoryResponses.what_is_starlife;
 
   return categoryResponses.general_guidance;
@@ -422,7 +443,16 @@ function formatResponse({ body }) {
 }
 
 function formatOutOfScopeReply() {
-  return 'I can only help with Starlife support and platform guidance (deposits, withdrawals, investments, referrals, loans, points, KYC, and support). Please ask a Starlife-related question.';
+  return 'Hi, I’m Emy. I can only assist with Starlife support and platform guidance such as deposits, withdrawals, investments, referrals, loans, points, KYC, and support.';
+}
+
+function tonePrefixFor(userTone) {
+  const tone = String(userTone || 'friendly');
+  if (tone === 'thankful') return 'You’re welcome. ';
+  if (tone === 'frustrated') return 'I understand this is frustrating. ';
+  if (tone === 'upset') return 'I’m sorry you’re dealing with this. ';
+  if (tone === 'confused') return 'No worries — I can clarify this. ';
+  return '';
 }
 
 function json(statusCode, payload) {

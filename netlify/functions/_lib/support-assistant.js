@@ -50,7 +50,6 @@ const KB_TOPICS = {
   security_guidance: {
     title: 'Security guidance',
     guidance: 'Never share password, OTP, seed phrase, PIN, or payment credentials. Report suspicious account activity immediately.'
-<<<<<<< codex/add-ai-support-assistant-for-starlife-as6mo8
   },
   ticket_workflow: {
     title: 'Ticket workflow',
@@ -72,11 +71,6 @@ const SMALL_TALK_PATTERNS = {
   okay: 'Great 👍 Tell me what you see next and I’ll guide you.'
 };
 
-=======
-  }
-};
-
->>>>>>> main
 const FAQ_CATEGORY_KEYWORDS = [
   { category: 'what_is_starlife', keywords: ['what is starlife', 'about starlife', 'starlife platform'] },
   { category: 'deposit', keywords: ['deposit', 'fund wallet', 'add money', 'top up'] },
@@ -168,11 +162,8 @@ function styleForIntent({ inScope, intentType, severity, forceHuman }) {
 
 module.exports = {
   KB_TOPICS,
-<<<<<<< codex/add-ai-support-assistant-for-starlife-as6mo8
   EMY_PERSONALITY,
   SMALL_TALK_PATTERNS,
-=======
->>>>>>> main
   HIGH_RISK_TRIGGERS,
   RESPONSE_STYLES,
   detectHighRiskTriggers,

@@ -7882,6 +7882,7 @@
                 await wait(850);
                 window._aiChatHistory.pop();
                 if (!res.ok) {
+                    console.warn('[ai-chat] non-OK response', { status: res.status, data });
                     if (data.reply) {
                         pushAiChatRow('bot', data.reply, 'human');
                         return;
@@ -7889,6 +7890,7 @@
                     throw new Error(data.error || 'AI support unavailable');
                 }
                 if (!data.ok) {
+                    console.warn('[ai-chat] payload ok=false', data);
                     if (data.reply) {
                         pushAiChatRow('bot', data.reply, 'human');
                         return;
@@ -7909,6 +7911,7 @@
                     pushAiChatRow('bot', 'Your issue is high priority and has been escalated to support admin.', 'human');
                 }
             } catch (e) {
+                console.error('[ai-chat] request crashed', e);
                 await wait(700);
                 window._aiChatHistory.pop();
                 pushAiChatRow('bot', 'Sorry, AI support is temporarily unavailable. You can still open a human support ticket now.', 'human');

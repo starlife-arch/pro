@@ -1,175 +1,135 @@
-const KB_TOPICS = {
-  what_is_starlife: {
-    title: 'What is Starlife',
-    guidance: 'Starlife is a financial platform where members can fund wallets, invest in available plans, earn points, use referrals, and request loans when eligible.'
-  },
-  deposit: {
-    title: 'How to deposit',
-    guidance: 'Deposit flow: open Wallet/Deposit page, choose a payment channel, confirm amount, make payment, then wait for confirmation and balance update.'
-  },
-  withdraw: {
-    title: 'How to withdraw',
-    guidance: 'Withdrawal flow: ensure KYC and withdrawal details are complete, open Withdraw, enter amount, confirm, and monitor withdrawal status/history.'
-  },
-  invest: {
-    title: 'How to invest',
-    guidance: 'Investment flow: review available plan details, confirm amount and duration/terms, submit investment, and track active/completed investments.'
-  },
-  referrals: {
-    title: 'How referrals work',
-    guidance: 'Referral rewards are earned when invited users register and complete eligible activities as defined by platform rules.'
-  },
-  loans: {
-    title: 'How loans work',
-    guidance: 'Loan eligibility, limits, repayment schedules, and penalties are controlled by platform policy and account eligibility checks.'
-  },
-  points: {
-    title: 'How points work',
-    guidance: 'Points are earned through platform activity and can impact rank, rewards, or eligibility depending on current Starlife rules.'
-  },
-  kyc: {
-    title: 'KYC and identity help',
-    guidance: 'KYC requires valid identity/profile details. Mismatched data can delay transactions until support verifies and resolves it.'
-  },
-  support: {
-    title: 'Agent/support help',
-    guidance: 'Users can contact support for account-specific issues. Sensitive actions are handled by human support/admin only.'
-  },
-  official_support: {
-    title: 'Official support contacts',
-    guidance: 'Official support email is support@starlifeadvert.com. Official payment email shown on platform deposit section is starlife.payment@starlifeadvert.com.'
-  },
-  deposit_methods: {
-    title: 'Configured deposit methods',
-    guidance: 'Configured deposit methods shown in platform UI: M-Pesa, PayPal, USDT (BEP20), USDT (TRC20).'
-  },
-  withdrawal_methods: {
-    title: 'Configured withdrawal methods',
-    guidance: 'Configured withdrawal methods shown in platform UI: M-Pesa, Bank Transfer, PayPal, USDT (BEP20), USDT (TRC20).'
-  },
-  security_guidance: {
-    title: 'Security guidance',
-    guidance: 'Never share password, OTP, seed phrase, PIN, or payment credentials. Report suspicious account activity immediately.'
-  },
-  ticket_workflow: {
-    title: 'Ticket workflow',
-    guidance: 'For account-specific issues, Emy can log a ticket. Users can track updates in My Tickets and continue the same conversation with human support.'
-  }
-};
-
-const EMY_PERSONALITY = {
-  identity: 'Emy, Starlife Support Assistant',
-  tone: 'warm, calm, professional, helpful, human',
-  style: 'short conversational replies, practical next-step guidance, empathetic support when needed'
-};
-
-const SMALL_TALK_PATTERNS = {
-  hello: "Hi 👋 I’m Emy. How can I help you today?",
-  how_are_you: 'I’m good, thanks for asking 😊 How can I help you with Starlife today?',
-  thanks: 'You’re welcome 😊',
-  bye: 'You’re welcome. Have a great day 👋',
-  okay: 'Great 👍 Tell me what you see next and I’ll guide you.'
-};
-
-const FAQ_CATEGORY_KEYWORDS = [
-  { category: 'what_is_starlife', keywords: ['what is starlife', 'about starlife', 'starlife platform'] },
-  { category: 'deposit', keywords: ['deposit', 'fund wallet', 'add money', 'top up'] },
-  { category: 'withdraw', keywords: ['withdraw', 'cash out', 'withdrawal'] },
-  { category: 'invest', keywords: ['invest', 'investment', 'plan'] },
-  { category: 'referrals', keywords: ['referral', 'invite', 'downline'] },
-  { category: 'loans', keywords: ['loan', 'borrow', 'repayment'] },
-  { category: 'points', keywords: ['point', 'reward point', 'rank points'] },
-  { category: 'kyc', keywords: ['kyc', 'verification', 'verify identity', 'id mismatch'] },
-  { category: 'support', keywords: ['support', 'agent', 'customer care', 'help desk'] }
-];
-
-const HIGH_RISK_TRIGGERS = [
-  'missing balance',
-  'failed withdrawal',
-  'duplicate investment',
-  'unauthorized loan',
-  'kyc mismatch',
-  'security',
-  'fraud',
-  'repeated deduction',
-  'repeated deductions',
-  'deducted twice',
-  'money disappeared',
-  'account hacked'
-];
-
-const RESPONSE_STYLES = {
-  greeting: 'Hello! Welcome to Starlife Support. I can help with deposits, withdrawals, investments, loans, points, referrals, KYC, and support guidance.',
-  faq: 'Use a professional, calm, confident tone. Keep reply short. Structure as: 1) direct answer, 2) key steps, 3) short next action.',
-  support_issue: 'Use a calm support tone. Acknowledge issue briefly, give safe checks, and state that support review may be required.',
-  high_risk_escalation: 'Use urgent but calm tone. Confirm escalation, avoid promises, ask user to monitor ticket updates.',
-  human_handover: 'Use clear handover language. Confirm ticket created and that a human support agent will continue.',
-  out_of_scope: 'Politely refuse non-Starlife topics and redirect user to Starlife platform/support questions only.'
-};
-
-function normalizeText(value = '') {
-  return String(value).toLowerCase().replace(/\s+/g, ' ').trim();
-}
-
-function detectUserTone(message = '') {
-  const normalized = normalizeText(message);
-  if (!normalized) return 'friendly';
-
-  const thankful = ['thanks', 'thank you', 'appreciate', 'grateful'];
-  const frustrated = ['angry', 'frustrated', 'terrible', 'useless', 'annoyed', 'fed up'];
-  const worried = ['worried', 'concerned', 'scared', 'stressed', 'anxious'];
-  const upset = ['upset', 'sad'];
-  const confused = ['confused', "don't understand", 'not sure', 'how does this work', 'explain'];
-
-  if (thankful.some((x) => normalized.includes(x))) return 'thankful';
-  if (frustrated.some((x) => normalized.includes(x)) || /!{2,}/.test(message)) return 'frustrated';
-  if (worried.some((x) => normalized.includes(x))) return 'worried';
-  if (upset.some((x) => normalized.includes(x))) return 'upset';
-  if (confused.some((x) => normalized.includes(x)) || normalized.includes('?')) return 'confused';
-  return 'friendly';
-}
-
-function detectHighRiskTriggers(message) {
-  const normalized = normalizeText(message);
-  return HIGH_RISK_TRIGGERS.filter((trigger) => normalized.includes(trigger));
-}
-
-function inferFaqCategory(message) {
-  const normalized = normalizeText(message);
-
-  for (const item of FAQ_CATEGORY_KEYWORDS) {
-    if (item.keywords.some((keyword) => normalized.includes(keyword))) {
-      return item.category;
-    }
-  }
-
-  return 'general_guidance';
-}
-
 function buildKnowledgeBaseText() {
-  return Object.values(KB_TOPICS)
-    .map((topic) => `- ${topic.title}: ${topic.guidance}`)
-    .join('\n');
-}
+  return `
+STARLIFE KNOWLEDGE BASE (for Emy AI assistant)
+==============================================
 
-function styleForIntent({ inScope, intentType, severity, forceHuman }) {
-  if (!inScope) return RESPONSE_STYLES.out_of_scope;
-  if (forceHuman) return RESPONSE_STYLES.human_handover;
-  if (severity === 'high' || severity === 'critical') return RESPONSE_STYLES.high_risk_escalation;
-  if (intentType === 'complaint') return RESPONSE_STYLES.support_issue;
-  return RESPONSE_STYLES.faq;
-}
+PLATFORM OVERVIEW
+- Starlife is an investment & earning platform where users deposit funds, earn 2% daily profit on active investments, and withdraw anytime.
+- Minimum investment: $10. Maximum: $800,000.
+- Daily profit is 2% of total active investment, credited automatically every day (admin runs daily profits).
 
-module.exports = {
-  KB_TOPICS,
-  EMY_PERSONALITY,
-  SMALL_TALK_PATTERNS,
-  HIGH_RISK_TRIGGERS,
-  RESPONSE_STYLES,
-  detectHighRiskTriggers,
-  inferFaqCategory,
-  buildKnowledgeBaseText,
-  styleForIntent,
-  detectUserTone,
-  normalizeText
-};
+WALLET & BALANCE
+- Main balance: can be used to invest, stake, request loans, or withdraw.
+- Available balance = Main balance – Held amount (funds on hold by admin).
+- Users can gift/transfer cash or points to other members (5% fee on cash transfers).
+- Points earned from surveys, check‑in, spin wheel, scratch card can be redeemed for cash (1000 pts = $1, etc.).
+
+DEPOSITS
+- Users submit proof of payment via M‑Pesa, PayPal, or USDT.
+- Admin approves deposits; funds then added to main balance.
+- Promo codes can give deposit bonuses (fixed $, %, or points).
+
+WITHDRAWALS
+- Minimum $10, 10% fee. Requires KYC verification.
+- Withdrawal PIN must be set in profile.
+- Admin processes withdrawals (mark as paid) after user submits request.
+
+INVESTMENTS
+- Active investments earn 2% daily profit forever (until withdrawn or admin stops).
+- Auto‑reinvest option: a percentage of daily profit automatically creates a new investment.
+
+SHAREHOLDER PROGRAM
+- Users can stake $25+ from main balance.
+- Stake earns from a $2 million annual pool distributed daily.
+- Earnings locked for 6 months from first stake.
+- Admin approves each stake.
+
+LOANS
+- Users can borrow up to their total invested + shareholder stake.
+- Terms: 7 days (10% interest), 14 days (20%), 30 days (30%).
+- Interest deducted upfront. Late fee 5% every 7 days overdue.
+- Max 3 defaults before loan access blocked.
+
+SAVINGS WALLET
+- Lock funds for 30 days and earn 3% daily profit.
+- Cannot withdraw until lock period ends.
+- Savings Vault: lock for 30/60/90 days with bonus % on top of profit.
+- Savings Goals: users can set a target and add money from main balance.
+
+SURVEYS & POINTS
+- Users complete surveys to earn points (10‑50 pts each).
+- Points can be redeemed for cash: 1000 pts = $1, 2000 = $2, 5000 = $5.
+- Admin approves point redemptions.
+
+REFERRAL SYSTEM (3 levels)
+- Level 1: 10% of referral's first investment.
+- Level 2: 5% of referral's first investment.
+- Level 3: 2% of referral's first investment.
+- Referral bonuses are paid automatically when admin approves the new user's first investment.
+
+LEADERBOARD
+- Shows top investors, earners, and referrers (admin can add fake entries).
+- Only admin‑added entries appear.
+
+REWARDS & GAMES
+- Daily check‑in: +5 pts, streak bonuses at 7 days (+5) and 30 days (+10).
+- Spin wheel: win points or small cash daily.
+- Scratch card: match three symbols to win prize (points or cash).
+- Lucky draw: buy tickets with points or cash; winner takes 80% of pool.
+- Prize codes: admin generates codes that give cash/points to redeemers.
+- Referral contest: monthly contest with cash prize for top referrer (real referrals only).
+
+P2P TRADING
+- Users can post ads to buy or sell USD.
+- Sell ads: seller locks USD from balance, buyer pays via external method, seller releases USD after payment.
+- 5% fee deducted from buyer’s received USD.
+- Admin can resolve disputes and release funds.
+
+COMMUNITY
+- Users can post anonymously (admin approval required).
+- Like and comment on posts.
+- Create groups, chat inside groups.
+- Admin can approve/reject posts and groups, add fake member counts.
+
+TRANSFER / GIFT
+- Send cash (5% fee) or points (free) to other members.
+- Requires withdrawal PIN for cash transfers.
+
+KYC VERIFICATION
+- Users must upload ID photo before first withdrawal.
+- Admin approves or rejects KYC.
+
+NOTIFICATIONS
+- Users receive in‑app notifications and browser alerts (if enabled).
+- Admin can broadcast announcements to all users.
+
+ADMIN CAPABILITIES
+- Manage users (adjust balance, edit profile, ban, delete, reset PIN).
+- Approve/reject deposits, withdrawals, investments, stakes, loans, KYC, surveys, redemptions.
+- Manage leaderboard, community posts/groups, prize codes, lucky draw, contest, P2P disputes.
+- Run daily profits for all users or selected ones.
+- Put platform in maintenance mode (allows admin bypass).
+- Send broadcasts (instant or scheduled).
+- Manage promo codes (deposit bonuses).
+
+SECURITY
+- Withdrawal PIN (6 digits) required for withdrawals and transfers.
+- Login history with device fingerprint; suspicious logins trigger alerts.
+- Admins can block IPs, mute users, issue strikes, hide users from discover.
+
+COMMON USER QUESTIONS (quick answers)
+- "How do I deposit?" → Go to Deposit tab, choose method (M‑Pesa, PayPal, USDT), send funds, submit proof with transaction ID.
+- "How do I withdraw?" → Go to Withdraw tab, enter amount (min $10), select method, provide details, enter PIN, submit. Admin processes within 24h.
+- "What's the fee?" → 10% on withdrawals, 5% on cash transfers, 5% on P2P trades.
+- "How long until my deposit is approved?" → Usually within a few hours, max 24h.
+- "I forgot my withdrawal PIN" → Only admin can reset it. Contact support.
+- "Why is my balance showing less?" → Some funds may be on hold (admin hold) or locked in savings/vault.
+- "Can I cancel a withdrawal?" → Only admin can reject it (refunds balance).
+- "What is shareholder earnings?" → Daily share of $2M annual pool based on your stake.
+- "How do I get verified badge?" → Invest $100+ or refer 50+ members (free) or pay $10/month.
+- "What are official roles?" → Admin can assign roles like CEO, Director, Support, Finance, etc. – these appear as badges on profile.
+- "How do I contact support?" → Use the Support tab (create ticket) or email support@starlifeadvert.com.
+- "Why is my investment not earning?" → Either it's still pending admin approval, or admin stopped earnings manually.
+- "What is held balance?" → Admin can place a hold on part of your balance (e.g., during dispute investigation).
+
+Emy's behaviour rules:
+- Always be warm, helpful, and conversational.
+- Use emojis occasionally 😊.
+- Keep responses short (2‑3 sentences) unless user asks for details.
+- If user asks about a specific feature, give a concise explanation and offer to guide step‑by‑step.
+- If user seems frustrated, apologise and offer to create a support ticket.
+- NEVER promise to change balances, approve loans, or process withdrawals – that's admin only.
+- If unsure, say "I'll create a support ticket for you" and ask for more details.
+- For risky topics (hacked account, missing money, repeated deductions), escalate to human support immediately.
+`;
+}

@@ -14,7 +14,11 @@
 ```
 
 ## What it does
+<<<<<<< codex/add-ai-support-assistant-for-starlife-b572dt
+1. Uses Groq (OpenAI-compatible API) to classify and generate a support reply.
+=======
 1. Uses OpenAI to classify and generate a support reply.
+>>>>>>> main
 2. Restricts assistant scope to Starlife-related support only.
 3. Distinguishes FAQ vs complaint/risk intent.
 4. Stores every interaction in Firestore `ai_support_logs` with:
@@ -29,6 +33,10 @@
 ## UI integration
 - Floating AI chat can answer directly and, for serious issues, create a shared `tickets` record.
 - The same ticket thread is visible from Support page (`My Tickets`) with AI, user, and human replies in one conversation.
+<<<<<<< codex/add-ai-support-assistant-for-starlife-b572dt
+- If Groq is unavailable (missing key, timeout, rate limit, API error), the function falls back to local rule-based Starlife support replies and still continues ticket/escalation logic.
+=======
+>>>>>>> main
 
 ## Supported topic categories
 - `what_is_starlife`
@@ -56,9 +64,16 @@
 - account hacked
 
 ## Environment variables
+<<<<<<< codex/add-ai-support-assistant-for-starlife-b572dt
+- `GROQ_API_KEY` (preferred provider key)
+- `GROQ_BASE_URL` (optional, defaults to `https://api.groq.com/openai/v1`)
+- `GROQ_MODEL` (optional, defaults to `llama-3.3-70b-versatile`)
+- `OPENAI_TIMEOUT_MS` (optional timeout in ms, defaults to `15000`)
+=======
 - `OPENAI_API_KEY` (required)
 - `OPENAI_MODEL` (optional, defaults to `gpt-4.1-mini`)
 - `OPENAI_TIMEOUT_MS` (optional, defaults to `15000`)
+>>>>>>> main
 - `FIREBASE_SERVICE_ACCOUNT_JSON` or Firebase split credentials
 - `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` (needed for alerts)
 

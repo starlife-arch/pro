@@ -2570,6 +2570,86 @@
             max-width: 580px;
             margin: 0 auto
         }
+
+        .ai-chat-fab {
+            position: fixed;
+            right: 16px;
+            bottom: calc(68px + env(safe-area-inset-bottom));
+            z-index: 360;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            border: 1px solid var(--bds);
+            background: linear-gradient(135deg, var(--g), #00b34a);
+            color: #001b09;
+            font-size: 1.45rem;
+            cursor: pointer;
+            box-shadow: 0 10px 24px rgba(0, 230, 118, .3)
+        }
+
+        .ai-chat-panel {
+            position: fixed;
+            right: 16px;
+            bottom: calc(130px + env(safe-area-inset-bottom));
+            width: min(380px, calc(100vw - 24px));
+            height: min(520px, calc(100vh - 160px));
+            background: var(--s1);
+            border: 1px solid var(--bds);
+            border-radius: 16px;
+            z-index: 365;
+            display: none;
+            overflow: hidden;
+            box-shadow: 0 16px 45px rgba(0, 0, 0, .45)
+        }
+
+        .ai-chat-panel.open {
+            display: flex;
+            flex-direction: column
+        }
+
+        .ai-chat-msgs {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            background: var(--s2)
+        }
+
+        .ai-chat-row {
+            margin-bottom: 9px;
+            display: flex
+        }
+
+        .ai-chat-row.me {
+            justify-content: flex-end
+        }
+
+        .ai-chat-bubble {
+            max-width: 80%;
+            border-radius: 11px;
+            padding: 9px 10px;
+            font-size: .82rem
+        }
+
+        .ai-chat-row.me .ai-chat-bubble {
+            background: var(--g);
+            color: #001607
+        }
+
+        .ai-chat-row.bot .ai-chat-bubble {
+            background: #0f1e15;
+            border: 1px solid var(--bd);
+            color: var(--t1)
+        }
+
+        .ai-chat-row.human .ai-chat-bubble {
+            background: rgba(255, 213, 79, .09);
+            border: 1px solid rgba(255, 213, 79, .22)
+        }
+
+        body.is-admin .ai-chat-fab,
+        body.is-admin .ai-chat-panel {
+            display: none !important
+        }
     </style>
 </head>
 
@@ -6147,6 +6227,29 @@
         </div>
     </div>
 
+    <!-- Floating AI Support Chat -->
+    <button id="ai-chat-fab" class="ai-chat-fab" onclick="toggleAiChat()" style="display:none" title="Starlife AI Support">💬</button>
+    <div id="ai-chat-panel" class="ai-chat-panel">
+        <div style="padding:12px 12px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;background:var(--s1)">
+            <div>
+                <div style="font-size:.9rem;font-weight:700">Starlife AI Support</div>
+                <div style="font-size:.7rem;color:var(--g)">FAQ + ticket escalation</div>
+            </div>
+            <button onclick="toggleAiChat(false)" style="background:none;border:none;color:var(--t2);font-size:1.1rem;cursor:pointer">✕</button>
+        </div>
+        <div id="ai-chat-msgs" class="ai-chat-msgs"></div>
+        <div style="padding:10px;border-top:1px solid var(--bd);background:var(--s1)">
+            <div style="display:flex;gap:7px">
+                <input id="ai-chat-input" class="fi" placeholder="Ask Starlife support…" onkeydown="if(event.key==='Enter')sendAiChatMessage()">
+                <button class="btn btn-p btn-sm" onclick="sendAiChatMessage()">Send</button>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+                <button class="btn btn-gh btn-sm" onclick="talkToHumanFromAiChat()">Talk to human</button>
+                <button class="btn btn-gh btn-sm" onclick="openSupportFromAiChat()">Open Support page</button>
+            </div>
+        </div>
+    </div>
+
     <style>
         .itc {}
 
@@ -6278,6 +6381,9 @@
         window.AU = []; // admin users cache
         window._loanTerm = 7;
         window._activeSurvey = null;
+        window._aiChatHistory = [];
+        window._aiLastCategory = 'general_guidance';
+        window._aiLastSeverity = 'low';
 
         // ════════════════════════════════════════════════════════
         // AUTO LOGOUT AFTER 10 MINUTES INACTIVITY
@@ -6338,6 +6444,9 @@
         // ════════════════════════════════════════════════════════
         auth.onAuthStateChanged(async user => {
             if (!user) {
+                toggleAiChat(false);
+                const fab = $('ai-chat-fab');
+                if (fab) fab.style.display = 'none';
                 await applyMaintenanceModeToUI(null);
                 go(window._maintenanceState?.active ? 'pg-maint' : 'pg-land');
                 return;
@@ -6366,6 +6475,8 @@
                 if (!d.isAdmin) await ref.update({ isAdmin: true });
                 go('pg-admin');
                 document.body.classList.add('is-admin');
+                const fab = $('ai-chat-fab');
+                if (fab) fab.style.display = 'none';
                 renderAdminTabs();
                 loadAdminAll();
             } else {
@@ -6382,6 +6493,9 @@
                 loadAllUserData();
                 loadBroadcasts();
                 loadFAQ();
+                initAiChat();
+                const fab = $('ai-chat-fab');
+                if (fab) fab.style.display = 'block';
                 if (sessionMeta?.suspicious) {
                     toast('Suspicious login detected — review Security Center', 'ty', 5000);
                 }
@@ -7529,21 +7643,88 @@
         // ════════════════════════════════════════════════════════
         // SUPPORT TICKETS
         // ════════════════════════════════════════════════════════
+        function detectSupportSeverity(text) {
+            const t = (text || '').toLowerCase();
+            const highRisk = ['missing balance', 'failed withdrawal', 'duplicate investment', 'unauthorized loan', 'kyc mismatch', 'security', 'fraud', 'repeated deduction', 'repeated deductions', 'deducted twice', 'money disappeared', 'account hacked'];
+            const matched = highRisk.filter(k => t.includes(k));
+            if (matched.length >= 2) return { severity: 'critical', matched };
+            if (matched.length === 1) return { severity: 'high', matched };
+            return { severity: 'medium', matched: [] };
+        }
+
+        async function createSupportTicket(payload = {}) {
+            const u = window.CU;
+            if (!u) throw new Error('Not logged in');
+            const subject = (payload.subject || '').trim() || 'Support request';
+            const message = (payload.message || '').trim();
+            const source = payload.source || 'support_page';
+            const category = payload.category || 'general_guidance';
+            const forceHuman = !!payload.forceHuman;
+            const severityInfo = detectSupportSeverity(message + ' ' + subject);
+            const severity = payload.severity || severityInfo.severity;
+            const tickId = payload.ticketId || ('TK-' + Date.now().toString(36).toUpperCase());
+            const firstMsg = {
+                from: 'user',
+                name: u.name,
+                text: message,
+                image: payload.image || null,
+                time: new Date().toISOString()
+            };
+
+            const ticketDoc = {
+                uid: u.uid,
+                userName: u.name,
+                userEmail: u.email,
+                ticketId: tickId,
+                subject,
+                category,
+                severity,
+                status: 'open',
+                source,
+                forceHuman,
+                aiSuggested: source === 'ai_chat',
+                messages: [firstMsg],
+                createdAt: FS().serverTimestamp(),
+                updatedAt: FS().serverTimestamp()
+            };
+
+            const ticketRef = await db.collection('tickets').add(ticketDoc);
+            await db.collection('adminNotifs').add({
+                type: 'ticket',
+                severity,
+                msg: `New ${severity} ticket from ${u.name}: ${subject}`,
+                uid: u.uid,
+                read: false,
+                createdAt: FS().serverTimestamp()
+            });
+
+            const tgPrefix = (severity === 'high' || severity === 'critical') ? '🚨' : '🎧';
+            await tg(`${tgPrefix} <b>Support Ticket</b>\nTicket: ${tickId}\nSeverity: ${severity.toUpperCase()}\nUser: ${u.name} (${u.email})\nSubject: ${subject}\nMessage: ${message || '—'}`);
+
+            if (severityInfo.matched.length && (severity === 'high' || severity === 'critical')) {
+                await tg(`🚨 <b>High-Risk Trigger</b>\nTicket: ${tickId}\nUser: ${u.name}\nTriggers: ${severityInfo.matched.join(', ')}`);
+            }
+
+            return { id: ticketRef.id, ticketId: tickId, severity };
+        }
+
         async function doTicket() {
             const subj = $('sp-subj').value.trim();
             const msg = $('sp-msg').value.trim();
-            const u = window.CU;
             if (!subj && !msg && !_ticketImgB64) return toast('Fill in subject and message', 'ty');
             if (!subj) return toast('Enter a subject', 'ty');
-            const tickId = 'TK-' + Date.now().toString(36).toUpperCase();
-            const firstMsg = { from: 'user', name: u.name, text: msg || '', image: _ticketImgB64 || null, time: new Date().toISOString() };
-            await db.collection('tickets').add({ uid: u.uid, userName: u.name, userEmail: u.email, ticketId: tickId, subject: subj, status: 'open', messages: [firstMsg], createdAt: FS().serverTimestamp() });
-            await db.collection('adminNotifs').add({ type: 'ticket', msg: `New ticket from ${u.name}: ${subj}`, uid: u.uid, read: false, createdAt: FS().serverTimestamp() });
-            logAct(u.uid, `Support ticket opened: ${subj}`, 0, '🎧', 'other');
-            tg(`🎧 <b>Support Ticket</b>\nTicket: ${tickId}\nUser: ${u.name} (${u.email})\nSubject: ${subj}\nMessage: ${msg}`);
-            toast(`Ticket ${tickId} submitted ✓`);
+            const res = await createSupportTicket({
+                subject: subj,
+                message: msg || '',
+                image: _ticketImgB64 || null,
+                source: 'support_page',
+                category: 'support'
+            });
+            logAct(window.CU.uid, `Support ticket opened: ${subj}`, 0, '🎧', 'other');
+            toast(`Ticket ${res.ticketId} submitted ✓`);
             $('sp-subj').value = ''; $('sp-msg').value = '';
             clearTicketImg();
+            if ($('sp-t-my')) spTab(document.querySelector('#t-support .itab:nth-child(2)'), 'sp-t-my');
             loadMyTickets();
         }
 
@@ -7559,7 +7740,8 @@
         <div style="font-weight:600;font-size:.9rem">${t.subject}</div>
         ${t.status === 'open' ? '<span class="badge bg">Open</span>' : '<span class="badge bmut">Closed</span>'}
       </div>
-      <div style="font-size:.75rem;color:var(--t3)">${t.ticketId} · ${fmtD(t.createdAt)}</div>
+      <div style="font-size:.75rem;color:var(--t3)">${t.ticketId} · ${fmtD(t.createdAt)}${t.severity ? ' · ' + String(t.severity).toUpperCase() : ''}</div>
+      <div style="font-size:.78rem;color:var(--t2);margin-top:5px">${(t.messages && t.messages.length) ? ((t.messages[t.messages.length - 1].from === 'ai' ? '🤖 AI: ' : (t.messages[t.messages.length - 1].from === 'admin' ? '⚖️ Support: ' : '👤 You: ')) + (t.messages[t.messages.length - 1].text || '').slice(0, 78)) : 'No messages yet'}</div>
     </div>`).join('');
         }
 
@@ -7573,7 +7755,9 @@
                 if (m.from === 'system') return '<div style="text-align:center;font-size:.73rem;color:var(--t3);padding:5px 0;margin:4px 0">— ' + m.text + ' —</div>';
                 var isMe = m.from === 'user';
                 var isAdmin = m.from === 'admin';
+                var isAi = m.from === 'ai';
                 if (isAdmin) return '<div style="margin-bottom:8px;padding:9px 12px;background:rgba(0,200,83,.1);border:1px solid rgba(0,200,83,.2);border-radius:10px">' + '<div style="font-size:.72rem;color:var(--g);font-weight:600;margin-bottom:3px">⚖️ ' + (m.agentName || m.name || 'Support') + '</div>' + '<div style="font-size:.84rem">' + m.text + '</div>' + (m.image ? '<img src="' + m.image + '" style="max-width:200px;max-height:150px;border-radius:8px;object-fit:contain;display:block;margin-top:6px">' : '') + '<div style="font-size:.67rem;margin-top:3px;color:var(--t3)">' + (m.time ? new Date(m.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '') + '</div>' + '</div>';
+                if (isAi) return '<div style="margin-bottom:8px;padding:9px 12px;background:rgba(64,196,255,.08);border:1px solid rgba(64,196,255,.25);border-radius:10px">' + '<div style="font-size:.72rem;color:var(--sky);font-weight:600;margin-bottom:3px">🤖 Starlife AI</div>' + '<div style="font-size:.84rem">' + m.text + '</div>' + '<div style="font-size:.67rem;margin-top:3px;color:var(--t3)">' + (m.time ? new Date(m.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '') + '</div>' + '</div>';
                 return '<div style="display:flex;justify-content:' + (isMe ? 'flex-end' : 'flex-start') + ';margin-bottom:8px">' + '<div style="max-width:78%;background:' + (isMe ? 'var(--g)' : 'var(--s1)') + ';color:' + (isMe ? '#000' : 'var(--t1)') + ';border-radius:10px;padding:9px 12px">' + '<div style="font-size:.84rem">' + m.text + '</div>' + (m.image ? '<img src="' + m.image + '" style="max-width:200px;max-height:150px;border-radius:8px;object-fit:contain;display:block;margin-top:6px">' : '') + '<div style="font-size:.67rem;margin-top:3px;opacity:.65;text-align:' + (isMe ? 'right' : 'left') + '">' + (isMe ? 'You' : (m.agentName || m.name || 'Support')) + ' · ' + (m.time ? new Date(m.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '') + '</div>' + '</div></div>';
             }).join('');
             $('m-utick-msgs').innerHTML = msgs || '<div style="text-align:center;padding:16px;color:var(--t3);font-size:.82rem">No messages yet</div>'
@@ -7623,6 +7807,144 @@
             el.innerHTML = FAQS.map((f, i) => `<div class="faq-item"><div class="faq-q" onclick="toggleFAQ(${i})">${f.q}<span id="faq-ico-${i}">▼</span></div><div class="faq-a" id="faq-a-${i}">${f.a}</div></div>`).join('');
         }
         function toggleFAQ(i) { const a = $(`faq-a-${i}`); a.classList.toggle('open'); $(`faq-ico-${i}`).textContent = a.classList.contains('open') ? '▲' : '▼'; }
+
+        // ════════════════════════════════════════════════════════
+        // FLOATING AI SUPPORT CHAT
+        // ════════════════════════════════════════════════════════
+        function initAiChat() {
+            if (!window._aiChatHistory.length) {
+                window._aiChatHistory = [{
+                    from: 'bot',
+                    text: 'Hi 👋 I’m Emy, Starlife Support Assistant. How can I help you today?',
+                    time: new Date().toISOString()
+                }];
+            }
+            renderAiChat();
+        }
+
+        function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+        function toggleAiChat(forceOpen) {
+            const panel = $('ai-chat-panel');
+            if (!panel) return;
+            const willOpen = typeof forceOpen === 'boolean' ? forceOpen : !panel.classList.contains('open');
+            panel.classList.toggle('open', willOpen);
+            if (willOpen) {
+                renderAiChat();
+                setTimeout(function () { const inp = $('ai-chat-input'); if (inp) inp.focus(); }, 40);
+            }
+        }
+
+        function pushAiChatRow(from, text, rowClass = '') {
+            window._aiChatHistory.push({ from, text, rowClass, time: new Date().toISOString() });
+            if (window._aiChatHistory.length > 50) window._aiChatHistory = window._aiChatHistory.slice(-50);
+            renderAiChat();
+        }
+
+        function renderAiChat() {
+            const box = $('ai-chat-msgs');
+            if (!box) return;
+            box.innerHTML = (window._aiChatHistory || []).map(function (m) {
+                const cls = m.from === 'me' ? 'me' : (m.rowClass || 'bot');
+                return '<div class="ai-chat-row ' + cls + '"><div class="ai-chat-bubble">' + m.text + '</div></div>';
+            }).join('');
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function openSupportFromAiChat() {
+            toggleAiChat(false);
+            tab('support');
+            spTab(document.querySelector('#t-support .itab:nth-child(2)'), 'sp-t-my');
+            loadMyTickets();
+        }
+
+        async function sendAiChatMessage() {
+            const inp = $('ai-chat-input');
+            if (!inp) return;
+            const text = inp.value.trim();
+            if (!text) return;
+            inp.value = '';
+            pushAiChatRow('me', text);
+            pushAiChatRow('bot', 'Thinking…');
+            try {
+                const res = await fetch('/.netlify/functions/ai-support-assistant', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: window.CU?.uid || '',
+                        memberId: window.CU?.memberId || '',
+                        message: text
+                    })
+                });
+                const data = await res.json().catch(() => ({}));
+                await wait(850);
+                window._aiChatHistory.pop();
+                if (!res.ok) {
+                    if (data.reply) {
+                        pushAiChatRow('bot', data.reply, 'human');
+                        return;
+                    }
+                    throw new Error(data.error || 'AI support unavailable');
+                }
+                if (!data.ok) {
+                    if (data.reply) {
+                        pushAiChatRow('bot', data.reply, 'human');
+                        return;
+                    }
+                    throw new Error(data.error || 'AI support unavailable');
+                }
+                window._aiLastCategory = data.category || 'general_guidance';
+                window._aiLastSeverity = data.severity || 'low';
+                pushAiChatRow('bot', data.reply || 'I can help with Starlife support topics only.');
+
+                if (data.ticketId) {
+                    pushAiChatRow('bot', `I have created support ticket ${data.ticketId}. You can continue on the Support page.`, 'human');
+                }
+                if (data.adminAlertTriggered) {
+                    pushAiChatRow('bot', 'Your issue is high priority and has been escalated to support admin.', 'human');
+                }
+            } catch (e) {
+                await wait(700);
+                window._aiChatHistory.pop();
+                pushAiChatRow('bot', 'Sorry, AI support is temporarily unavailable. You can still open a human support ticket now.', 'human');
+            }
+        }
+
+        async function talkToHumanFromAiChat() {
+            const lastUserMsg = [...(window._aiChatHistory || [])].reverse().find(m => m.from === 'me')?.text || 'User requested human support from AI chat.';
+            const subj = 'Human support requested from AI chat';
+            try {
+                const res = await fetch('/.netlify/functions/ai-support-assistant', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: window.CU?.uid || '',
+                        memberId: window.CU?.memberId || '',
+                        message: lastUserMsg || subj,
+                        forceHuman: true
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.ok || !data.ticketId) throw new Error(data.error || 'human handover fallback');
+                pushAiChatRow('bot', `✅ Done. Ticket ${data.ticketId} is open. A human support agent will continue with you.`, 'human');
+                openSupportFromAiChat();
+            } catch (e) {
+                try {
+                    const created = await createSupportTicket({
+                        subject: subj,
+                        message: lastUserMsg,
+                        source: 'ai_chat',
+                        category: window._aiLastCategory || 'support',
+                        severity: window._aiLastSeverity === 'low' ? 'medium' : window._aiLastSeverity,
+                        forceHuman: true
+                    });
+                    pushAiChatRow('bot', `✅ Done. Ticket ${created.ticketId} is open. A human support agent will continue with you.`, 'human');
+                    openSupportFromAiChat();
+                } catch (_inner) {
+                    pushAiChatRow('bot', 'Could not open a human support ticket right now. Please try again on the Support page.', 'human');
+                }
+            }
+        }
 
         // ════════════════════════════════════════════════════════
         // BROADCASTS
@@ -9029,7 +9351,9 @@
             return messages.map(function (m) {
                 if (m.from === 'system') return '<div style="text-align:center;font-size:.73rem;color:var(--t3);padding:5px 0;margin:4px 0">— ' + m.text + ' —</div>';
                 var isAdmin = m.from === 'admin';
+                var isAi = m.from === 'ai';
                 if (isAdmin) return '<div style="margin-bottom:8px;padding:9px 12px;background:rgba(0,200,83,.1);border:1px solid rgba(0,200,83,.2);border-radius:10px">' + '<div style="font-size:.72rem;color:var(--g);font-weight:600;margin-bottom:3px">⚖️ ' + (m.agentName || m.name || 'Support') + '</div>' + '<div style="font-size:.84rem">' + m.text + '</div>' + (m.image ? '<img src="' + m.image + '" style="max-width:200px;max-height:150px;border-radius:8px;object-fit:contain;display:block;margin-top:6px">' : '') + '<div style="font-size:.67rem;margin-top:3px;color:var(--t3)">' + (m.time ? new Date(m.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '') + '</div>' + '</div>';
+                if (isAi) return '<div style="display:flex;justify-content:flex-start;margin-bottom:8px"><div style="max-width:84%;background:rgba(64,196,255,.08);border:1px solid rgba(64,196,255,.25);border-radius:10px;padding:9px 12px"><div style="font-size:.72rem;color:var(--sky);margin-bottom:3px">🤖 Starlife AI</div><div style="font-size:.84rem">' + m.text + '</div><div style="font-size:.67rem;margin-top:3px;color:var(--t3)">' + (m.time ? new Date(m.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '') + '</div></div></div>';
                 return '<div style="display:flex;justify-content:flex-start;margin-bottom:8px">' + '<div style="max-width:78%;background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:9px 12px">' + '<div style="font-size:.72rem;color:var(--t3);margin-bottom:3px">👤 ' + m.name + '</div>' + '<div style="font-size:.84rem">' + m.text + '</div>' + (m.image ? '<img src="' + m.image + '" style="max-width:200px;max-height:150px;border-radius:8px;object-fit:contain;display:block;margin-top:6px">' : '') + '<div style="font-size:.67rem;margin-top:3px;color:var(--t3)">' + (m.time ? new Date(m.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '') + '</div>' + '</div></div>';
             }).join('');
         }
@@ -14041,6 +14365,7 @@ By: ${u.name}`);
                 }
             }
             if (name === 'messages') { loadDMList(); }
+            if (name === 'support') { loadMyTickets(); loadFAQ(); }
             if (name === 'profile') {
                 refreshBirthdayDisplay();
                 if (window.CU) { renderRank(window.CU); renderBadges(); }

@@ -30,6 +30,9 @@
 - Floating AI chat can answer directly and, for serious issues, create a shared `tickets` record.
 - The same ticket thread is visible from Support page (`My Tickets`) with AI, user, and human replies in one conversation.
 
+5. Creates Firestore `support_tickets` for complaint/higher-risk issues.
+6. Sends Telegram alert for high-risk sensitive triggers.
+
 ## Supported topic categories
 - `what_is_starlife`
 - `deposit`

@@ -30,6 +30,9 @@
 - Floating AI chat can answer directly and, for serious issues, create a shared `tickets` record.
 - The same ticket thread is visible from Support page (`My Tickets`) with AI, user, and human replies in one conversation.
 
+5. Creates Firestore `support_tickets` for complaint/higher-risk issues.
+6. Sends Telegram alert for high-risk sensitive triggers.
+
 ## Supported topic categories
 - `what_is_starlife`
 - `deposit`
@@ -65,6 +68,9 @@
 ## Firestore writes
 - `ai_support_logs`: `userId`, `memberId`, `userMessage`, `aiReply`, `category`, `severity`, `highRiskMatches`, `adminAlertTriggered`, `ticketCreated`, `forceHuman`, `responseStyle`, `modelFailureReason`, `intentType`, `inScope`, `createdAt`.
 - `support_tickets`: `userId`, `memberId`, `ticketId`, `category`, `severity`, `source`, `logId`, `status`, `highRiskMatches`, `forceHuman`, `userMessage`, `aiReply`, `createdAt`, `updatedAt`.
+
+- `FIREBASE_SERVICE_ACCOUNT_JSON` or Firebase split credentials
+- `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` (needed for alerts)
 
 ## Manual test examples
 

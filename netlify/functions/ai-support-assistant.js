@@ -116,7 +116,7 @@ exports.handler = async function handler(event) {
 
   const userId = payload.userId || payload.uid || 'anonymous';
   const memberId = payload.memberId || null;
-  const currentScreen = payload.currentScreen || 'unknown';
+  const currentScreen = payload.currentScreen || 'unknown'; // NEW: get screen context
   let db = null;
   let persistenceError = null;
   try {
@@ -125,89 +125,6 @@ exports.handler = async function handler(event) {
     persistenceError = error.message;
     console.error('[ai-support-assistant] firestore unavailable', { persistenceError });
   }
-
-  // ========== HANDLE "TALK TO HUMAN" & "CREATE TICKET" COMMANDS ==========
-  const lowerMsg = userMessage.toLowerCase();
-  const isExplicitHandover = /(talk to human|human agent|speak to human|transfer to human|create a support ticket|create ticket|i need a human)/i.test(lowerMsg);
-  
-  if (isExplicitHandover) {
-    console.log('[ai-support-assistant] explicit handover requested', { userId, memberId, userMessage });
-    
-    // Create a ticket
-    const ticketId = `TK-${Date.now().toString(36).toUpperCase()}`;
-    let ticketDocId = null;
-    let supportTicketId = null;
-    
-    if (db) {
-      try {
-        const baseTicketPayload = {
-          userId,
-          memberId,
-          ticketId,
-          category: 'support',
-          severity: 'medium',
-          source: 'ai_support_assistant_explicit',
-          status: 'open',
-          highRiskMatches: [],
-          forceHuman: true,
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        };
-        
-        const ticketRef = await db.collection('tickets').add({
-          ...baseTicketPayload,
-          uid: userId,
-          subject: 'Human support requested',
-          messages: [
-            { from: 'user', name: memberId || userId, text: userMessage, time: new Date().toISOString() },
-            { from: 'ai', name: 'Starlife AI', text: 'User requested human support. Ticket created.', time: new Date().toISOString() }
-          ],
-          aiReply: 'User requested human support.'
-        });
-        ticketDocId = ticketRef.id;
-        
-        const supportTicketRef = await db.collection('support_tickets').add({
-          ...baseTicketPayload,
-          userMessage,
-          aiReply: 'User requested human support.'
-        });
-        supportTicketId = supportTicketRef.id;
-        
-        // Notify admins via Telegram
-        const adminIds = (process.env.ADMIN_IDS || '').split(',').filter(id => id.trim());
-        for (const adminId of adminIds) {
-          try {
-            await sendTelegramMessage(
-              `🆘 *HUMAN SUPPORT REQUESTED*\n\n` +
-              `User: ${memberId || userId}\n` +
-              `Message: ${userMessage}\n` +
-              `Ticket ID: ${ticketId}\n` +
-              `Action: Use /reply ${userId} <message> to respond.`
-            );
-          } catch (err) {
-            console.error('[telegram] failed to notify admin', err);
-          }
-        }
-      } catch (err) {
-        console.error('[ticket] failed to create ticket', err);
-        persistenceError = err.message;
-      }
-    }
-    
-    const reply = `✅ I've created a support ticket (${ticketId}) for you. A human agent will review your request and get back to you shortly. You can track your ticket status in "My Tickets". Thank you for your patience. 🙏`;
-    return json(200, {
-      ok: true,
-      reply,
-      ticketCreated: true,
-      ticketId,
-      ticketDocId,
-      supportTicketId,
-      category: 'support',
-      severity: 'medium',
-      handover: true
-    });
-  }
-  // ================================================================
 
   // Handle /clear command
   if (userMessage.toLowerCase() === '/clear') {
@@ -238,7 +155,7 @@ exports.handler = async function handler(event) {
 
   const highRiskMatches = detectHighRiskTriggers(userMessage);
   const fallbackCategory = inferFaqCategory(userMessage);
-  const forceHuman = Boolean(payload.forceHuman) || isExplicitHandover; // already handled, but keep for consistency
+  const forceHuman = Boolean(payload.forceHuman);
   const userTone = detectUserTone(userMessage);
   let sessionState = sanitizeSessionState(payload.sessionState);
 
@@ -262,8 +179,8 @@ exports.handler = async function handler(event) {
         forceHuman,
         userTone,
         sessionState,
-        conversationHistory,
-        currentScreen
+        conversationHistory,     // NEW: pass memory
+        currentScreen           // NEW: pass screen context
       });
       providerUsed = 'groq';
     } catch (error) {
@@ -301,16 +218,49 @@ exports.handler = async function handler(event) {
   const shouldCreateTicket = inScope && (isComplaint || severity !== 'low' || forceHuman || highRiskMatches.length > 0);
   const shouldAlertAdmin = ['high', 'critical'].includes(severity) && highRiskMatches.length > 0;
 
-  let safeReply = inScope
+  const safeReply = inScope
     ? formatResponse({ body: normalizedResult.reply })
     : formatOutOfScopeReply();
 
-  // If a ticket was automatically created, append a note to the reply
+  // Save this conversation turn to memory
+  if (userId !== 'anonymous' && safeReply) {
+    await saveConversationTurn(userId, userMessage, safeReply);
+  }
+
+  const logDoc = {
+    userId,
+    memberId,
+    userMessage,
+    aiReply: safeReply,
+    category,
+    severity,
+    highRiskMatches,
+    adminAlertTriggered: shouldAlertAdmin,
+    ticketCreated: shouldCreateTicket,
+    forceHuman,
+    responseStyle: styleForIntent({ inScope, intentType: normalizedResult.intent_type, severity, forceHuman }),
+    modelFailureReason,
+    userTone,
+    currentScreen,
+    intentType: isComplaint ? 'complaint' : 'faq',
+    inScope,
+    createdAt: admin.firestore.FieldValue.serverTimestamp()
+  };
+
+  let logRef = { id: null };
+  if (db) {
+    try {
+      logRef = await db.collection('ai_support_logs').add(logDoc);
+    } catch (error) {
+      persistenceError = error.message;
+      console.error('[ai-support-assistant] failed to write ai_support_logs', { persistenceError });
+    }
+  }
+
   let ticketId = null;
   let ticketDocId = null;
   let supportTicketId = null;
   let telegramAlertError = null;
-
   if (shouldCreateTicket && db) {
     ticketId = `TK-${Date.now().toString(36).toUpperCase()}`;
     const baseTicketPayload = {
@@ -320,7 +270,7 @@ exports.handler = async function handler(event) {
       category,
       severity,
       source: 'ai_support_assistant',
-      logId: null, // will set after log
+      logId: logRef.id,
       status: 'open',
       highRiskMatches,
       forceHuman,
@@ -346,54 +296,8 @@ exports.handler = async function handler(event) {
       aiReply: safeReply
     });
     supportTicketId = supportTicketRef.id;
-    
-    // Append ticket info to reply if not already present
-    if (!safeReply.includes('ticket') && !safeReply.includes('Ticket')) {
-      safeReply += `\n\n📋 I've created a support ticket (${ticketId}) for you. Our team will review it soon. You can check status in "My Tickets".`;
-    }
   } else if (shouldCreateTicket && !db) {
     persistenceError = persistenceError || 'Firestore unavailable; ticket not persisted.';
-  }
-
-  // Save this conversation turn to memory
-  if (userId !== 'anonymous' && safeReply) {
-    await saveConversationTurn(userId, userMessage, safeReply);
-  }
-
-  // Log the interaction
-  const logDoc = {
-    userId,
-    memberId,
-    userMessage,
-    aiReply: safeReply,
-    category,
-    severity,
-    highRiskMatches,
-    adminAlertTriggered: shouldAlertAdmin,
-    ticketCreated: shouldCreateTicket,
-    forceHuman,
-    responseStyle: styleForIntent({ inScope, intentType: normalizedResult.intent_type, severity, forceHuman }),
-    modelFailureReason,
-    userTone,
-    currentScreen,
-    intentType: isComplaint ? 'complaint' : 'faq',
-    inScope,
-    createdAt: admin.firestore.FieldValue.serverTimestamp()
-  };
-
-  let logRef = { id: null };
-  if (db) {
-    try {
-      logRef = await db.collection('ai_support_logs').add(logDoc);
-      if (shouldCreateTicket && ticketDocId) {
-        // Update ticket with logId
-        await db.collection('tickets').doc(ticketDocId).update({ logId: logRef.id });
-        await db.collection('support_tickets').doc(supportTicketId).update({ logId: logRef.id });
-      }
-    } catch (error) {
-      persistenceError = error.message;
-      console.error('[ai-support-assistant] failed to write ai_support_logs', { persistenceError });
-    }
   }
 
   if (shouldAlertAdmin) {
@@ -405,7 +309,7 @@ exports.handler = async function handler(event) {
       `Triggers: ${highRiskMatches.join(', ')}`,
       '',
       `<b>Message</b>: ${escapeHtml(userMessage)}`,
-      ticketId ? `Ticket ID: <b>${ticketId}</b>` : ''
+      ticketId ? `Ticket ID: <b>${ticketId}</b> (${ticketDocId || 'n/a'})` : ''
     ].filter(Boolean).join('\n');
     try {
       await sendTelegramMessage(alertMessage);

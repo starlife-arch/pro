@@ -1,6 +1,102 @@
 const { getDb, admin } = require('./_lib/firebase');
 const { sendTelegramMessage } = require('./_lib/telegram');
 
+// ========== CONVERSATION MEMORY FUNCTIONS ==========
+async function getConversationHistory(userId, limit = 5) {
+  if (!userId || userId === 'anonymous') return [];
+  try {
+    const db = getDb();
+    const historyRef = db.collection('conversation_memory')
+      .doc(userId)
+      .collection('messages')
+      .orderBy('timestamp', 'desc')
+      .limit(limit);
+    const snapshot = await historyRef.get();
+    const messages = [];
+    snapshot.forEach(doc => {
+      messages.unshift(doc.data());
+    });
+    return messages;
+  } catch (error) {
+    console.error('[memory] failed to get history', error);
+    return [];
+  }
+}
+
+async function saveConversationTurn(userId, userMessage, assistantReply) {
+  if (!userId || userId === 'anonymous') return;
+  try {
+    const db = getDb();
+    const turnRef = db.collection('conversation_memory')
+      .doc(userId)
+      .collection('messages')
+      .doc();
+    await turnRef.set({
+      userMessage,
+      assistantReply,
+      timestamp: admin.firestore.FieldValue.serverTimestamp()
+    });
+    // keep only last 20 messages per user
+    const allMessages = await db.collection('conversation_memory')
+      .doc(userId)
+      .collection('messages')
+      .orderBy('timestamp', 'desc')
+      .get();
+    if (allMessages.size > 20) {
+      const batch = db.batch();
+      let count = 0;
+      allMessages.forEach(doc => {
+        count++;
+        if (count > 20) batch.delete(doc.ref);
+      });
+      await batch.commit();
+    }
+  } catch (error) {
+    console.error('[memory] failed to save turn', error);
+  }
+}
+
+async function clearConversationMemory(userId) {
+  if (!userId || userId === 'anonymous') return;
+  try {
+    const db = getDb();
+    const batch = db.batch();
+    const snapshot = await db.collection('conversation_memory')
+      .doc(userId)
+      .collection('messages')
+      .get();
+    snapshot.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+  } catch (error) {
+    console.error('[memory] failed to clear memory', error);
+  }
+}
+// =================================================
+
+// ========== FUN CONTENT ==========
+const JOKES = [
+  "😂 Why don't scientists trust atoms? Because they make up everything!",
+  "🤣 What do you call a fake noodle? An impasta!",
+  "😆 Why did the scarecrow win an award? He was outstanding in his field!",
+  "😊 How does the moon cut his hair? Eclipse it!",
+  "😁 Why did the computer go to the doctor? It had a virus!"
+];
+
+const FACTS = [
+  "💡 Did you know? Starlife pays 2% DAILY profit on every active investment! That means $100 earns $2 every single day.",
+  "🎉 Fun fact: Starlife's shareholder program distributes $2 MILLION annually to stakeholders!",
+  "🌟 Starlife has served over 35,000 members and paid out more than $30 million in profits!",
+  "💎 The Starlife referral program gives you 10% of your referral's first investment, plus 5% and 2% for second and third levels!"
+];
+
+const QUOTES = [
+  "✨ 'The only way to do great work is to love what you do.' – Steve Jobs",
+  "💫 'Your time is limited, don't waste it living someone else's life.' – Steve Jobs",
+  "🚀 'The future belongs to those who believe in the beauty of their dreams.' – Eleanor Roosevelt",
+  "🌱 'The only impossible journey is the one you never begin.' – Tony Robbins"
+];
+// =================================
+
 exports.handler = async function handler(event) {
   if (event.httpMethod !== 'POST') {
     return json(405, { ok: false, error: 'Method not allowed' });
@@ -29,42 +125,101 @@ exports.handler = async function handler(event) {
 
   console.log('[ai-support-assistant] request received', { userId, messagePreview: userMessage.slice(0, 140) });
 
-  // Check for fun commands first (jokes, facts, quotes)
+  // ========== FUN COMMANDS ==========
   const lowerMsg = userMessage.toLowerCase();
-  if (lowerMsg.includes('joke') || lowerMsg.includes('tell me a joke')) {
-    const jokes = [
-      "😂 Why don't scientists trust atoms? Because they make up everything!",
-      "🤣 What do you call a fake noodle? An impasta!",
-      "😆 Why did the scarecrow win an award? He was outstanding in his field!",
-      "😊 How does the moon cut his hair? Eclipse it!",
-      "😁 Why did the computer go to the doctor? It had a virus!"
-    ];
-    return json(200, { ok: true, reply: jokes[Math.floor(Math.random() * jokes.length)] });
+  if (lowerMsg.includes('joke') || lowerMsg === 'tell me a joke') {
+    const joke = JOKES[Math.floor(Math.random() * JOKES.length)];
+    if (userId !== 'anonymous') await saveConversationTurn(userId, userMessage, joke);
+    return json(200, { ok: true, reply: joke });
   }
-  if (lowerMsg.includes('fact') || lowerMsg.includes('tell me a fact')) {
-    const facts = [
-      "💡 Did you know? Starlife pays 2% DAILY profit on every active investment! That means $100 earns $2 every single day.",
-      "🎉 Fun fact: Starlife's shareholder program distributes $2 MILLION annually to stakeholders!",
-      "🌟 Starlife has served over 35,000 members and paid out more than $30 million in profits!",
-      "💎 The Starlife referral program gives you 10% of your referral's first investment, plus 5% and 2% for second and third levels!"
-    ];
-    return json(200, { ok: true, reply: facts[Math.floor(Math.random() * facts.length)] });
+  if (lowerMsg.includes('fact') || lowerMsg === 'tell me a fact') {
+    const fact = FACTS[Math.floor(Math.random() * FACTS.length)];
+    if (userId !== 'anonymous') await saveConversationTurn(userId, userMessage, fact);
+    return json(200, { ok: true, reply: fact });
   }
-  if (lowerMsg.includes('quote') || lowerMsg.includes('inspire me')) {
-    const quotes = [
-      "✨ 'The only way to do great work is to love what you do.' – Steve Jobs",
-      "💫 'Your time is limited, don't waste it living someone else's life.' – Steve Jobs",
-      "🚀 'The future belongs to those who believe in the beauty of their dreams.' – Eleanor Roosevelt",
-      "🌱 'The only impossible journey is the one you never begin.' – Tony Robbins"
-    ];
-    return json(200, { ok: true, reply: quotes[Math.floor(Math.random() * quotes.length)] });
+  if (lowerMsg.includes('quote') || lowerMsg === 'inspire me') {
+    const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+    if (userId !== 'anonymous') await saveConversationTurn(userId, userMessage, quote);
+    return json(200, { ok: true, reply: quote });
   }
 
-  // Generate AI response using Groq
+  // ========== HANDLE "TALK TO HUMAN" / CREATE TICKET ==========
+  const isExplicitHandover = /(talk to human|human agent|speak to human|transfer to human|create a support ticket|create ticket|i need a human)/i.test(lowerMsg);
+  if (isExplicitHandover) {
+    console.log('[ai-support-assistant] explicit handover requested', { userId, memberId, userMessage });
+    const ticketId = `TK-${Date.now().toString(36).toUpperCase()}`;
+    let ticketDocId = null;
+    if (db) {
+      try {
+        const baseTicketPayload = {
+          userId,
+          memberId,
+          ticketId,
+          category: 'support',
+          severity: 'medium',
+          source: 'ai_support_assistant_explicit',
+          status: 'open',
+          highRiskMatches: [],
+          forceHuman: true,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+        const ticketRef = await db.collection('tickets').add({
+          ...baseTicketPayload,
+          uid: userId,
+          subject: 'Human support requested',
+          messages: [
+            { from: 'user', name: memberId || userId, text: userMessage, time: new Date().toISOString() },
+            { from: 'ai', name: 'Starlife AI', text: 'User requested human support. Ticket created.', time: new Date().toISOString() }
+          ],
+          aiReply: 'User requested human support.'
+        });
+        ticketDocId = ticketRef.id;
+        // Notify admins via Telegram
+        const adminIds = (process.env.ADMIN_IDS || '').split(',').filter(id => id.trim());
+        for (const adminId of adminIds) {
+          try {
+            await sendTelegramMessage(
+              `🆘 *HUMAN SUPPORT REQUESTED*\n\n` +
+              `User: ${memberId || userId}\n` +
+              `Message: ${userMessage}\n` +
+              `Ticket ID: ${ticketId}\n` +
+              `Action: Use /reply ${userId} <message> to respond.`
+            );
+          } catch (err) {
+            console.error('[telegram] failed to notify admin', err);
+          }
+        }
+      } catch (err) {
+        console.error('[ticket] failed to create ticket', err);
+      }
+    }
+    const reply = `✅ I've created a support ticket (${ticketId}) for you. A human agent will review your request and get back to you shortly. You can track your ticket status in "My Tickets". Thank you for your patience. 🙏`;
+    if (userId !== 'anonymous') await saveConversationTurn(userId, userMessage, reply);
+    return json(200, { ok: true, reply, ticketCreated: true, ticketId });
+  }
+
+  // ========== HANDLE /clear COMMAND ==========
+  if (userMessage.toLowerCase() === '/clear') {
+    await clearConversationMemory(userId);
+    return json(200, {
+      ok: true,
+      reply: "🧹 I've cleared our conversation history. Let's start fresh! How can I help you today? 😊"
+    });
+  }
+
+  // ========== LOAD CONVERSATION HISTORY ==========
+  let conversationHistory = [];
+  if (userId !== 'anonymous') {
+    conversationHistory = await getConversationHistory(userId, 5);
+    console.log(`[memory] loaded ${conversationHistory.length} previous turns for ${userId}`);
+  }
+
+  // ========== GENERATE AI RESPONSE ==========
   let aiResult = null;
   let providerUsed = 'groq';
   try {
-    aiResult = await generateSupportReply({ userMessage, userId });
+    aiResult = await generateSupportReply({ userMessage, conversationHistory });
   } catch (error) {
     console.error('[ai-support-assistant] provider failure', error);
     providerUsed = 'rule_based_fallback';
@@ -73,7 +228,12 @@ exports.handler = async function handler(event) {
 
   const safeReply = aiResult.reply;
 
-  // Log to Firestore if available
+  // ========== SAVE TO MEMORY ==========
+  if (userId !== 'anonymous') {
+    await saveConversationTurn(userId, userMessage, safeReply);
+  }
+
+  // ========== LOG TO FIRESTORE (optional) ==========
   if (db && userId !== 'anonymous') {
     try {
       await db.collection('ai_support_logs').add({
@@ -99,7 +259,7 @@ exports.handler = async function handler(event) {
   });
 };
 
-async function generateSupportReply({ userMessage, userId }) {
+async function generateSupportReply({ userMessage, conversationHistory }) {
   const apiKey = process.env.GROQ_API_KEY;
   const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
   const baseUrl = (process.env.GROQ_BASE_URL || 'https://api.groq.com/openai/v1').replace(/\/$/, '');
@@ -108,154 +268,82 @@ async function generateSupportReply({ userMessage, userId }) {
     throw new Error('GROQ_API_KEY is missing');
   }
 
-  // Comprehensive Starlife knowledge base
+  // Build conversation history string
+  let historyText = '';
+  if (conversationHistory && conversationHistory.length > 0) {
+    historyText = '\n\nPREVIOUS CONVERSATION:\n';
+    for (const turn of conversationHistory) {
+      historyText += `User: ${turn.userMessage}\nEmy: ${turn.assistantReply}\n`;
+    }
+    historyText += '\nNow continue naturally based on the above conversation.\n';
+  }
+
   const knowledgeBase = `
 STARLIFE KNOWLEDGE BASE (UPDATED DEC 2024):
 
 === INVESTMENTS ===
-- Minimum investment: $10 USD
-- Maximum investment: $800,000 USD
+- Minimum investment: $10 USD, Maximum: $800,000 USD
 - Daily profit: 2% of active investment (credited daily)
 - Example: $100 investment earns $2 every day
-- Investments are approved by admin within 24 hours
-- Auto-reinvest feature: automatically reinvest a percentage of daily profits
+- Investments approved by admin within 24 hours
 
 === WITHDRAWALS ===
-- Minimum withdrawal: $10 USD
-- Processing fee: 10%
-- Example: withdrawing $100 → $10 fee, you receive $90
-- Withdrawals require KYC verification (submit ID photo)
-- Withdrawals require 6-digit PIN (set in Profile)
+- Minimum withdrawal: $10 USD, Processing fee: 10%
+- Requires KYC verification and 6-digit PIN
 - Processing time: within 24 hours after admin approval
 
 === SHAREHOLDER PROGRAM ===
 - Minimum stake: $25 USD
 - Annual profit pool: $2,000,000
-- Earnings: proportional to your stake ÷ total stake × daily pool
-- Lock period: 6 months from first stake (cannot withdraw earnings before lock expires)
-- Stake from main balance, approved by admin
+- Lock period: 6 months from first stake
 
 === REFERRAL PROGRAM ===
 - Level 1: 10% of referral's first investment
-- Level 2: 5% of referral's first investment (referral's referrer)
-- Level 3: 2% of referral's first investment
-- Bonus paid only on the FIRST investment of each referred user
-- Share your referral code or link: https://starlifeadvert.netlify.app/?ref=YOUR_CODE
+- Level 2: 5%, Level 3: 2%
 
 === SAVINGS WALLET ===
-- Minimum deposit: $10
-- Lock period: 30 days (cannot withdraw early)
-- Daily profit: 3% (higher than regular investments)
-- After 30 days: withdraw principal + profit
-- Savings Vault: lock for 30/60/90 days with bonus (5%/8%/12%)
+- Minimum deposit: $10, Lock: 30 days, Daily profit: 3%
+- Savings Vault: 30/60/90 days with 5%/8%/12% bonuses
 
 === LOANS ===
 - Loan limit: total invested + shareholder stake
-- Terms: 7 days (10% interest), 14 days (20% interest), 30 days (30% interest)
-- Interest deducted upfront from loan amount
+- Terms: 7d (10% interest), 14d (20%), 30d (30%)
 - Late fee: 5% every 7 days overdue
-- Default limit: after 3 defaults, loan access restricted
 
 === DEPOSIT METHODS ===
-- M-Pesa: Till Number 6034186 (Business: Starlife Advert Us Agency)
-- PayPal: starlife.payment@starlifeadvert.com
-- USDT: Contact support for wallet address
-- Bank Transfer: Contact support for details
-- Promo codes available (apply before deposit)
+- M-Pesa: Till 6034186, PayPal: starlife.payment@starlifeadvert.com
+- USDT: contact support for address
 
-=== KYC VERIFICATION ===
+=== KYC ===
 - Required before first withdrawal
-- Upload national ID, passport, or driver's license photo
-- Processing time: within 24 hours
-- Status: pending → approved/rejected
-- Rejected: resubmit clearer photo
+- Upload ID photo, admin reviews within 24h
 
-=== VERIFICATION BADGE ===
-- Blue verified badge benefits
-- Free: invest $100+ OR refer 50+ active members
-- Paid: $10/month (auto-deducted from balance)
-- Cancel anytime from Profile
-
-=== REWARDS & GAMES ===
-- Daily Check-in: +5 points (streak bonuses at 7 and 30 days)
-- Spin Wheel: win points or cash (one spin per day)
-- Scratch Card: 3 boxes, match all 3 to win (one per day)
-- Lucky Draw: buy tickets with points or $0.50 each, 80% goes to prize pool
-- Prize Codes: redeem for cash (shared by admin)
-
-=== SURVEY POINTS ===
-- Earn points by completing surveys
-- Redeem: 1000pts = $1.00, 2000pts = $2.00, 5000pts = $5.00
-- Redemption requests approved by admin within 24 hours
-
-=== TRANSFER / GIFT ===
-- Send cash (5% fee deducted from receiver) or points (free)
-- Minimum: $1 cash or 10 points
-- Requires recipient's Member ID (first 8 characters of UID)
-- Requires withdrawal PIN for confirmation
-
-=== P2P TRADING ===
-- Post ads to buy or sell USD
-- 5% fee on seller's USD
-- 15-minute payment window
-- Dispute resolution by admin
-
-=== COMMUNITY ===
-- Anonymous posts and comments
-- Groups: create or join, chat with members
-- Posts and groups require admin approval first
-
-=== AGENT PROGRAM ===
-- Monthly salary + secretary allowance
-- Company-sponsored office in your region
-- Higher referral commissions
-- Performance ranks: Bronze, Silver, Gold, Elite
+=== REWARDS ===
+- Daily Check-in: +5 points, Spin Wheel, Scratch Card, Lucky Draw, Prize Codes
 
 === SUPPORT ===
 - Email: support@starlifeadvert.com
-- Ticket system: create ticket from Support tab
-- Response time: within 24 hours
-- Urgent issues escalated to admin
-
-=== BIRTHDAY BONUS ===
-- Set your birthday in Profile
-- Get $5 bonus every year on your birthday
-
-=== MINIMUMS & LIMITS ===
-- Investment: $10 - $800,000
-- Withdrawal: $10
-- Stake: $25
-- Savings: $10
-- Loan: $1 (up to your limit)
-- Transfer cash: $1
-- Transfer points: 10 pts
-
-=== CONTACT INFO ===
-- Support email: support@starlifeadvert.com
-- Payment email: starlife.payment@starlifeadvert.com
-- M-Pesa Till: 6034186
+- Ticket system in Support tab
 `;
 
   const systemPrompt = `You are Emy, a warm, enthusiastic, and highly engaging AI assistant for Starlife Advert.
 
-PERSONALITY RULES:
-- Be cheerful, encouraging, and conversational – like a close friend helping a family member
-- Use occasional emojis 😊, but not too many (1-2 per response max)
-- Always ask one relevant follow-up question naturally (e.g., "Would you like me to walk you through that?")
-- Never sound robotic, formal, or rushed
-- Keep responses friendly and under 3-4 sentences unless the user asks for details
-- If the user seems frustrated, apologize warmly and offer to create a support ticket
-- If the user is just chatting (hello, how are you, tell me a joke), respond playfully
-- For support questions (deposit, withdraw, invest, KYC, loans, referrals), give clear step-by-step guidance but keep it friendly
-- NEVER claim to directly change balances, approve loans, process withdrawals, or close sensitive cases
-- For risky/account-specific complaints, reply carefully, recommend human review, and avoid promises
+PERSONALITY:
+- Be cheerful, encouraging, and conversational – like a close friend.
+- Use occasional emojis 😊 (1-2 per response).
+- Ask one relevant follow-up question naturally.
+- Keep responses under 3-4 sentences unless the user asks for details.
+- If the user seems frustrated, apologize and offer to create a support ticket.
+- For support questions, give clear step-by-step guidance but keep it friendly.
+- NEVER promise to change balances, approve loans, or process withdrawals.
 
-KNOWLEDGE BASE (Starlife platform):
+KNOWLEDGE BASE:
 ${knowledgeBase}
+${historyText}
 
 USER QUESTION: ${userMessage}
 
-Now respond to the user's message naturally, helpfully, and warmly. Remember to be human-like and engaging!`;
+Now respond naturally, helpfully, and warmly.`;
 
   const controller = new AbortController();
   const timeoutMs = Number(process.env.OPENAI_TIMEOUT_MS || 15000);

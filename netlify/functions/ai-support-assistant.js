@@ -114,6 +114,7 @@ exports.handler = async function handler(event) {
   let ticketId = null;
   let ticketDocId = null;
   let supportTicketId = null;
+  let telegramAlertError = null;
   if (shouldCreateTicket) {
     ticketId = `TK-${Date.now().toString(36).toUpperCase()}`;
     const baseTicketPayload = {
@@ -162,8 +163,11 @@ exports.handler = async function handler(event) {
       `<b>Message</b>: ${escapeHtml(userMessage)}`,
       ticketId ? `Ticket ID: <b>${ticketId}</b> (${ticketDocId || 'n/a'})` : ''
     ].filter(Boolean).join('\n');
-
-    await sendTelegramMessage(alertMessage);
+    try {
+      await sendTelegramMessage(alertMessage);
+    } catch (error) {
+      telegramAlertError = error.message;
+    }
   }
 
   return json(200, {
@@ -176,6 +180,7 @@ exports.handler = async function handler(event) {
     ticketDocId,
     supportTicketId,
     fallbackUsed: Boolean(modelFailureReason),
+    telegramAlertError,
     defaultGreeting: RESPONSE_STYLES.greeting,
     supportedTopics: SUPPORTED_TOPICS
   });
@@ -303,7 +308,6 @@ function normalizeAiResult({ aiResult, userMessage, fallbackCategory, highRiskMa
   const severity = ['low', 'medium', 'high', 'critical'].includes(String(aiResult.severity || '').toLowerCase())
     ? String(aiResult.severity).toLowerCase()
     : (intentType === 'complaint' ? 'medium' : 'low');
-<<<<<<< codex/add-ai-support-assistant-for-starlife-l9zv6y
   const reply = String(aiResult.reply || '').trim() || buildFallbackReply({
     userMessage,
     inScope,
@@ -313,9 +317,6 @@ function normalizeAiResult({ aiResult, userMessage, fallbackCategory, highRiskMa
     fallbackCategory: category,
     highRiskMatches
   });
-=======
-  const reply = String(aiResult.reply || '').trim() || buildFallbackReply({ inScope, intentType, forceHuman, modelFailureReason });
->>>>>>> main
 
   return {
     in_scope: inScope,
@@ -329,19 +330,17 @@ function normalizeAiResult({ aiResult, userMessage, fallbackCategory, highRiskMa
 function buildFallbackModelResult({ userMessage, fallbackCategory, highRiskMatches, forceHuman, modelFailureReason }) {
   const normalized = String(userMessage || '').toLowerCase();
   const inScope = normalized.includes('starlife') || fallbackCategory !== 'general_guidance' || highRiskMatches.length > 0 || forceHuman;
-<<<<<<< codex/add-ai-support-assistant-for-starlife-l9zv6y
   const complaintHints = ['issue', 'problem', 'failed', 'error', 'pending', 'not working', 'help', 'deducted', 'missing', 'hacked'];
   const hasComplaintHint = complaintHints.some((hint) => normalized.includes(hint));
   const intentType = highRiskMatches.length > 0 || forceHuman || hasComplaintHint ? 'complaint' : 'faq';
-=======
-  const intentType = highRiskMatches.length > 0 || forceHuman ? 'complaint' : 'faq';
->>>>>>> main
+  const complaintHints = ['issue', 'problem', 'failed', 'error', 'pending', 'not working', 'help', 'deducted', 'missing', 'hacked'];
+  const hasComplaintHint = complaintHints.some((hint) => normalized.includes(hint));
+  const intentType = highRiskMatches.length > 0 || forceHuman || hasComplaintHint ? 'complaint' : 'faq';
   return {
     in_scope: inScope,
     intent_type: intentType,
     category: inScope ? fallbackCategory : 'out_of_scope',
     severity: highRiskMatches.length > 0 ? 'high' : (intentType === 'complaint' ? 'medium' : 'low'),
-<<<<<<< codex/add-ai-support-assistant-for-starlife-l9zv6y
     reply: buildFallbackReply({
       userMessage,
       inScope,
@@ -412,21 +411,6 @@ function getRuleBasedFaqFallback(category, userMessage) {
   if (normalized.includes('what is starlife') || normalized.includes('about starlife')) return categoryResponses.what_is_starlife;
 
   return categoryResponses.general_guidance;
-=======
-    reply: buildFallbackReply({ inScope, intentType, forceHuman, modelFailureReason })
-  };
-}
-
-function buildFallbackReply({ inScope, intentType, forceHuman, modelFailureReason }) {
-  if (!inScope) return formatOutOfScopeReply();
-  if (forceHuman) {
-    return 'I have handed this over to a human support agent. Please continue in your support ticket.';
-  }
-  if (intentType === 'complaint') {
-    return `I understand this issue. I have logged it for support review${modelFailureReason ? ' while AI response is temporarily limited' : ''}. Please share any transaction ID or screenshot in your ticket.`;
-  }
-  return `I can help with Starlife support. Please ask your question again in short form${modelFailureReason ? ' (AI is temporarily limited)' : ''}.`;
->>>>>>> main
 }
 
 function formatResponse({ body }) {

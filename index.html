@@ -7876,10 +7876,23 @@
                         message: text
                     })
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 await wait(850);
                 window._aiChatHistory.pop();
-                if (!res.ok || !data.ok) throw new Error(data.error || 'AI support unavailable');
+                if (!res.ok) {
+                    if (data.reply) {
+                        pushAiChatRow('bot', data.reply, 'human');
+                        return;
+                    }
+                    throw new Error(data.error || 'AI support unavailable');
+                }
+                if (!data.ok) {
+                    if (data.reply) {
+                        pushAiChatRow('bot', data.reply, 'human');
+                        return;
+                    }
+                    throw new Error(data.error || 'AI support unavailable');
+                }
                 window._aiLastCategory = data.category || 'general_guidance';
                 window._aiLastSeverity = data.severity || 'low';
                 pushAiChatRow('bot', data.reply || 'I can help with Starlife support topics only.');

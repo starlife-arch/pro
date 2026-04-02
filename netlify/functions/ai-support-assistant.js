@@ -183,7 +183,10 @@ exports.handler = async function handler(event) {
     supportTicketId,
     fallbackUsed: Boolean(modelFailureReason),
     telegramAlertError,
+<<<<<<< codex/add-ai-support-assistant-for-starlife-b572dt
     providerUsed,
+=======
+>>>>>>> main
     defaultGreeting: RESPONSE_STYLES.greeting,
     supportedTopics: SUPPORTED_TOPICS
   });
@@ -209,12 +212,20 @@ function sanitizeCategory(category) {
 }
 
 async function generateSupportReply({ userMessage, highRiskMatches, fallbackCategory }) {
+<<<<<<< codex/add-ai-support-assistant-for-starlife-b572dt
   const apiKey = process.env.GROQ_API_KEY;
   const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
   const baseUrl = (process.env.GROQ_BASE_URL || 'https://api.groq.com/openai/v1').replace(/\/$/, '');
 
   if (!apiKey) {
     throw new Error('GROQ_API_KEY is missing');
+=======
+  const apiKey = process.env.OPENAI_API_KEY;
+  const model = process.env.OPENAI_MODEL || 'gpt-4.1-mini';
+
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY is missing');
+>>>>>>> main
   }
 
   const knowledgeBase = buildKnowledgeBaseText();
@@ -244,7 +255,11 @@ async function generateSupportReply({ userMessage, highRiskMatches, fallbackCate
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   let response;
   try {
+<<<<<<< codex/add-ai-support-assistant-for-starlife-b572dt
     response = await fetch(`${baseUrl}/responses`, {
+=======
+    response = await fetch('https://api.openai.com/v1/responses', {
+>>>>>>> main
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -286,7 +301,11 @@ async function generateSupportReply({ userMessage, highRiskMatches, fallbackCate
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
+<<<<<<< codex/add-ai-support-assistant-for-starlife-b572dt
     throw new Error(data.error?.message || `Groq API error: ${response.status}`);
+=======
+    throw new Error(data.error?.message || `OpenAI API error: ${response.status}`);
+>>>>>>> main
   }
 
   const content = data.output_text;
@@ -337,6 +356,12 @@ function buildFallbackModelResult({ userMessage, fallbackCategory, highRiskMatch
   const complaintHints = ['issue', 'problem', 'failed', 'error', 'pending', 'not working', 'help', 'deducted', 'missing', 'hacked'];
   const hasComplaintHint = complaintHints.some((hint) => normalized.includes(hint));
   const intentType = highRiskMatches.length > 0 || forceHuman || hasComplaintHint ? 'complaint' : 'faq';
+<<<<<<< codex/add-ai-support-assistant-for-starlife-b572dt
+=======
+  const complaintHints = ['issue', 'problem', 'failed', 'error', 'pending', 'not working', 'help', 'deducted', 'missing', 'hacked'];
+  const hasComplaintHint = complaintHints.some((hint) => normalized.includes(hint));
+  const intentType = highRiskMatches.length > 0 || forceHuman || hasComplaintHint ? 'complaint' : 'faq';
+>>>>>>> main
   return {
     in_scope: inScope,
     intent_type: intentType,

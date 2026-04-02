@@ -93,6 +93,7 @@ exports.handler = async function handler(event) {
       const details = createdGroups.slice(0, 20).map((group, index) => (
         `${index + 1}) ${group.userId} (${group.memberId || 'no-memberId'})\n` +
         `amount=${group.amount}, count=${group.count}, likelyAffectedBalance=${group.likelyAffectedBalance}\n` +
+        `investmentIds=${group.investmentDocIds.join(', ')}\n` +
         `timestamps=${group.timestamps.join(', ')}`
       ));
 
@@ -128,6 +129,7 @@ async function createDuplicateAlert(db, cluster) {
   const amount = first.amount;
   const count = cluster.length;
   const timestamps = cluster.map((x) => x.createdAt.toISOString());
+  const investmentDocIds = cluster.map((x) => x.id);
   const likelyAffectedBalance = amount * count;
 
   const alertKey = [
@@ -149,7 +151,8 @@ async function createDuplicateAlert(db, cluster) {
       amount,
       count,
       timestamps,
-      likelyAffectedBalance
+      likelyAffectedBalance,
+      investmentDocIds
     }
   });
 
@@ -161,7 +164,8 @@ async function createDuplicateAlert(db, cluster) {
       amount,
       count,
       timestamps,
-      likelyAffectedBalance
+      likelyAffectedBalance,
+      investmentDocIds
     }
   };
 }

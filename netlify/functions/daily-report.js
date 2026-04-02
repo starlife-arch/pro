@@ -33,6 +33,9 @@ exports.handler = async function handler(event) {
     let unresolvedRiskAlerts = 0;
     let duplicateInvestmentAlerts = 0;
     let negativeBalanceAlerts = 0;
+    let heldBalanceMisuseAlerts = 0;
+
+    const unresolvedAlertSummaries = [];
 
     for (const alertDoc of alertsSnap.docs) {
       unresolvedRiskAlerts += 1;
@@ -43,9 +46,30 @@ exports.handler = async function handler(event) {
       if (alert.type === 'negative_balance' || alert.type === 'negative_available_balance') {
         negativeBalanceAlerts += 1;
       }
+      if (alert.type === 'held_balance_misuse') {
+        heldBalanceMisuseAlerts += 1;
+      }
+
+      unresolvedAlertSummaries.push({
+        type: alert.type || 'unknown',
+        userId: alert.userId || 'n/a',
+        memberId: alert.memberId || null,
+        createdAt: timestampToDate(alert.createdAt),
+        id: alertDoc.id
+      });
     }
 
     const activeInvestors = countActiveInvestors(usersSnap.docs);
+
+    unresolvedAlertSummaries.sort((a, b) => {
+      const at = a.createdAt ? a.createdAt.getTime() : 0;
+      const bt = b.createdAt ? b.createdAt.getTime() : 0;
+      return bt - at;
+    });
+
+    const top5Newest = unresolvedAlertSummaries.slice(0, 5).map((alert, index) => (
+      `${index + 1}) ${alert.type} | ${alert.memberId || alert.userId} | ${alert.createdAt ? alert.createdAt.toISOString() : 'no-createdAt'} | ${alert.id}`
+    ));
 
     const message = [
       '📊 <b>Daily Starlife Admin Report</b>',
@@ -56,7 +80,11 @@ exports.handler = async function handler(event) {
       `Unresolved risk alerts: <b>${unresolvedRiskAlerts}</b>`,
       `Duplicate investment alerts: <b>${duplicateInvestmentAlerts}</b>`,
       `Negative balance alerts: <b>${negativeBalanceAlerts}</b>`,
-      `Active investors: <b>${activeInvestors !== null ? activeInvestors : 'N/A'}</b>`
+      `Held-balance misuse alerts: <b>${heldBalanceMisuseAlerts}</b>`,
+      `Active investors: <b>${activeInvestors !== null ? activeInvestors : 'N/A'}</b>`,
+      '',
+      '<b>Top 5 newest unresolved alerts</b>',
+      ...(top5Newest.length ? top5Newest : ['None'])
     ].join('\n');
 
     await sendTelegramMessage(message);
@@ -71,6 +99,7 @@ exports.handler = async function handler(event) {
           unresolvedRiskAlerts,
           duplicateInvestmentAlerts,
           negativeBalanceAlerts,
+          heldBalanceMisuseAlerts,
           activeInvestors
         }
       })

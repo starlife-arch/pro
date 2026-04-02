@@ -1,28 +1,5 @@
 const { getDb, admin } = require('./_lib/firebase');
 const { sendTelegramMessage } = require('./_lib/telegram');
-const {
-  detectHighRiskTriggers,
-  inferFaqCategory,
-  buildKnowledgeBaseText,
-  RESPONSE_STYLES,
-  styleForIntent,
-  detectUserTone,
-  EMY_PERSONALITY,
-  SMALL_TALK_PATTERNS
-} = require('./_lib/support-assistant');
-
-const SUPPORTED_TOPICS = [
-  'what_is_starlife',
-  'deposit',
-  'withdraw',
-  'invest',
-  'referrals',
-  'loans',
-  'points',
-  'kyc',
-  'support',
-  'general_guidance'
-];
 
 exports.handler = async function handler(event) {
   if (event.httpMethod !== 'POST') {
@@ -44,230 +21,85 @@ exports.handler = async function handler(event) {
   const userId = payload.userId || payload.uid || 'anonymous';
   const memberId = payload.memberId || null;
   let db = null;
-  let persistenceError = null;
   try {
     db = getDb();
   } catch (error) {
-    persistenceError = error.message;
-    console.error('[ai-support-assistant] firestore unavailable', { persistenceError });
+    console.error('[ai-support-assistant] firestore unavailable', error);
   }
-  console.log('[ai-support-assistant] request received', {
-    userId,
-    memberId,
-    forceHuman: Boolean(payload.forceHuman),
-    messagePreview: userMessage.slice(0, 140)
-  });
 
-  const highRiskMatches = detectHighRiskTriggers(userMessage);
-  const fallbackCategory = inferFaqCategory(userMessage);
-  const forceHuman = Boolean(payload.forceHuman);
-  const userTone = detectUserTone(userMessage);
-  const sessionState = sanitizeSessionState(payload.sessionState);
+  console.log('[ai-support-assistant] request received', { userId, messagePreview: userMessage.slice(0, 140) });
 
+  // Check for fun commands first (jokes, facts, quotes)
+  const lowerMsg = userMessage.toLowerCase();
+  if (lowerMsg.includes('joke') || lowerMsg.includes('tell me a joke')) {
+    const jokes = [
+      "😂 Why don't scientists trust atoms? Because they make up everything!",
+      "🤣 What do you call a fake noodle? An impasta!",
+      "😆 Why did the scarecrow win an award? He was outstanding in his field!",
+      "😊 How does the moon cut his hair? Eclipse it!",
+      "😁 Why did the computer go to the doctor? It had a virus!"
+    ];
+    return json(200, { ok: true, reply: jokes[Math.floor(Math.random() * jokes.length)] });
+  }
+  if (lowerMsg.includes('fact') || lowerMsg.includes('tell me a fact')) {
+    const facts = [
+      "💡 Did you know? Starlife pays 2% DAILY profit on every active investment! That means $100 earns $2 every single day.",
+      "🎉 Fun fact: Starlife's shareholder program distributes $2 MILLION annually to stakeholders!",
+      "🌟 Starlife has served over 35,000 members and paid out more than $30 million in profits!",
+      "💎 The Starlife referral program gives you 10% of your referral's first investment, plus 5% and 2% for second and third levels!"
+    ];
+    return json(200, { ok: true, reply: facts[Math.floor(Math.random() * facts.length)] });
+  }
+  if (lowerMsg.includes('quote') || lowerMsg.includes('inspire me')) {
+    const quotes = [
+      "✨ 'The only way to do great work is to love what you do.' – Steve Jobs",
+      "💫 'Your time is limited, don't waste it living someone else's life.' – Steve Jobs",
+      "🚀 'The future belongs to those who believe in the beauty of their dreams.' – Eleanor Roosevelt",
+      "🌱 'The only impossible journey is the one you never begin.' – Tony Robbins"
+    ];
+    return json(200, { ok: true, reply: quotes[Math.floor(Math.random() * quotes.length)] });
+  }
+
+  // Generate AI response using Groq
   let aiResult = null;
-  let modelFailureReason = null;
-  let providerUsed = 'rule_based_fallback';
-  const localReply = buildStatefulLocalReply({ userMessage, sessionState, fallbackCategory, highRiskMatches });
-  if (localReply) {
-    aiResult = localReply;
-    providerUsed = 'stateful_local';
-    console.log('[ai-support-assistant] local stateful reply selected', {
-      category: localReply.category,
-      severity: localReply.severity
-    });
-  } else {
+  let providerUsed = 'groq';
+  try {
+    aiResult = await generateSupportReply({ userMessage, userId });
+  } catch (error) {
+    console.error('[ai-support-assistant] provider failure', error);
+    providerUsed = 'rule_based_fallback';
+    aiResult = getFallbackReply(userMessage);
+  }
+
+  const safeReply = aiResult.reply;
+
+  // Log to Firestore if available
+  if (db && userId !== 'anonymous') {
     try {
-      aiResult = await generateSupportReply({
+      await db.collection('ai_support_logs').add({
+        userId,
+        memberId,
         userMessage,
-        highRiskMatches,
-        fallbackCategory,
-        forceHuman,
-        userTone,
-        sessionState
+        aiReply: safeReply,
+        providerUsed,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
       });
-      providerUsed = 'groq';
     } catch (error) {
-      modelFailureReason = error.message;
-      console.error('[ai-support-assistant] provider failure', { modelFailureReason });
+      console.error('[ai-support-assistant] failed to write log', error);
     }
   }
 
-  const normalizedResult = normalizeAiResult({
-    aiResult,
-    userMessage,
-    fallbackCategory,
-    highRiskMatches,
-    forceHuman,
-    modelFailureReason,
-    userTone
-  });
-
-  const inScope = normalizedResult.in_scope;
-  const initialCategory = sanitizeCategory(normalizedResult.category);
-  const isComplaint = normalizedResult.intent_type === 'complaint' || highRiskMatches.length > 0 || forceHuman;
-
-  const category = !inScope
-    ? 'out_of_scope'
-    : (initialCategory || inferFaqCategory(userMessage));
-
-  const severity = decideSeverity({
-    inScope,
-    isComplaint,
-    modelSeverity: normalizedResult.severity,
-    highRiskMatches,
-    forceHuman
-  });
-
-  const shouldCreateTicket = inScope && (isComplaint || severity !== 'low' || forceHuman || highRiskMatches.length > 0);
-  const shouldAlertAdmin = ['high', 'critical'].includes(severity) && highRiskMatches.length > 0;
-
-  const safeReply = inScope
-    ? formatResponse({ body: normalizedResult.reply })
-    : formatOutOfScopeReply();
-
-  const logDoc = {
-    userId,
-    memberId,
-    userMessage,
-    aiReply: safeReply,
-    category,
-    severity,
-    highRiskMatches,
-    adminAlertTriggered: shouldAlertAdmin,
-    ticketCreated: shouldCreateTicket,
-    forceHuman,
-    responseStyle: styleForIntent({ inScope, intentType: normalizedResult.intent_type, severity, forceHuman }),
-    modelFailureReason,
-    userTone,
-    intentType: isComplaint ? 'complaint' : 'faq',
-    inScope,
-    createdAt: admin.firestore.FieldValue.serverTimestamp()
-  };
-
-  let logRef = { id: null };
-  if (db) {
-    try {
-      logRef = await db.collection('ai_support_logs').add(logDoc);
-    } catch (error) {
-      persistenceError = error.message;
-      console.error('[ai-support-assistant] failed to write ai_support_logs', { persistenceError });
-    }
-  }
-
-  let ticketId = null;
-  let ticketDocId = null;
-  let supportTicketId = null;
-  let telegramAlertError = null;
-  if (shouldCreateTicket && db) {
-    ticketId = `TK-${Date.now().toString(36).toUpperCase()}`;
-    const baseTicketPayload = {
-      userId,
-      memberId,
-      ticketId,
-      category,
-      severity,
-      source: 'ai_support_assistant',
-      logId: logRef.id,
-      status: 'open',
-      highRiskMatches,
-      forceHuman,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    };
-
-    const ticketRef = await db.collection('tickets').add({
-      ...baseTicketPayload,
-      uid: userId,
-      subject: `AI Support: ${category.replace(/_/g, ' ')}`,
-      messages: [
-        { from: 'user', name: memberId || userId, text: userMessage, time: new Date().toISOString() },
-        { from: 'ai', name: 'Starlife AI', text: safeReply, time: new Date().toISOString() }
-      ],
-      aiReply: safeReply
-    });
-    ticketDocId = ticketRef.id;
-
-    const supportTicketRef = await db.collection('support_tickets').add({
-      ...baseTicketPayload,
-      userMessage,
-      aiReply: safeReply
-    });
-    supportTicketId = supportTicketRef.id;
-  } else if (shouldCreateTicket && !db) {
-    persistenceError = persistenceError || 'Firestore unavailable; ticket not persisted.';
-  }
-
-  if (shouldAlertAdmin) {
-    const alertMessage = [
-      '🚨 <b>Starlife AI High-Risk Support Alert</b>',
-      `User: <b>${memberId || userId}</b>`,
-      `Severity: <b>${severity.toUpperCase()}</b>`,
-      `Category: <b>${category}</b>`,
-      `Triggers: ${highRiskMatches.join(', ')}`,
-      '',
-      `<b>Message</b>: ${escapeHtml(userMessage)}`,
-      ticketId ? `Ticket ID: <b>${ticketId}</b> (${ticketDocId || 'n/a'})` : ''
-    ].filter(Boolean).join('\n');
-    try {
-      await sendTelegramMessage(alertMessage);
-    } catch (error) {
-      telegramAlertError = error.message;
-      console.error('[ai-support-assistant] telegram alert failed', { telegramAlertError });
-    }
-  }
-
-  console.log('[ai-support-assistant] response summary', {
-    providerUsed,
-    fallbackUsed: Boolean(modelFailureReason),
-    modelFailureReason,
-    telegramAlertError,
-    replyPreview: safeReply.slice(0, 220),
-    category,
-    severity,
-    ticketId
-  });
-  
   return json(200, {
     ok: true,
     reply: safeReply,
-    category,
-    severity,
-    adminAlertTriggered: shouldAlertAdmin,
-    ticketId,
-    ticketDocId,
-    supportTicketId,
-    fallbackUsed: Boolean(modelFailureReason),
-    modelFailureReason,
-    telegramAlertError,
-    persistenceError,
+    category: aiResult.category || 'general_guidance',
+    severity: 'low',
     providerUsed,
-    defaultGreeting: "Hi 👋 I’m Emy, Starlife Support Assistant. How can I help you today?",
-    supportedTopics: SUPPORTED_TOPICS
-    ,
-    sessionState: aiResult?.session_state || sessionState
+    defaultGreeting: "🌟 Hi! I'm Emy, your Starlife AI assistant! I'm here to help with investments, withdrawals, shareholder program, loans, savings, referrals, and more. What can I do for you today? 💫"
   });
 };
 
-function decideSeverity({ inScope, isComplaint, modelSeverity, highRiskMatches, forceHuman }) {
-  if (!inScope) return 'low';
-  if (highRiskMatches.length > 0) return highRiskMatches.length >= 2 ? 'critical' : 'high';
-  if (forceHuman && !['high', 'critical'].includes(modelSeverity)) return 'medium';
-
-  const severity = String(modelSeverity || '').toLowerCase();
-  if (['low', 'medium', 'high', 'critical'].includes(severity)) {
-    return severity;
-  }
-
-  return isComplaint ? 'medium' : 'low';
-}
-
-function sanitizeCategory(category) {
-  const normalized = String(category || '').toLowerCase().trim();
-  if (SUPPORTED_TOPICS.includes(normalized)) return normalized;
-  return null;
-}
-
-async function generateSupportReply({ userMessage, highRiskMatches, fallbackCategory, userTone, sessionState }) {
+async function generateSupportReply({ userMessage, userId }) {
   const apiKey = process.env.GROQ_API_KEY;
   const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
   const baseUrl = (process.env.GROQ_BASE_URL || 'https://api.groq.com/openai/v1').replace(/\/$/, '');
@@ -276,41 +108,161 @@ async function generateSupportReply({ userMessage, highRiskMatches, fallbackCate
     throw new Error('GROQ_API_KEY is missing');
   }
 
-  const knowledgeBase = buildKnowledgeBaseText();
+  // Comprehensive Starlife knowledge base
+  const knowledgeBase = `
+STARLIFE KNOWLEDGE BASE (UPDATED DEC 2024):
 
-  const systemPrompt = [
-    `You are ${EMY_PERSONALITY.identity}.`,
-    `Tone must always be ${EMY_PERSONALITY.tone}.`,
-    `Style must be ${EMY_PERSONALITY.style}.`,
-    `If user says hi/hello/hey, greet naturally: "${SMALL_TALK_PATTERNS.hello}"`,
-    'For platform help requests, guide users step-by-step instead of always giving full instructions at once.',
-    'Give the next step, ask what they see on screen, and wait for their response before continuing.',
-    'Keep responses short, clear, and conversational.',
-    'Adjust tone for friendly, confused, upset, frustrated, or thankful users without sounding fake.',
-    'Use polite closings where appropriate: "You’re welcome.", "I’m glad I could help.", "Please check My Tickets for updates.", "Have a great day."',
-    'You only answer Starlife platform support and guidance.',
-    'Allowed topics: what is starlife, deposits, withdrawals, investments, referrals, loans, points, kyc, support, and general platform guidance.',
-    'If user asks unrelated topic, set in_scope=false and provide a brief refusal.',
-    'Never claim to directly change balances, approve loans, process withdrawals, modify investments, or close sensitive cases.',
-    'For risky/account-specific complaints, reply carefully, recommend human review, and avoid promises.',
-    'Output valid JSON only matching the schema.'
-  ].join(' ');
+=== INVESTMENTS ===
+- Minimum investment: $10 USD
+- Maximum investment: $800,000 USD
+- Daily profit: 2% of active investment (credited daily)
+- Example: $100 investment earns $2 every day
+- Investments are approved by admin within 24 hours
+- Auto-reinvest feature: automatically reinvest a percentage of daily profits
 
-  const userPrompt = {
-    user_message: userMessage,
-    user_tone: userTone,
-    session_state: sessionState,
-    high_risk_matches: highRiskMatches,
-    fallback_category: fallbackCategory,
-    knowledge_base: knowledgeBase
-  };
+=== WITHDRAWALS ===
+- Minimum withdrawal: $10 USD
+- Processing fee: 10%
+- Example: withdrawing $100 → $10 fee, you receive $90
+- Withdrawals require KYC verification (submit ID photo)
+- Withdrawals require 6-digit PIN (set in Profile)
+- Processing time: within 24 hours after admin approval
+
+=== SHAREHOLDER PROGRAM ===
+- Minimum stake: $25 USD
+- Annual profit pool: $2,000,000
+- Earnings: proportional to your stake ÷ total stake × daily pool
+- Lock period: 6 months from first stake (cannot withdraw earnings before lock expires)
+- Stake from main balance, approved by admin
+
+=== REFERRAL PROGRAM ===
+- Level 1: 10% of referral's first investment
+- Level 2: 5% of referral's first investment (referral's referrer)
+- Level 3: 2% of referral's first investment
+- Bonus paid only on the FIRST investment of each referred user
+- Share your referral code or link: https://starlifeadvert.netlify.app/?ref=YOUR_CODE
+
+=== SAVINGS WALLET ===
+- Minimum deposit: $10
+- Lock period: 30 days (cannot withdraw early)
+- Daily profit: 3% (higher than regular investments)
+- After 30 days: withdraw principal + profit
+- Savings Vault: lock for 30/60/90 days with bonus (5%/8%/12%)
+
+=== LOANS ===
+- Loan limit: total invested + shareholder stake
+- Terms: 7 days (10% interest), 14 days (20% interest), 30 days (30% interest)
+- Interest deducted upfront from loan amount
+- Late fee: 5% every 7 days overdue
+- Default limit: after 3 defaults, loan access restricted
+
+=== DEPOSIT METHODS ===
+- M-Pesa: Till Number 6034186 (Business: Starlife Advert Us Agency)
+- PayPal: starlife.payment@starlifeadvert.com
+- USDT: Contact support for wallet address
+- Bank Transfer: Contact support for details
+- Promo codes available (apply before deposit)
+
+=== KYC VERIFICATION ===
+- Required before first withdrawal
+- Upload national ID, passport, or driver's license photo
+- Processing time: within 24 hours
+- Status: pending → approved/rejected
+- Rejected: resubmit clearer photo
+
+=== VERIFICATION BADGE ===
+- Blue verified badge benefits
+- Free: invest $100+ OR refer 50+ active members
+- Paid: $10/month (auto-deducted from balance)
+- Cancel anytime from Profile
+
+=== REWARDS & GAMES ===
+- Daily Check-in: +5 points (streak bonuses at 7 and 30 days)
+- Spin Wheel: win points or cash (one spin per day)
+- Scratch Card: 3 boxes, match all 3 to win (one per day)
+- Lucky Draw: buy tickets with points or $0.50 each, 80% goes to prize pool
+- Prize Codes: redeem for cash (shared by admin)
+
+=== SURVEY POINTS ===
+- Earn points by completing surveys
+- Redeem: 1000pts = $1.00, 2000pts = $2.00, 5000pts = $5.00
+- Redemption requests approved by admin within 24 hours
+
+=== TRANSFER / GIFT ===
+- Send cash (5% fee deducted from receiver) or points (free)
+- Minimum: $1 cash or 10 points
+- Requires recipient's Member ID (first 8 characters of UID)
+- Requires withdrawal PIN for confirmation
+
+=== P2P TRADING ===
+- Post ads to buy or sell USD
+- 5% fee on seller's USD
+- 15-minute payment window
+- Dispute resolution by admin
+
+=== COMMUNITY ===
+- Anonymous posts and comments
+- Groups: create or join, chat with members
+- Posts and groups require admin approval first
+
+=== AGENT PROGRAM ===
+- Monthly salary + secretary allowance
+- Company-sponsored office in your region
+- Higher referral commissions
+- Performance ranks: Bronze, Silver, Gold, Elite
+
+=== SUPPORT ===
+- Email: support@starlifeadvert.com
+- Ticket system: create ticket from Support tab
+- Response time: within 24 hours
+- Urgent issues escalated to admin
+
+=== BIRTHDAY BONUS ===
+- Set your birthday in Profile
+- Get $5 bonus every year on your birthday
+
+=== MINIMUMS & LIMITS ===
+- Investment: $10 - $800,000
+- Withdrawal: $10
+- Stake: $25
+- Savings: $10
+- Loan: $1 (up to your limit)
+- Transfer cash: $1
+- Transfer points: 10 pts
+
+=== CONTACT INFO ===
+- Support email: support@starlifeadvert.com
+- Payment email: starlife.payment@starlifeadvert.com
+- M-Pesa Till: 6034186
+`;
+
+  const systemPrompt = `You are Emy, a warm, enthusiastic, and highly engaging AI assistant for Starlife Advert.
+
+PERSONALITY RULES:
+- Be cheerful, encouraging, and conversational – like a close friend helping a family member
+- Use occasional emojis 😊, but not too many (1-2 per response max)
+- Always ask one relevant follow-up question naturally (e.g., "Would you like me to walk you through that?")
+- Never sound robotic, formal, or rushed
+- Keep responses friendly and under 3-4 sentences unless the user asks for details
+- If the user seems frustrated, apologize warmly and offer to create a support ticket
+- If the user is just chatting (hello, how are you, tell me a joke), respond playfully
+- For support questions (deposit, withdraw, invest, KYC, loans, referrals), give clear step-by-step guidance but keep it friendly
+- NEVER claim to directly change balances, approve loans, process withdrawals, or close sensitive cases
+- For risky/account-specific complaints, reply carefully, recommend human review, and avoid promises
+
+KNOWLEDGE BASE (Starlife platform):
+${knowledgeBase}
+
+USER QUESTION: ${userMessage}
+
+Now respond to the user's message naturally, helpfully, and warmly. Remember to be human-like and engaging!`;
 
   const controller = new AbortController();
   const timeoutMs = Number(process.env.OPENAI_TIMEOUT_MS || 15000);
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   let response;
   try {
-    response = await fetch(`${baseUrl}/responses`, {
+    response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -318,43 +270,13 @@ async function generateSupportReply({ userMessage, highRiskMatches, fallbackCate
       },
       signal: controller.signal,
       body: JSON.stringify({
-      model,
-      input: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: JSON.stringify(userPrompt) }
-      ],
-      text: {
-        format: {
-          type: 'json_schema',
-          name: 'starlife_support_result',
-          schema: {
-            type: 'object',
-            additionalProperties: false,
-            properties: {
-              in_scope: { type: 'boolean' },
-              intent_type: { type: 'string', enum: ['faq', 'complaint'] },
-              category: {
-                type: 'string',
-                enum: [...SUPPORTED_TOPICS, 'out_of_scope']
-              },
-              severity: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] },
-              reply: { type: 'string' },
-              session_state: {
-                type: 'object',
-                additionalProperties: false,
-                properties: {
-                  activeTask: { type: ['string', 'null'], enum: ['deposit', 'withdraw', 'invest', 'kyc', 'referrals', 'loans', null] },
-                  step: { type: 'integer' },
-                  lastInstruction: { type: 'string' },
-                  status: { type: 'string', enum: ['idle', 'guiding', 'stuck'] }
-                },
-                required: ['activeTask', 'step', 'lastInstruction', 'status']
-              }
-            },
-            required: ['in_scope', 'intent_type', 'category', 'severity', 'reply']
-          }
-        }
-      }
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage }
+        ],
+        temperature: 0.8,
+        max_tokens: 500
       })
     });
   } finally {
@@ -366,337 +288,62 @@ async function generateSupportReply({ userMessage, highRiskMatches, fallbackCate
     throw new Error(data.error?.message || `Groq API error: ${response.status}`);
   }
 
-  const content = data.output_text;
+  const content = data.choices?.[0]?.message?.content;
   if (!content) {
-    throw new Error('OpenAI did not return output_text');
+    throw new Error('Groq did not return content');
   }
 
-  return JSON.parse(content);
+  return { reply: content, category: 'general_guidance' };
 }
 
-function normalizeAiResult({ aiResult, userMessage, fallbackCategory, highRiskMatches, forceHuman, modelFailureReason, userTone }) {
-  if (!aiResult || typeof aiResult !== 'object') {
-    return buildFallbackModelResult({ userMessage, fallbackCategory, highRiskMatches, forceHuman, modelFailureReason, userTone });
+function getFallbackReply(userMessage) {
+  const lower = userMessage.toLowerCase();
+  if (lower.includes('invest')) {
+    return { reply: "📈 To invest in Starlife, go to the Invest tab, enter an amount ($10–$800,000), choose your payment method, and submit your transaction reference. Admin approves within 24 hours, then you earn 2% daily! Would you like me to explain the daily profit calculation? 💰", category: 'invest' };
   }
-
-  const inScope = typeof aiResult.in_scope === 'boolean'
-    ? aiResult.in_scope
-    : true;
-  const intentType = aiResult.intent_type === 'complaint' || highRiskMatches.length > 0 || forceHuman
-    ? 'complaint'
-    : 'faq';
-  const category = sanitizeCategory(aiResult.category) || fallbackCategory;
-  const severity = ['low', 'medium', 'high', 'critical'].includes(String(aiResult.severity || '').toLowerCase())
-    ? String(aiResult.severity).toLowerCase()
-    : (intentType === 'complaint' ? 'medium' : 'low');
-  const reply = String(aiResult.reply || '').trim() || buildFallbackReply({
-    userMessage,
-    inScope,
-    intentType,
-    forceHuman,
-    modelFailureReason,
-    fallbackCategory: category,
-    highRiskMatches,
-    userTone
-  });
-
-  return {
-    in_scope: inScope,
-    intent_type: intentType,
-    category,
-    severity,
-    reply,
-    session_state: sanitizeSessionState(aiResult.session_state)
-  };
-}
-
-function buildFallbackModelResult({ userMessage, fallbackCategory, highRiskMatches, forceHuman, modelFailureReason, userTone }) {
-  const normalized = String(userMessage || '').toLowerCase();
-  const inScope = normalized.includes('starlife') || fallbackCategory !== 'general_guidance' || highRiskMatches.length > 0 || forceHuman;
-  const complaintHints = ['issue', 'problem', 'failed', 'error', 'pending', 'not working', 'help', 'deducted', 'missing', 'hacked'];
-  const hasComplaintHint = complaintHints.some((hint) => normalized.includes(hint));
-  const intentType = highRiskMatches.length > 0 || forceHuman || hasComplaintHint ? 'complaint' : 'faq';
-  return {
-    in_scope: inScope,
-    intent_type: intentType,
-    category: inScope ? fallbackCategory : 'out_of_scope',
-    severity: highRiskMatches.length > 0 ? 'high' : (intentType === 'complaint' ? 'medium' : 'low'),
-    reply: buildFallbackReply({
-      userMessage,
-      inScope,
-      intentType,
-      forceHuman,
-      modelFailureReason,
-      fallbackCategory,
-      highRiskMatches,
-      userTone
-    }),
-    session_state: sanitizeSessionState(null)
-  };
-}
-
-function buildFallbackReply({
-  userMessage,
-  inScope,
-  intentType,
-  forceHuman,
-  modelFailureReason,
-  fallbackCategory,
-  highRiskMatches,
-  userTone
-}) {
-  const category = sanitizeCategory(fallbackCategory) || 'general_guidance';
-  const highRisk = Array.isArray(highRiskMatches) && highRiskMatches.length > 0;
-  const tonePrefix = tonePrefixFor(userTone);
-  const trimmed = String(userMessage || '').trim();
-  const isGreetingOnly = /^(hi|hello|hey|good morning|good afternoon|good evening)\b/i.test(trimmed);
-  const asksHowAreYou = /\b(how are you|how're you|how r u)\b/i.test(trimmed);
-  const guidedRequest = isGuidedSupportRequest(category, trimmed);
-
-  if (!inScope) return formatOutOfScopeReply();
-  if (isGreetingOnly) {
-    return "Hi 👋 I’m Emy, Starlife Support Assistant. How can I help you today?";
+  if (lower.includes('withdraw')) {
+    return { reply: "💳 To withdraw, first complete KYC verification and set your 6-digit PIN in Profile. Then go to Withdraw tab, enter amount ($10+), choose method, and provide payment details. There's a 10% fee. Need help setting up your PIN or KYC? 🔐", category: 'withdraw' };
   }
-  if (asksHowAreYou) {
-    return SMALL_TALK_PATTERNS.how_are_you;
+  if (lower.includes('shareholder') || lower.includes('stake')) {
+    return { reply: "💎 The Shareholder Program requires a minimum stake of $25 from your main balance. You'll earn from the $2 million annual profit pool based on your stake proportion. Earnings are locked for 6 months. Want to know how the pool is distributed daily? 🌟", category: 'shareholder' };
   }
-  if (forceHuman) {
-    return `${tonePrefix}I’ve handed this over to a human support agent. A support ticket has been created. Please check My Tickets for updates.`;
+  if (lower.includes('referral') || lower.includes('refer')) {
+    return { reply: "👥 Our referral program gives you 10% of your friend's first investment, plus 5% for level 2 and 2% for level 3! Share your unique code from the Referral tab. Each new member earns you passive income. Ready to invite someone? 🚀", category: 'referral' };
   }
-  if (highRisk) {
-    return `${tonePrefix}I understand why this feels serious, and I’m treating it as urgent. A support ticket has been created and our team will review it as quickly as possible. Please check My Tickets for updates.`;
+  if (lower.includes('loan')) {
+    return { reply: "💰 You can borrow up to your total invested + shareholder stake. Choose 7, 14, or 30 days with interest rates 10%, 20%, or 30% deducted upfront. Repay on time to avoid 5% late fees every 7 days. Want to check your loan limit? 📊", category: 'loan' };
   }
-  if (intentType === 'complaint') {
-    const reason = modelFailureReason ? ' (AI is temporarily unavailable)' : '';
-    return `${tonePrefix}I understand your concern. I’ve logged this for support review${reason}. Please check My Tickets for updates and share any transaction ID or screenshot so we can resolve it faster.`;
+  if (lower.includes('savings') || lower.includes('vault')) {
+    return { reply: "🏦 Savings Wallet locks your funds for 30 days but earns 3% daily – higher than regular investments! You can also use Vault for 30/60/90 days with 5-12% bonuses. Would you like to see a comparison of the options? 💡", category: 'savings' };
   }
-  if (guidedRequest) {
-    return `${tonePrefix}${buildGuidedSupportReply(category, trimmed)}`;
+  if (lower.includes('kyc') || lower.includes('verify') || lower.includes('id')) {
+    return { reply: "🪪 KYC verification is required before your first withdrawal. Go to Profile → Identity Verification, upload a clear photo of your National ID, Passport, or Driver's License. Admin reviews within 24 hours. Need help with the upload? 📸", category: 'kyc' };
   }
-
-  const faqAnswer = getRuleBasedFaqFallback(category, userMessage);
-  if (faqAnswer) return `${tonePrefix}${faqAnswer}`;
-
-  return `${tonePrefix}I’m here to help with Starlife support. Tell me what you’re trying to do, and I’ll guide you step by step.`;
-}
-
-function getRuleBasedFaqFallback(category, userMessage) {
-  const normalized = String(userMessage || '').toLowerCase();
-  const categoryResponses = {
-    what_is_starlife: 'Starlife is a platform where users can fund wallets, invest, earn points, use referrals, and access support features based on platform rules.',
-    deposit: 'To deposit, go to the Deposit section, choose your payment method, enter the amount, and follow the instructions shown.',
-    withdraw: 'To withdraw, open the Withdraw section, enter the amount, confirm the request, and wait for processing.',
-    invest: 'To invest, open the Invest section, choose a package, and confirm the amount.',
-    referrals: 'Use your referral link or code to invite others. Referral rewards apply according to the platform rules.',
-    loans: 'To request a loan, open the Loan section, check eligibility, choose your preferred term, and submit your request.',
-    points: 'Points are earned from platform activities and can affect rewards or eligibility based on current Starlife rules.',
-    kyc: 'KYC review may take some time. Make sure your submitted documents are clear, valid, and match your account details.',
-    support: 'For support, open the Support page or use Talk to human. You can track replies in My Tickets. Official support email is support@starlifeadvert.com.',
-    general_guidance: 'I can help with Starlife deposits, withdrawals, investments, referrals, loans, points, KYC, security, and support tickets.'
-  };
-
-  if (categoryResponses[category]) return categoryResponses[category];
-
-  if (normalized.includes('kyc') || normalized.includes('verify')) return categoryResponses.kyc;
-  if (normalized.includes('deposit') || normalized.includes('fund')) return categoryResponses.deposit;
-  if (normalized.includes('withdraw')) return categoryResponses.withdraw;
-  if (normalized.includes('invest')) return categoryResponses.invest;
-  if (normalized.includes('referral') || normalized.includes('invite')) return categoryResponses.referrals;
-  if (normalized.includes('loan')) return categoryResponses.loans;
-  if (normalized.includes('point')) return categoryResponses.points;
-  if (normalized.includes('support') || normalized.includes('agent')) return categoryResponses.support;
-  if (normalized.includes('official email') || normalized.includes('support email')) return 'Official Starlife support email is support@starlifeadvert.com. For payment email on deposit page, use starlife.payment@starlifeadvert.com.';
-  if (normalized.includes('deposit method') || normalized.includes('how to deposit')) return 'Deposit methods currently shown in Starlife are M-Pesa, PayPal, USDT (BEP20), and USDT (TRC20).';
-  if (normalized.includes('withdrawal method') || normalized.includes('how to withdraw')) return 'Withdrawal methods currently shown in Starlife are M-Pesa, Bank Transfer, PayPal, USDT (BEP20), and USDT (TRC20).';
-  if (normalized.includes('security') || normalized.includes('hacked') || normalized.includes('fraud')) return 'For security, never share your password, OTP, PIN, or seed phrase. Report suspicious activity immediately through Support so it can be escalated.';
-  if (normalized.includes('what is starlife') || normalized.includes('about starlife')) return categoryResponses.what_is_starlife;
-
-  return categoryResponses.general_guidance;
-}
-
-function formatResponse({ body }) {
-  const conciseBody = String(body || '').trim();
-  if (!conciseBody) return 'Thanks for reaching out. Please share your Starlife question and I will guide you.';
-  return conciseBody;
-}
-
-function formatOutOfScopeReply() {
-  return 'Hi, I’m Emy 👋 I mostly handle Starlife support and platform guidance. If you want, I can help with deposits, withdrawals, investments, referrals, loans, points, KYC, or support tickets.';
-}
-
-function tonePrefixFor(userTone) {
-  const tone = String(userTone || 'friendly');
-  if (tone === 'thankful') return 'You’re welcome. ';
-  if (tone === 'frustrated') return 'I understand this is frustrating. ';
-  if (tone === 'upset') return 'I’m sorry you’re dealing with this. ';
-  if (tone === 'worried') return 'I understand this can feel worrying. ';
-  if (tone === 'confused') return 'No worries — I can clarify this. ';
-  return '';
-}
-
-function sanitizeSessionState(raw) {
-  const allowedTasks = new Set(['deposit', 'withdraw', 'invest', 'kyc', 'referrals', 'loans']);
-  const base = {
-    activeTask: null,
-    step: 0,
-    lastInstruction: '',
-    status: 'idle'
-  };
-  if (!raw || typeof raw !== 'object') return base;
-  const task = allowedTasks.has(raw.activeTask) ? raw.activeTask : null;
-  const step = Number.isFinite(Number(raw.step)) ? Math.max(0, Math.min(10, Number(raw.step))) : 0;
-  const status = ['idle', 'guiding', 'stuck'].includes(raw.status) ? raw.status : 'idle';
-  return {
-    activeTask: task,
-    step,
-    lastInstruction: String(raw.lastInstruction || ''),
-    status
-  };
-}
-
-function buildStatefulLocalReply({ userMessage, sessionState, fallbackCategory, highRiskMatches }) {
-  const text = String(userMessage || '').trim();
-  const normalized = text.toLowerCase();
-  const isHighRisk = highRiskMatches.length > 0;
-  if (isHighRisk) return null;
-
-  const smallTalk = handleSmallTalk(normalized);
-  if (smallTalk) {
-    return {
-      in_scope: true,
-      intent_type: 'faq',
-      category: 'support',
-      severity: 'low',
-      reply: smallTalk,
-      session_state: sessionState
-    };
+  if (lower.includes('points') || lower.includes('survey')) {
+    return { reply: "📝 Complete surveys to earn points! Go to Surveys tab, answer questions, and get points. Redeem 1000 points for $1.00 cash, 2000 for $2, or 5000 for $5. Want to see available surveys? 🎯", category: 'survey' };
   }
-
-  const activeTask = sessionState.activeTask;
-  const shortFollowUp = /^(yes|no|done|next|what now|ok|okay|i can't see it|cant see it|i cannot see it)$/i.test(normalized);
-  if (activeTask && (shortFollowUp || normalized.startsWith('i see'))) {
-    const progress = nextGuidedStep(activeTask, sessionState.step, normalized);
-    return {
-      in_scope: true,
-      intent_type: 'faq',
-      category: activeTask,
-      severity: 'low',
-      reply: progress.reply,
-      session_state: progress.sessionState
-    };
+  if (lower.includes('transfer') || lower.includes('gift') || lower.includes('send')) {
+    return { reply: "💸 You can send cash (5% fee deducted from receiver) or points (free) to any member. Go to More → Transfer / Gift, enter their Member ID, amount, and optional message. Requires your withdrawal PIN. Who would you like to send to? 🎁", category: 'transfer' };
   }
-
-  const guidedTask = detectGuidedTask(normalized, fallbackCategory);
-  if (guidedTask) {
-    const start = startGuidedFlow(guidedTask);
-    return {
-      in_scope: true,
-      intent_type: 'faq',
-      category: guidedTask,
-      severity: 'low',
-      reply: start.reply,
-      session_state: start.sessionState
-    };
+  if (lower.includes('spin') || lower.includes('wheel')) {
+    return { reply: "🎰 The Daily Spin Wheel gives you a chance to win points or cash! One spin per day. Go to Rewards tab and click Spin Now. Want to know the prize odds? ✨", category: 'rewards' };
   }
-
-  return null;
-}
-
-function handleSmallTalk(normalized) {
-  if (/^(hi|hello|hey)\b/.test(normalized)) return SMALL_TALK_PATTERNS.hello;
-  if (/\b(how are you|how're you|how r u)\b/.test(normalized)) return SMALL_TALK_PATTERNS.how_are_you;
-  if (/^(thanks|thank you|thx)\b/.test(normalized)) return SMALL_TALK_PATTERNS.thanks;
-  if (/^(bye|goodbye|see you)\b/.test(normalized)) return SMALL_TALK_PATTERNS.bye;
-  if (/^(ok|okay|alright)$/.test(normalized)) return SMALL_TALK_PATTERNS.okay;
-  return null;
-}
-
-function detectGuidedTask(normalized, fallbackCategory) {
-  if (/\b(guide|walk me|step by step|how do i|help me)\b/.test(normalized) || fallbackCategory !== 'general_guidance') {
-    const taskMap = [
-      ['deposit', /\bdeposit|top up|fund\b/],
-      ['withdraw', /\bwithdraw|cash out\b/],
-      ['invest', /\binvest|investment\b/],
-      ['kyc', /\bkyc|verify|verification\b/],
-      ['referrals', /\breferral|invite\b/],
-      ['loans', /\bloan|borrow\b/]
-    ];
-    for (const [task, pattern] of taskMap) {
-      if (pattern.test(normalized) || fallbackCategory === task) return task;
-    }
+  if (lower.includes('scratch')) {
+    return { reply: "🃏 Scratch Card is a daily game – tap each box to reveal symbols. Match all 3 to win points or cash! One card per day, completely free. Ready to play? 🎁", category: 'rewards' };
   }
-  return null;
-}
-
-function startGuidedFlow(task) {
-  const starts = {
-    deposit: 'Sure 👋 Open the Deposit tab first. Tell me what you see there.',
-    withdraw: 'Sure 👋 Open the Withdraw tab first. Tell me what withdrawal methods you can see.',
-    invest: 'Sure 👋 Open the Invest tab first and tell me what package options you see.',
-    kyc: 'Sure 👋 Open the KYC/Verification section first. Tell me what fields or document prompts are shown.',
-    referrals: 'Sure 👋 Open the Referral tab first. Tell me if you can see your referral link/code.',
-    loans: 'Sure 👋 Open the Loan tab first and tell me what eligibility or limit you see.'
-  };
-  return {
-    reply: starts[task] || 'Sure 👋 Tell me which screen you are on and I’ll guide you.',
-    sessionState: { activeTask: task, step: 1, lastInstruction: starts[task] || '', status: 'guiding' }
-  };
-}
-
-function nextGuidedStep(task, step, normalized) {
-  const cantSee = normalized.includes("can't see") || normalized.includes('cannot see') || normalized.includes('cant see') || normalized === 'no';
-  if (cantSee) {
-    if (task === 'deposit' && step <= 1) {
-      const reply = 'No worries. Look for the row with buttons like Invest, Withdraw, Deposit, and Spin. Do you see the Deposit button there?';
-      return { reply, sessionState: { activeTask: 'deposit', step: 1, lastInstruction: reply, status: 'stuck' } };
-    }
-    const reply = 'No worries — you’re close. Please tell me exactly what buttons or labels you can see now, and I’ll guide you from there.';
-    return { reply, sessionState: { activeTask: task, step, lastInstruction: reply, status: 'stuck' } };
+  if (lower.includes('check-in') || lower.includes('checkin')) {
+    return { reply: "📅 Daily Check-in gives you +5 points every day! Keep a streak for 7 days (bonus +5) and 30 days (bonus +10). Have you checked in today? 🔥", category: 'rewards' };
   }
-
-  if (normalized === 'yes' || normalized === 'done' || normalized === 'next' || normalized === 'what now' || normalized === 'ok' || normalized === 'okay') {
-    if (task === 'deposit' && step <= 1) {
-      const reply = 'Great. Tap Deposit, then tell me which payment methods appear.';
-      return { reply, sessionState: { activeTask: 'deposit', step: 2, lastInstruction: reply, status: 'guiding' } };
-    }
-    const reply = 'Perfect. Follow the next on-screen step, then tell me what you see next.';
-    return { reply, sessionState: { activeTask: task, step: step + 1, lastInstruction: reply, status: 'guiding' } };
+  if (lower.includes('agent')) {
+    return { reply: "⭐ Our Agent Program offers monthly salary, secretary allowance, and a company-sponsored office! Performance ranks: Bronze, Silver, Gold, Elite. Interested in becoming an agent? Contact support@starlifeadvert.com 🚀", category: 'agent' };
   }
-
-  if (normalized.startsWith('i see')) {
-    const reply = 'Perfect. Choose the option you want to use, then tell me what the next screen shows.';
-    return { reply, sessionState: { activeTask: task, step: step + 1, lastInstruction: reply, status: 'guiding' } };
+  if (lower.includes('contact') || lower.includes('support') || lower.includes('help')) {
+    return { reply: "📧 Need human support? Email support@starlifeadvert.com or open a ticket from the Support tab. We typically respond within 24 hours. For urgent issues, mention 'urgent' in your message. How can I help you today? 🎧", category: 'support' };
   }
-
-  const reply = 'Great progress. Tell me what you see next, and I’ll guide you step by step.';
-  return { reply, sessionState: { activeTask: task, step: step + 1, lastInstruction: reply, status: 'guiding' } };
-}
-
-function isGuidedSupportRequest(category, message) {
-  const normalized = String(message || '').toLowerCase();
-  const guidedCategories = new Set(['deposit', 'withdraw', 'invest', 'kyc', 'referrals', 'loans']);
-  const asksGuide = /\b(guide|walk me|step by step|how do i|help me)\b/.test(normalized);
-  const progressSignals = /\b(i see|i opened|i have opened|done|next|what now|i chose|i selected)\b/.test(normalized);
-  return (guidedCategories.has(category) && (asksGuide || progressSignals));
-}
-
-function buildGuidedSupportReply(category, message) {
-  const normalized = String(message || '').toLowerCase();
-
-  if (/\b(i see|i opened|done|next|what now|i chose|i selected)\b/.test(normalized)) {
-    return 'Great — you’re doing well. Follow the next on-screen step and tell me exactly what you see next, then I’ll guide you from there.';
+  if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) {
+    return { reply: "🌟 Hello there! I'm Emy, your Starlife AI assistant. I'm here to help with investments, withdrawals, shareholder program, loans, and more! What brings you here today? 😊", category: 'greeting' };
   }
-
-  const flows = {
-    deposit: 'Sure 👋 First, open the Deposit tab. Tell me which payment options you can see (for example M-Pesa, PayPal, or USDT).',
-    withdraw: 'Sure 👋 First, open the Withdraw tab and enter the amount you want to withdraw. Tell me what withdrawal methods are shown.',
-    invest: 'Sure 👋 First, open the Invest tab and choose the package or amount you want. Tell me what options you see next.',
-    kyc: 'Sure 👋 First, open the KYC/Verification section. Upload clear, valid documents that match your profile details. Tell me what status appears after submission.',
-    referrals: 'Sure 👋 First, open the Referral section and copy your referral link/code. Tell me once you can see it, and I’ll guide you on sharing it correctly.',
-    loans: 'Sure 👋 First, open the Loan section and check your eligibility/limit. Tell me what limit or term options you can see next.'
-  };
-
-  return flows[category] || 'Sure 👋 Tell me what screen you are on now, and I’ll guide you step by step.';
+  return { reply: "🌟 Hi! I'm Emy, your Starlife AI assistant. I can help with investments (2% daily profit), withdrawals, shareholder program ($2M annual pool), loans, savings, referrals, and more. What would you like to know about Starlife today? 💫", category: 'general_guidance' };
 }
 
 function json(statusCode, payload) {
@@ -705,11 +352,4 @@ function json(statusCode, payload) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   };
-}
-
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
 }

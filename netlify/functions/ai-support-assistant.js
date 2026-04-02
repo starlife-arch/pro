@@ -333,6 +333,9 @@ function buildFallbackModelResult({ userMessage, fallbackCategory, highRiskMatch
   const complaintHints = ['issue', 'problem', 'failed', 'error', 'pending', 'not working', 'help', 'deducted', 'missing', 'hacked'];
   const hasComplaintHint = complaintHints.some((hint) => normalized.includes(hint));
   const intentType = highRiskMatches.length > 0 || forceHuman || hasComplaintHint ? 'complaint' : 'faq';
+  const complaintHints = ['issue', 'problem', 'failed', 'error', 'pending', 'not working', 'help', 'deducted', 'missing', 'hacked'];
+  const hasComplaintHint = complaintHints.some((hint) => normalized.includes(hint));
+  const intentType = highRiskMatches.length > 0 || forceHuman || hasComplaintHint ? 'complaint' : 'faq';
   return {
     in_scope: inScope,
     intent_type: intentType,

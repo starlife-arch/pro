@@ -226,7 +226,7 @@ exports.handler = async function handler(event) {
     severity,
     ticketId
   });
-
+  
   return json(200, {
     ok: true,
     reply: safeReply,

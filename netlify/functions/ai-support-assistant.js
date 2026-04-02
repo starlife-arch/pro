@@ -53,13 +53,13 @@ async function saveConversationTurn(userId, userMessage, assistantReply) {
     const turnRef = db.collection('conversation_memory')
       .doc(userId)
       .collection('messages')
-      .doc(); // auto ID
+      .doc();
     await turnRef.set({
       userMessage,
       assistantReply,
       timestamp: admin.firestore.FieldValue.serverTimestamp()
     });
-    // Keep only last 20 messages per user (cleanup)
+    // Cleanup: keep only last 20 messages
     const allMessages = await db.collection('conversation_memory')
       .doc(userId)
       .collection('messages')
@@ -90,11 +90,45 @@ async function clearConversationMemory(userId) {
       .get();
     snapshot.forEach(doc => batch.delete(doc.ref));
     await batch.commit();
-    console.log(`[memory] cleared history for ${userId}`);
   } catch (error) {
     console.error('[memory] failed to clear memory', error);
   }
 }
+// =================================================
+
+// ========== FUN CONTENT (Jokes, Facts, Quotes) ==========
+const JOKES = [
+  "😂 Why don't scientists trust atoms? Because they make up everything!",
+  "😄 Why did the scarecrow win an award? He was outstanding in his field!",
+  "🤣 What do you call a fake noodle? An impasta!",
+  "😆 Why did the math book look so sad? It had too many problems!",
+  "😊 How does the moon cut his hair? Eclipse it!",
+  "😁 Why did the computer go to the doctor? It had a virus!",
+  "🤔 What do you call a bear with no teeth? A gummy bear!",
+  "😎 Why don't eggs tell jokes? They'd crack each other up!"
+];
+
+const FACTS = [
+  "🐝 Honey never spoils! Archaeologists have found 3000-year-old honey that's still edible.",
+  "🧠 Octopuses have three hearts! Two pump blood to gills, one to the body.",
+  "🌊 The shortest war was Britain-Zanzibar in 1896. It lasted 38 minutes!",
+  "🐌 Snails can sleep for up to three years when hibernating.",
+  "🦒 A giraffe's neck has the same number of vertebrae as humans: seven!",
+  "🐧 Penguins propose to their mates with pebbles!",
+  "🌟 Starlife has been helping Ghanaians secure their future for over 20 years!",
+  "📱 You can access Starlife services via USSD *7373# on any phone."
+];
+
+const QUOTES = [
+  "🌟 'The only way to do great work is to love what you do.' - Steve Jobs",
+  "💫 'Your time is limited, don't waste it living someone else's life.' - Steve Jobs",
+  "🚀 'The future belongs to those who believe in the beauty of their dreams.' - Eleanor Roosevelt",
+  "🌱 'The only impossible journey is the one you never begin.' - Tony Robbins",
+  "💖 'Be yourself; everyone else is already taken.' - Oscar Wilde",
+  "✨ 'Success is not final, failure is not fatal: it is the courage to continue that counts.' - Winston Churchill",
+  "🏆 'Your premium is an investment in your family's future.' - Starlife",
+  "💪 'Financial freedom starts with one step: saving today.' - Starlife"
+];
 // =================================================
 
 exports.handler = async function handler(event) {
@@ -116,7 +150,7 @@ exports.handler = async function handler(event) {
 
   const userId = payload.userId || payload.uid || 'anonymous';
   const memberId = payload.memberId || null;
-  const currentScreen = payload.currentScreen || 'unknown'; // NEW: get screen context
+  const currentScreen = payload.currentScreen || 'unknown';
   let db = null;
   let persistenceError = null;
   try {
@@ -126,12 +160,114 @@ exports.handler = async function handler(event) {
     console.error('[ai-support-assistant] firestore unavailable', { persistenceError });
   }
 
+  // ========== HANDLE FUN COMMANDS (JOKE, FACT, QUOTE) ==========
+  const lowerMsg = userMessage.toLowerCase();
+  if (lowerMsg.includes('joke') || lowerMsg === 'tell me a joke' || lowerMsg === 'joke') {
+    const joke = JOKES[Math.floor(Math.random() * JOKES.length)];
+    if (userId !== 'anonymous') {
+      await saveConversationTurn(userId, userMessage, joke);
+    }
+    return json(200, { ok: true, reply: joke, category: 'fun', severity: 'low' });
+  }
+  if (lowerMsg.includes('fact') || lowerMsg === 'tell me a fact' || lowerMsg === 'fact') {
+    const fact = FACTS[Math.floor(Math.random() * FACTS.length)];
+    if (userId !== 'anonymous') {
+      await saveConversationTurn(userId, userMessage, fact);
+    }
+    return json(200, { ok: true, reply: fact, category: 'fun', severity: 'low' });
+  }
+  if (lowerMsg.includes('quote') || lowerMsg === 'inspire me' || lowerMsg === 'quote') {
+    const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+    if (userId !== 'anonymous') {
+      await saveConversationTurn(userId, userMessage, quote);
+    }
+    return json(200, { ok: true, reply: quote, category: 'fun', severity: 'low' });
+  }
+  // ============================================================
+
+  // ========== HANDLE "TALK TO HUMAN" & "CREATE TICKET" ==========
+  const isExplicitHandover = /(talk to human|human agent|speak to human|transfer to human|create a support ticket|create ticket|i need a human)/i.test(lowerMsg);
+  if (isExplicitHandover) {
+    console.log('[ai-support-assistant] explicit handover requested', { userId, memberId, userMessage });
+    const ticketId = `TK-${Date.now().toString(36).toUpperCase()}`;
+    let ticketDocId = null;
+    let supportTicketId = null;
+    if (db) {
+      try {
+        const baseTicketPayload = {
+          userId,
+          memberId,
+          ticketId,
+          category: 'support',
+          severity: 'medium',
+          source: 'ai_support_assistant_explicit',
+          status: 'open',
+          highRiskMatches: [],
+          forceHuman: true,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+        const ticketRef = await db.collection('tickets').add({
+          ...baseTicketPayload,
+          uid: userId,
+          subject: 'Human support requested',
+          messages: [
+            { from: 'user', name: memberId || userId, text: userMessage, time: new Date().toISOString() },
+            { from: 'ai', name: 'Starlife AI', text: 'User requested human support. Ticket created.', time: new Date().toISOString() }
+          ],
+          aiReply: 'User requested human support.'
+        });
+        ticketDocId = ticketRef.id;
+        const supportTicketRef = await db.collection('support_tickets').add({
+          ...baseTicketPayload,
+          userMessage,
+          aiReply: 'User requested human support.'
+        });
+        supportTicketId = supportTicketRef.id;
+        // Notify admins via Telegram
+        const adminIds = (process.env.ADMIN_IDS || '').split(',').filter(id => id.trim());
+        for (const adminId of adminIds) {
+          try {
+            await sendTelegramMessage(
+              `🆘 *HUMAN SUPPORT REQUESTED*\n\n` +
+              `User: ${memberId || userId}\n` +
+              `Message: ${userMessage}\n` +
+              `Ticket ID: ${ticketId}\n` +
+              `Action: Use /reply ${userId} <message> to respond.`
+            );
+          } catch (err) {
+            console.error('[telegram] failed to notify admin', err);
+          }
+        }
+      } catch (err) {
+        console.error('[ticket] failed to create ticket', err);
+        persistenceError = err.message;
+      }
+    }
+    const reply = `✅ I've created a support ticket (${ticketId}) for you. A human agent will review your request and get back to you shortly. You can track your ticket status in "My Tickets". Thank you for your patience. 🙏`;
+    if (userId !== 'anonymous') {
+      await saveConversationTurn(userId, userMessage, reply);
+    }
+    return json(200, {
+      ok: true,
+      reply,
+      ticketCreated: true,
+      ticketId,
+      ticketDocId,
+      supportTicketId,
+      category: 'support',
+      severity: 'medium',
+      handover: true
+    });
+  }
+  // ================================================================
+
   // Handle /clear command
   if (userMessage.toLowerCase() === '/clear') {
     await clearConversationMemory(userId);
     return json(200, {
       ok: true,
-      reply: "🧹 I've cleared our conversation history. Let's start fresh! How can I help you today?",
+      reply: "🧹 I've cleared our conversation history. Let's start fresh! How can I help you today? 😊",
       category: 'support',
       severity: 'low',
       memoryCleared: true
@@ -162,6 +298,8 @@ exports.handler = async function handler(event) {
   let aiResult = null;
   let modelFailureReason = null;
   let providerUsed = 'rule_based_fallback';
+
+  // Try local stateful reply first (handles guided steps, small talk)
   const localReply = buildStatefulLocalReply({ userMessage, sessionState, fallbackCategory, highRiskMatches });
   if (localReply) {
     aiResult = localReply;
@@ -179,8 +317,8 @@ exports.handler = async function handler(event) {
         forceHuman,
         userTone,
         sessionState,
-        conversationHistory,     // NEW: pass memory
-        currentScreen           // NEW: pass screen context
+        conversationHistory,
+        currentScreen
       });
       providerUsed = 'groq';
     } catch (error) {
@@ -218,49 +356,15 @@ exports.handler = async function handler(event) {
   const shouldCreateTicket = inScope && (isComplaint || severity !== 'low' || forceHuman || highRiskMatches.length > 0);
   const shouldAlertAdmin = ['high', 'critical'].includes(severity) && highRiskMatches.length > 0;
 
-  const safeReply = inScope
+  let safeReply = inScope
     ? formatResponse({ body: normalizedResult.reply })
     : formatOutOfScopeReply();
-
-  // Save this conversation turn to memory
-  if (userId !== 'anonymous' && safeReply) {
-    await saveConversationTurn(userId, userMessage, safeReply);
-  }
-
-  const logDoc = {
-    userId,
-    memberId,
-    userMessage,
-    aiReply: safeReply,
-    category,
-    severity,
-    highRiskMatches,
-    adminAlertTriggered: shouldAlertAdmin,
-    ticketCreated: shouldCreateTicket,
-    forceHuman,
-    responseStyle: styleForIntent({ inScope, intentType: normalizedResult.intent_type, severity, forceHuman }),
-    modelFailureReason,
-    userTone,
-    currentScreen,
-    intentType: isComplaint ? 'complaint' : 'faq',
-    inScope,
-    createdAt: admin.firestore.FieldValue.serverTimestamp()
-  };
-
-  let logRef = { id: null };
-  if (db) {
-    try {
-      logRef = await db.collection('ai_support_logs').add(logDoc);
-    } catch (error) {
-      persistenceError = error.message;
-      console.error('[ai-support-assistant] failed to write ai_support_logs', { persistenceError });
-    }
-  }
 
   let ticketId = null;
   let ticketDocId = null;
   let supportTicketId = null;
   let telegramAlertError = null;
+
   if (shouldCreateTicket && db) {
     ticketId = `TK-${Date.now().toString(36).toUpperCase()}`;
     const baseTicketPayload = {
@@ -270,7 +374,7 @@ exports.handler = async function handler(event) {
       category,
       severity,
       source: 'ai_support_assistant',
-      logId: logRef.id,
+      logId: null,
       status: 'open',
       highRiskMatches,
       forceHuman,
@@ -296,8 +400,52 @@ exports.handler = async function handler(event) {
       aiReply: safeReply
     });
     supportTicketId = supportTicketRef.id;
+
+    if (!safeReply.includes('ticket') && !safeReply.includes('Ticket')) {
+      safeReply += `\n\n📋 I've created a support ticket (${ticketId}) for you. Our team will review it soon. You can check status in "My Tickets".`;
+    }
   } else if (shouldCreateTicket && !db) {
     persistenceError = persistenceError || 'Firestore unavailable; ticket not persisted.';
+  }
+
+  // Save conversation turn to memory
+  if (userId !== 'anonymous' && safeReply) {
+    await saveConversationTurn(userId, userMessage, safeReply);
+  }
+
+  // Log the interaction
+  const logDoc = {
+    userId,
+    memberId,
+    userMessage,
+    aiReply: safeReply,
+    category,
+    severity,
+    highRiskMatches,
+    adminAlertTriggered: shouldAlertAdmin,
+    ticketCreated: shouldCreateTicket,
+    forceHuman,
+    responseStyle: styleForIntent({ inScope, intentType: normalizedResult.intent_type, severity, forceHuman }),
+    modelFailureReason,
+    userTone,
+    currentScreen,
+    intentType: isComplaint ? 'complaint' : 'faq',
+    inScope,
+    createdAt: admin.firestore.FieldValue.serverTimestamp()
+  };
+
+  let logRef = { id: null };
+  if (db) {
+    try {
+      logRef = await db.collection('ai_support_logs').add(logDoc);
+      if (shouldCreateTicket && ticketDocId) {
+        await db.collection('tickets').doc(ticketDocId).update({ logId: logRef.id });
+        await db.collection('support_tickets').doc(supportTicketId).update({ logId: logRef.id });
+      }
+    } catch (error) {
+      persistenceError = error.message;
+      console.error('[ai-support-assistant] failed to write ai_support_logs', { persistenceError });
+    }
   }
 
   if (shouldAlertAdmin) {
@@ -309,7 +457,7 @@ exports.handler = async function handler(event) {
       `Triggers: ${highRiskMatches.join(', ')}`,
       '',
       `<b>Message</b>: ${escapeHtml(userMessage)}`,
-      ticketId ? `Ticket ID: <b>${ticketId}</b> (${ticketDocId || 'n/a'})` : ''
+      ticketId ? `Ticket ID: <b>${ticketId}</b>` : ''
     ].filter(Boolean).join('\n');
     try {
       await sendTelegramMessage(alertMessage);
@@ -329,7 +477,7 @@ exports.handler = async function handler(event) {
     severity,
     ticketId
   });
-  
+
   return json(200, {
     ok: true,
     reply: safeReply,
@@ -344,7 +492,7 @@ exports.handler = async function handler(event) {
     telegramAlertError,
     persistenceError,
     providerUsed,
-    defaultGreeting: "Hi 👋 I’m Emy, Starlife Support Assistant. How can I help you today?",
+    defaultGreeting: "Hi 👋 I’m Emy, Starlife Support Assistant. How can I help you today? 😊",
     supportedTopics: SUPPORTED_TOPICS,
     sessionState: aiResult?.session_state || sessionState
   });
@@ -354,12 +502,8 @@ function decideSeverity({ inScope, isComplaint, modelSeverity, highRiskMatches, 
   if (!inScope) return 'low';
   if (highRiskMatches.length > 0) return highRiskMatches.length >= 2 ? 'critical' : 'high';
   if (forceHuman && !['high', 'critical'].includes(modelSeverity)) return 'medium';
-
   const severity = String(modelSeverity || '').toLowerCase();
-  if (['low', 'medium', 'high', 'critical'].includes(severity)) {
-    return severity;
-  }
-
+  if (['low', 'medium', 'high', 'critical'].includes(severity)) return severity;
   return isComplaint ? 'medium' : 'low';
 }
 
@@ -374,10 +518,9 @@ async function generateSupportReply({ userMessage, highRiskMatches, fallbackCate
   const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
   const baseUrl = (process.env.GROQ_BASE_URL || 'https://api.groq.com/openai/v1').replace(/\/$/, '');
 
-  if (!apiKey) {
-    throw new Error('GROQ_API_KEY is missing');
-  }
+  if (!apiKey) throw new Error('GROQ_API_KEY is missing');
 
+  // Use the imported knowledge base (which should now contain the full Starlife information)
   const knowledgeBase = buildKnowledgeBaseText();
 
   // Build conversation history string
@@ -484,15 +627,9 @@ Now respond to the user's message naturally and helpfully.`;
   }
 
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data.error?.message || `Groq API error: ${response.status}`);
-  }
-
+  if (!response.ok) throw new Error(data.error?.message || `Groq API error: ${response.status}`);
   const content = data.output_text;
-  if (!content) {
-    throw new Error('OpenAI did not return output_text');
-  }
-
+  if (!content) throw new Error('OpenAI did not return output_text');
   return JSON.parse(content);
 }
 
@@ -500,28 +637,15 @@ function normalizeAiResult({ aiResult, userMessage, fallbackCategory, highRiskMa
   if (!aiResult || typeof aiResult !== 'object') {
     return buildFallbackModelResult({ userMessage, fallbackCategory, highRiskMatches, forceHuman, modelFailureReason, userTone });
   }
-
-  const inScope = typeof aiResult.in_scope === 'boolean'
-    ? aiResult.in_scope
-    : true;
-  const intentType = aiResult.intent_type === 'complaint' || highRiskMatches.length > 0 || forceHuman
-    ? 'complaint'
-    : 'faq';
+  const inScope = typeof aiResult.in_scope === 'boolean' ? aiResult.in_scope : true;
+  const intentType = aiResult.intent_type === 'complaint' || highRiskMatches.length > 0 || forceHuman ? 'complaint' : 'faq';
   const category = sanitizeCategory(aiResult.category) || fallbackCategory;
   const severity = ['low', 'medium', 'high', 'critical'].includes(String(aiResult.severity || '').toLowerCase())
     ? String(aiResult.severity).toLowerCase()
     : (intentType === 'complaint' ? 'medium' : 'low');
   const reply = String(aiResult.reply || '').trim() || buildFallbackReply({
-    userMessage,
-    inScope,
-    intentType,
-    forceHuman,
-    modelFailureReason,
-    fallbackCategory: category,
-    highRiskMatches,
-    userTone
+    userMessage, inScope, intentType, forceHuman, modelFailureReason, fallbackCategory: category, highRiskMatches, userTone
   });
-
   return {
     in_scope: inScope,
     intent_type: intentType,
@@ -543,30 +667,12 @@ function buildFallbackModelResult({ userMessage, fallbackCategory, highRiskMatch
     intent_type: intentType,
     category: inScope ? fallbackCategory : 'out_of_scope',
     severity: highRiskMatches.length > 0 ? 'high' : (intentType === 'complaint' ? 'medium' : 'low'),
-    reply: buildFallbackReply({
-      userMessage,
-      inScope,
-      intentType,
-      forceHuman,
-      modelFailureReason,
-      fallbackCategory,
-      highRiskMatches,
-      userTone
-    }),
+    reply: buildFallbackReply({ userMessage, inScope, intentType, forceHuman, modelFailureReason, fallbackCategory, highRiskMatches, userTone }),
     session_state: sanitizeSessionState(null)
   };
 }
 
-function buildFallbackReply({
-  userMessage,
-  inScope,
-  intentType,
-  forceHuman,
-  modelFailureReason,
-  fallbackCategory,
-  highRiskMatches,
-  userTone
-}) {
+function buildFallbackReply({ userMessage, inScope, intentType, forceHuman, modelFailureReason, fallbackCategory, highRiskMatches, userTone }) {
   const category = sanitizeCategory(fallbackCategory) || 'general_guidance';
   const highRisk = Array.isArray(highRiskMatches) && highRiskMatches.length > 0;
   const tonePrefix = tonePrefixFor(userTone);
@@ -576,49 +682,35 @@ function buildFallbackReply({
   const guidedRequest = isGuidedSupportRequest(category, trimmed);
 
   if (!inScope) return formatOutOfScopeReply();
-  if (isGreetingOnly) {
-    return "Hi 👋 I’m Emy, Starlife Support Assistant. How can I help you today?";
-  }
-  if (asksHowAreYou) {
-    return SMALL_TALK_PATTERNS.how_are_you;
-  }
-  if (forceHuman) {
-    return `${tonePrefix}I’ve handed this over to a human support agent. A support ticket has been created. Please check My Tickets for updates.`;
-  }
-  if (highRisk) {
-    return `${tonePrefix}I understand why this feels serious, and I’m treating it as urgent. A support ticket has been created and our team will review it as quickly as possible. Please check My Tickets for updates.`;
-  }
+  if (isGreetingOnly) return "Hi 👋 I’m Emy, Starlife Support Assistant. How can I help you today? 😊";
+  if (asksHowAreYou) return "I'm doing great, thank you! 😊 Ready to help you with anything on Starlife. What do you need?";
+  if (forceHuman) return `${tonePrefix}I’ve handed this over to a human support agent. A support ticket has been created. Please check My Tickets for updates.`;
+  if (highRisk) return `${tonePrefix}I understand this feels serious. A support ticket has been created and our team will review it urgently. Please check My Tickets for updates.`;
   if (intentType === 'complaint') {
     const reason = modelFailureReason ? ' (AI is temporarily unavailable)' : '';
-    return `${tonePrefix}I understand your concern. I’ve logged this for support review${reason}. Please check My Tickets for updates and share any transaction ID or screenshot so we can resolve it faster.`;
+    return `${tonePrefix}I understand your concern. I’ve logged this for support review${reason}. Please check My Tickets for updates.`;
   }
-  if (guidedRequest) {
-    return `${tonePrefix}${buildGuidedSupportReply(category, trimmed)}`;
-  }
-
+  if (guidedRequest) return `${tonePrefix}${buildGuidedSupportReply(category, trimmed)}`;
   const faqAnswer = getRuleBasedFaqFallback(category, userMessage);
   if (faqAnswer) return `${tonePrefix}${faqAnswer}`;
-
   return `${tonePrefix}I’m here to help with Starlife support. Tell me what you’re trying to do, and I’ll guide you step by step.`;
 }
 
 function getRuleBasedFaqFallback(category, userMessage) {
   const normalized = String(userMessage || '').toLowerCase();
   const categoryResponses = {
-    what_is_starlife: 'Starlife is a platform where users can fund wallets, invest, earn points, use referrals, and access support features based on platform rules.',
+    what_is_starlife: 'Starlife is a platform where users can fund wallets, invest, earn points, use referrals, and access support features.',
     deposit: 'To deposit, go to the Deposit section, choose your payment method, enter the amount, and follow the instructions shown.',
     withdraw: 'To withdraw, open the Withdraw section, enter the amount, confirm the request, and wait for processing.',
     invest: 'To invest, open the Invest section, choose a package, and confirm the amount.',
-    referrals: 'Use your referral link or code to invite others. Referral rewards apply according to the platform rules.',
+    referrals: 'Use your referral link or code to invite others. Referral rewards apply according to platform rules.',
     loans: 'To request a loan, open the Loan section, check eligibility, choose your preferred term, and submit your request.',
     points: 'Points are earned from platform activities and can affect rewards or eligibility based on current Starlife rules.',
     kyc: 'KYC review may take some time. Make sure your submitted documents are clear, valid, and match your account details.',
     support: 'For support, open the Support page or use Talk to human. You can track replies in My Tickets. Official support email is support@starlifeadvert.com.',
     general_guidance: 'I can help with Starlife deposits, withdrawals, investments, referrals, loans, points, KYC, security, and support tickets.'
   };
-
   if (categoryResponses[category]) return categoryResponses[category];
-
   if (normalized.includes('kyc') || normalized.includes('verify')) return categoryResponses.kyc;
   if (normalized.includes('deposit') || normalized.includes('fund')) return categoryResponses.deposit;
   if (normalized.includes('withdraw')) return categoryResponses.withdraw;
@@ -627,12 +719,11 @@ function getRuleBasedFaqFallback(category, userMessage) {
   if (normalized.includes('loan')) return categoryResponses.loans;
   if (normalized.includes('point')) return categoryResponses.points;
   if (normalized.includes('support') || normalized.includes('agent')) return categoryResponses.support;
-  if (normalized.includes('official email') || normalized.includes('support email')) return 'Official Starlife support email is support@starlifeadvert.com. For payment email on deposit page, use starlife.payment@starlifeadvert.com.';
-  if (normalized.includes('deposit method') || normalized.includes('how to deposit')) return 'Deposit methods currently shown in Starlife are M-Pesa, PayPal, USDT (BEP20), and USDT (TRC20).';
-  if (normalized.includes('withdrawal method') || normalized.includes('how to withdraw')) return 'Withdrawal methods currently shown in Starlife are M-Pesa, Bank Transfer, PayPal, USDT (BEP20), and USDT (TRC20).';
-  if (normalized.includes('security') || normalized.includes('hacked') || normalized.includes('fraud')) return 'For security, never share your password, OTP, PIN, or seed phrase. Report suspicious activity immediately through Support so it can be escalated.';
+  if (normalized.includes('official email') || normalized.includes('support email')) return 'Official Starlife support email is support@starlifeadvert.com.';
+  if (normalized.includes('deposit method') || normalized.includes('how to deposit')) return 'Deposit methods: M-Pesa, PayPal, USDT (BEP20), and USDT (TRC20).';
+  if (normalized.includes('withdrawal method') || normalized.includes('how to withdraw')) return 'Withdrawal methods: M-Pesa, Bank Transfer, PayPal, USDT (BEP20), and USDT (TRC20).';
+  if (normalized.includes('security') || normalized.includes('hacked') || normalized.includes('fraud')) return 'For security, never share your password, OTP, PIN, or seed phrase. Report suspicious activity immediately.';
   if (normalized.includes('what is starlife') || normalized.includes('about starlife')) return categoryResponses.what_is_starlife;
-
   return categoryResponses.general_guidance;
 }
 
@@ -643,7 +734,7 @@ function formatResponse({ body }) {
 }
 
 function formatOutOfScopeReply() {
-  return 'Hi, I’m Emy 👋 I mostly handle Starlife support and platform guidance. If you want, I can help with deposits, withdrawals, investments, referrals, loans, points, KYC, or support tickets.';
+  return "Hi, I’m Emy 😊 I mostly handle Starlife support and platform guidance. If you want, I can help with deposits, withdrawals, investments, referrals, loans, points, KYC, or support tickets.";
 }
 
 function tonePrefixFor(userTone) {
@@ -658,22 +749,12 @@ function tonePrefixFor(userTone) {
 
 function sanitizeSessionState(raw) {
   const allowedTasks = new Set(['deposit', 'withdraw', 'invest', 'kyc', 'referrals', 'loans']);
-  const base = {
-    activeTask: null,
-    step: 0,
-    lastInstruction: '',
-    status: 'idle'
-  };
+  const base = { activeTask: null, step: 0, lastInstruction: '', status: 'idle' };
   if (!raw || typeof raw !== 'object') return base;
   const task = allowedTasks.has(raw.activeTask) ? raw.activeTask : null;
   const step = Number.isFinite(Number(raw.step)) ? Math.max(0, Math.min(10, Number(raw.step))) : 0;
   const status = ['idle', 'guiding', 'stuck'].includes(raw.status) ? raw.status : 'idle';
-  return {
-    activeTask: task,
-    step,
-    lastInstruction: String(raw.lastInstruction || ''),
-    status
-  };
+  return { activeTask: task, step, lastInstruction: String(raw.lastInstruction || ''), status };
 }
 
 function buildStatefulLocalReply({ userMessage, sessionState, fallbackCategory, highRiskMatches }) {
@@ -725,11 +806,11 @@ function buildStatefulLocalReply({ userMessage, sessionState, fallbackCategory, 
 }
 
 function handleSmallTalk(normalized) {
-  if (/^(hi|hello|hey)\b/.test(normalized)) return SMALL_TALK_PATTERNS.hello;
-  if (/\b(how are you|how're you|how r u)\b/.test(normalized)) return SMALL_TALK_PATTERNS.how_are_you;
-  if (/^(thanks|thank you|thx)\b/.test(normalized)) return SMALL_TALK_PATTERNS.thanks;
-  if (/^(bye|goodbye|see you)\b/.test(normalized)) return SMALL_TALK_PATTERNS.bye;
-  if (/^(ok|okay|alright)$/.test(normalized)) return SMALL_TALK_PATTERNS.okay;
+  if (/^(hi|hello|hey)\b/.test(normalized)) return "Hi 👋 I’m Emy, Starlife Support Assistant. How can I help you today? 😊";
+  if (/\b(how are you|how're you|how r u)\b/.test(normalized)) return "I'm doing great, thank you! 😊 Ready to help you with anything on Starlife. What do you need?";
+  if (/^(thanks|thank you|thx)\b/.test(normalized)) return "You're very welcome! 😊 I'm glad I could help. Let me know if you need anything else.";
+  if (/^(bye|goodbye|see you)\b/.test(normalized)) return "Goodbye! 👋 Have a great day. Come back anytime you need help with Starlife.";
+  if (/^(ok|okay|alright)$/.test(normalized)) return "Great! 😊 Let me know if you have any other questions.";
   return null;
 }
 
@@ -775,7 +856,6 @@ function nextGuidedStep(task, step, normalized) {
     const reply = 'No worries — you’re close. Please tell me exactly what buttons or labels you can see now, and I’ll guide you from there.';
     return { reply, sessionState: { activeTask: task, step, lastInstruction: reply, status: 'stuck' } };
   }
-
   if (normalized === 'yes' || normalized === 'done' || normalized === 'next' || normalized === 'what now' || normalized === 'ok' || normalized === 'okay') {
     if (task === 'deposit' && step <= 1) {
       const reply = 'Great. Tap Deposit, then tell me which payment methods appear.';
@@ -784,12 +864,10 @@ function nextGuidedStep(task, step, normalized) {
     const reply = 'Perfect. Follow the next on-screen step, then tell me what you see next.';
     return { reply, sessionState: { activeTask: task, step: step + 1, lastInstruction: reply, status: 'guiding' } };
   }
-
   if (normalized.startsWith('i see')) {
     const reply = 'Perfect. Choose the option you want to use, then tell me what the next screen shows.';
     return { reply, sessionState: { activeTask: task, step: step + 1, lastInstruction: reply, status: 'guiding' } };
   }
-
   const reply = 'Great progress. Tell me what you see next, and I’ll guide you step by step.';
   return { reply, sessionState: { activeTask: task, step: step + 1, lastInstruction: reply, status: 'guiding' } };
 }
@@ -804,11 +882,9 @@ function isGuidedSupportRequest(category, message) {
 
 function buildGuidedSupportReply(category, message) {
   const normalized = String(message || '').toLowerCase();
-
   if (/\b(i see|i opened|done|next|what now|i chose|i selected)\b/.test(normalized)) {
     return 'Great — you’re doing well. Follow the next on-screen step and tell me exactly what you see next, then I’ll guide you from there.';
   }
-
   const flows = {
     deposit: 'Sure 👋 First, open the Deposit tab. Tell me which payment options you can see (for example M-Pesa, PayPal, or USDT).',
     withdraw: 'Sure 👋 First, open the Withdraw tab and enter the amount you want to withdraw. Tell me what withdrawal methods are shown.',
@@ -817,7 +893,6 @@ function buildGuidedSupportReply(category, message) {
     referrals: 'Sure 👋 First, open the Referral section and copy your referral link/code. Tell me once you can see it, and I’ll guide you on sharing it correctly.',
     loans: 'Sure 👋 First, open the Loan section and check your eligibility/limit. Tell me what limit or term options you can see next.'
   };
-
   return flows[category] || 'Sure 👋 Tell me what screen you are on now, and I’ll guide you step by step.';
 }
 

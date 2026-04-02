@@ -7901,18 +7901,35 @@
             const lastUserMsg = [...(window._aiChatHistory || [])].reverse().find(m => m.from === 'me')?.text || 'User requested human support from AI chat.';
             const subj = 'Human support requested from AI chat';
             try {
-                const created = await createSupportTicket({
-                    subject: subj,
-                    message: lastUserMsg,
-                    source: 'ai_chat',
-                    category: window._aiLastCategory || 'support',
-                    severity: window._aiLastSeverity === 'low' ? 'medium' : window._aiLastSeverity,
-                    forceHuman: true
+                const res = await fetch('/.netlify/functions/ai-support-assistant', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: window.CU?.uid || '',
+                        memberId: window.CU?.memberId || '',
+                        message: lastUserMsg || subj,
+                        forceHuman: true
+                    })
                 });
-                pushAiChatRow('bot', `✅ Done. Ticket ${created.ticketId} is open. A human support agent will continue with you.`, 'human');
+                const data = await res.json();
+                if (!res.ok || !data.ok || !data.ticketId) throw new Error(data.error || 'human handover fallback');
+                pushAiChatRow('bot', `✅ Done. Ticket ${data.ticketId} is open. A human support agent will continue with you.`, 'human');
                 openSupportFromAiChat();
             } catch (e) {
-                pushAiChatRow('bot', 'Could not open a human support ticket right now. Please try again on the Support page.', 'human');
+                try {
+                    const created = await createSupportTicket({
+                        subject: subj,
+                        message: lastUserMsg,
+                        source: 'ai_chat',
+                        category: window._aiLastCategory || 'support',
+                        severity: window._aiLastSeverity === 'low' ? 'medium' : window._aiLastSeverity,
+                        forceHuman: true
+                    });
+                    pushAiChatRow('bot', `✅ Done. Ticket ${created.ticketId} is open. A human support agent will continue with you.`, 'human');
+                    openSupportFromAiChat();
+                } catch (_inner) {
+                    pushAiChatRow('bot', 'Could not open a human support ticket right now. Please try again on the Support page.', 'human');
+                }
             }
         }
 

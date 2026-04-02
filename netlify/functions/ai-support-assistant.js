@@ -303,7 +303,19 @@ function normalizeAiResult({ aiResult, userMessage, fallbackCategory, highRiskMa
   const severity = ['low', 'medium', 'high', 'critical'].includes(String(aiResult.severity || '').toLowerCase())
     ? String(aiResult.severity).toLowerCase()
     : (intentType === 'complaint' ? 'medium' : 'low');
+<<<<<<< codex/add-ai-support-assistant-for-starlife-l9zv6y
+  const reply = String(aiResult.reply || '').trim() || buildFallbackReply({
+    userMessage,
+    inScope,
+    intentType,
+    forceHuman,
+    modelFailureReason,
+    fallbackCategory: category,
+    highRiskMatches
+  });
+=======
   const reply = String(aiResult.reply || '').trim() || buildFallbackReply({ inScope, intentType, forceHuman, modelFailureReason });
+>>>>>>> main
 
   return {
     in_scope: inScope,
@@ -317,12 +329,90 @@ function normalizeAiResult({ aiResult, userMessage, fallbackCategory, highRiskMa
 function buildFallbackModelResult({ userMessage, fallbackCategory, highRiskMatches, forceHuman, modelFailureReason }) {
   const normalized = String(userMessage || '').toLowerCase();
   const inScope = normalized.includes('starlife') || fallbackCategory !== 'general_guidance' || highRiskMatches.length > 0 || forceHuman;
+<<<<<<< codex/add-ai-support-assistant-for-starlife-l9zv6y
+  const complaintHints = ['issue', 'problem', 'failed', 'error', 'pending', 'not working', 'help', 'deducted', 'missing', 'hacked'];
+  const hasComplaintHint = complaintHints.some((hint) => normalized.includes(hint));
+  const intentType = highRiskMatches.length > 0 || forceHuman || hasComplaintHint ? 'complaint' : 'faq';
+=======
   const intentType = highRiskMatches.length > 0 || forceHuman ? 'complaint' : 'faq';
+>>>>>>> main
   return {
     in_scope: inScope,
     intent_type: intentType,
     category: inScope ? fallbackCategory : 'out_of_scope',
     severity: highRiskMatches.length > 0 ? 'high' : (intentType === 'complaint' ? 'medium' : 'low'),
+<<<<<<< codex/add-ai-support-assistant-for-starlife-l9zv6y
+    reply: buildFallbackReply({
+      userMessage,
+      inScope,
+      intentType,
+      forceHuman,
+      modelFailureReason,
+      fallbackCategory,
+      highRiskMatches
+    })
+  };
+}
+
+function buildFallbackReply({
+  userMessage,
+  inScope,
+  intentType,
+  forceHuman,
+  modelFailureReason,
+  fallbackCategory,
+  highRiskMatches
+}) {
+  const category = sanitizeCategory(fallbackCategory) || 'general_guidance';
+  const highRisk = Array.isArray(highRiskMatches) && highRiskMatches.length > 0;
+
+  if (!inScope) return formatOutOfScopeReply();
+  if (forceHuman) {
+    return 'I have handed this over to a human support agent. A support ticket has been created. Please check My Tickets for updates.';
+  }
+  if (highRisk) {
+    return 'Your issue appears to require urgent review. A support ticket has been created and the support team will review it. Please check My Tickets for updates.';
+  }
+  if (intentType === 'complaint') {
+    const reason = modelFailureReason ? ' (AI is temporarily unavailable)' : '';
+    return `Your issue has been logged for support review${reason}. Please check My Tickets for updates and add any transaction ID or screenshot for faster resolution.`;
+  }
+
+  const faqAnswer = getRuleBasedFaqFallback(category, userMessage);
+  if (faqAnswer) return faqAnswer;
+
+  return 'I can assist with Starlife support and platform guidance. Please ask about deposits, withdrawals, investments, referrals, loans, points, KYC, or support.';
+}
+
+function getRuleBasedFaqFallback(category, userMessage) {
+  const normalized = String(userMessage || '').toLowerCase();
+  const categoryResponses = {
+    what_is_starlife: 'Starlife is a platform where users can fund wallets, invest, earn points, use referrals, and access support features based on platform rules.',
+    deposit: 'To deposit, go to the Deposit section, choose your payment method, enter the amount, and follow the instructions shown.',
+    withdraw: 'To withdraw, open the Withdraw section, enter the amount, confirm the request, and wait for processing.',
+    invest: 'To invest, open the Invest section, choose a package, and confirm the amount.',
+    referrals: 'Use your referral link or code to invite others. Referral rewards apply according to the platform rules.',
+    loans: 'To request a loan, open the Loan section, check eligibility, choose your preferred term, and submit your request.',
+    points: 'Points are earned from platform activities and can affect rewards or eligibility based on current Starlife rules.',
+    kyc: 'KYC review may take some time. Make sure your submitted documents are clear, valid, and match your account details.',
+    support: 'For support, open the Support page or use Talk to human. You can track responses in My Tickets.',
+    general_guidance: 'I can help with Starlife deposits, withdrawals, investments, referrals, loans, points, KYC, and support guidance.'
+  };
+
+  if (categoryResponses[category]) return categoryResponses[category];
+
+  if (normalized.includes('kyc') || normalized.includes('verify')) return categoryResponses.kyc;
+  if (normalized.includes('deposit') || normalized.includes('fund')) return categoryResponses.deposit;
+  if (normalized.includes('withdraw')) return categoryResponses.withdraw;
+  if (normalized.includes('invest')) return categoryResponses.invest;
+  if (normalized.includes('referral') || normalized.includes('invite')) return categoryResponses.referrals;
+  if (normalized.includes('loan')) return categoryResponses.loans;
+  if (normalized.includes('point')) return categoryResponses.points;
+  if (normalized.includes('support') || normalized.includes('agent')) return categoryResponses.support;
+  if (normalized.includes('what is starlife') || normalized.includes('about starlife')) return categoryResponses.what_is_starlife;
+
+  return categoryResponses.general_guidance;
+=======
     reply: buildFallbackReply({ inScope, intentType, forceHuman, modelFailureReason })
   };
 }
@@ -336,6 +426,7 @@ function buildFallbackReply({ inScope, intentType, forceHuman, modelFailureReaso
     return `I understand this issue. I have logged it for support review${modelFailureReason ? ' while AI response is temporarily limited' : ''}. Please share any transaction ID or screenshot in your ticket.`;
   }
   return `I can help with Starlife support. Please ask your question again in short form${modelFailureReason ? ' (AI is temporarily limited)' : ''}.`;
+>>>>>>> main
 }
 
 function formatResponse({ body }) {

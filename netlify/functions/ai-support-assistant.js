@@ -229,7 +229,9 @@ async function generateSupportReply({ userMessage, highRiskMatches, fallbackCate
     'You are Emy, Starlife Support Assistant.',
     'Tone must always be human, warm, calm, professional, and helpful.',
     'If user says hi/hello/hey, greet naturally: "Hi 👋 I’m Emy, Starlife Support Assistant. How can I help you today?"',
-    'Keep responses short, clear, and structured in 2-4 bullet points or numbered steps when useful.',
+    'For platform help requests, guide users step-by-step instead of always giving full instructions at once.',
+    'Give the next step, ask what they see on screen, and wait for their response before continuing.',
+    'Keep responses short, clear, and conversational.',
     'Adjust tone for friendly, confused, upset, frustrated, or thankful users without sounding fake.',
     'Use polite closings where appropriate: "You’re welcome.", "I’m glad I could help.", "Please check My Tickets for updates.", "Have a great day."',
     'You only answer Starlife platform support and guidance.',
@@ -380,20 +382,28 @@ function buildFallbackReply({
   const tonePrefix = tonePrefixFor(userTone);
   const trimmed = String(userMessage || '').trim();
   const isGreetingOnly = /^(hi|hello|hey|good morning|good afternoon|good evening)\b/i.test(trimmed);
+  const asksHowAreYou = /\b(how are you|how're you|how r u)\b/i.test(trimmed);
+  const guidedRequest = isGuidedSupportRequest(category, trimmed);
 
   if (!inScope) return formatOutOfScopeReply();
   if (isGreetingOnly) {
     return "Hi 👋 I’m Emy, Starlife Support Assistant. How can I help you today?";
   }
+  if (asksHowAreYou) {
+    return 'I’m doing well, thank you 😊 I’m here and ready to help with your Starlife account. What would you like to do first?';
+  }
   if (forceHuman) {
     return `${tonePrefix}I’ve handed this over to a human support agent. A support ticket has been created. Please check My Tickets for updates.`;
   }
   if (highRisk) {
-    return `${tonePrefix}Your issue appears to require urgent review. A support ticket has been created and the support team will review it. Please check My Tickets for updates.`;
+    return `${tonePrefix}I understand why this feels serious, and I’m treating it as urgent. A support ticket has been created and our team will review it as quickly as possible. Please check My Tickets for updates.`;
   }
   if (intentType === 'complaint') {
     const reason = modelFailureReason ? ' (AI is temporarily unavailable)' : '';
-    return `${tonePrefix}Your issue has been logged for support review${reason}. Please check My Tickets for updates and add any transaction ID or screenshot for faster resolution.`;
+    return `${tonePrefix}I understand your concern. I’ve logged this for support review${reason}. Please check My Tickets for updates and share any transaction ID or screenshot so we can resolve it faster.`;
+  }
+  if (guidedRequest) {
+    return `${tonePrefix}${buildGuidedSupportReply(category, trimmed)}`;
   }
 
   const faqAnswer = getRuleBasedFaqFallback(category, userMessage);
@@ -443,7 +453,7 @@ function formatResponse({ body }) {
 }
 
 function formatOutOfScopeReply() {
-  return 'Hi, I’m Emy. I can only assist with Starlife support and platform guidance such as deposits, withdrawals, investments, referrals, loans, points, KYC, and support.';
+  return 'Hi, I’m Emy 👋 I mostly handle Starlife support and platform guidance. If you want, I can help with deposits, withdrawals, investments, referrals, loans, points, KYC, or support tickets.';
 }
 
 function tonePrefixFor(userTone) {
@@ -451,8 +461,36 @@ function tonePrefixFor(userTone) {
   if (tone === 'thankful') return 'You’re welcome. ';
   if (tone === 'frustrated') return 'I understand this is frustrating. ';
   if (tone === 'upset') return 'I’m sorry you’re dealing with this. ';
+  if (tone === 'worried') return 'I understand this can feel worrying. ';
   if (tone === 'confused') return 'No worries — I can clarify this. ';
   return '';
+}
+
+function isGuidedSupportRequest(category, message) {
+  const normalized = String(message || '').toLowerCase();
+  const guidedCategories = new Set(['deposit', 'withdraw', 'invest', 'kyc', 'referrals', 'loans']);
+  const asksGuide = /\b(guide|walk me|step by step|how do i|help me)\b/.test(normalized);
+  const progressSignals = /\b(i see|i opened|i have opened|done|next|what now|i chose|i selected)\b/.test(normalized);
+  return (guidedCategories.has(category) && (asksGuide || progressSignals));
+}
+
+function buildGuidedSupportReply(category, message) {
+  const normalized = String(message || '').toLowerCase();
+
+  if (/\b(i see|i opened|done|next|what now|i chose|i selected)\b/.test(normalized)) {
+    return 'Great — you’re doing well. Follow the next on-screen step and tell me exactly what you see next, then I’ll guide you from there.';
+  }
+
+  const flows = {
+    deposit: 'Sure 👋 First, open the Deposit tab. Tell me which payment options you can see (for example M-Pesa, PayPal, or USDT).',
+    withdraw: 'Sure 👋 First, open the Withdraw tab and enter the amount you want to withdraw. Tell me what withdrawal methods are shown.',
+    invest: 'Sure 👋 First, open the Invest tab and choose the package or amount you want. Tell me what options you see next.',
+    kyc: 'Sure 👋 First, open the KYC/Verification section. Upload clear, valid documents that match your profile details. Tell me what status appears after submission.',
+    referrals: 'Sure 👋 First, open the Referral section and copy your referral link/code. Tell me once you can see it, and I’ll guide you on sharing it correctly.',
+    loans: 'Sure 👋 First, open the Loan section and check your eligibility/limit. Tell me what limit or term options you can see next.'
+  };
+
+  return flows[category] || 'Sure 👋 Tell me what screen you are on now, and I’ll guide you step by step.';
 }
 
 function json(statusCode, payload) {

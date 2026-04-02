@@ -61,6 +61,14 @@
 ## Environment variables
 - `OPENAI_API_KEY` (required)
 - `OPENAI_MODEL` (optional, defaults to `gpt-4.1-mini`)
+- `OPENAI_TIMEOUT_MS` (optional, defaults to `15000`)
+- `FIREBASE_SERVICE_ACCOUNT_JSON` or Firebase split credentials
+- `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` (needed for alerts)
+
+## Firestore writes
+- `ai_support_logs`: `userId`, `memberId`, `userMessage`, `aiReply`, `category`, `severity`, `highRiskMatches`, `adminAlertTriggered`, `ticketCreated`, `forceHuman`, `responseStyle`, `modelFailureReason`, `intentType`, `inScope`, `createdAt`.
+- `support_tickets`: `userId`, `memberId`, `ticketId`, `category`, `severity`, `source`, `logId`, `status`, `highRiskMatches`, `forceHuman`, `userMessage`, `aiReply`, `createdAt`, `updatedAt`.
+
 - `FIREBASE_SERVICE_ACCOUNT_JSON` or Firebase split credentials
 - `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` (needed for alerts)
 

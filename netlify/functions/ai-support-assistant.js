@@ -3,7 +3,9 @@ const { sendTelegramMessage } = require('./_lib/telegram');
 const {
   detectHighRiskTriggers,
   inferFaqCategory,
-  buildKnowledgeBaseText
+  buildKnowledgeBaseText,
+  RESPONSE_STYLES,
+  styleForIntent
 } = require('./_lib/support-assistant');
 
 const SUPPORTED_TOPICS = [
@@ -41,21 +43,34 @@ exports.handler = async function handler(event) {
   const db = getDb();
 
   const highRiskMatches = detectHighRiskTriggers(userMessage);
+  const fallbackCategory = inferFaqCategory(userMessage);
+  const forceHuman = Boolean(payload.forceHuman);
 
-  let aiResult;
+  let aiResult = null;
+  let modelFailureReason = null;
   try {
     aiResult = await generateSupportReply({
       userMessage,
       highRiskMatches,
-      fallbackCategory: inferFaqCategory(userMessage)
+      fallbackCategory,
+      forceHuman
     });
   } catch (error) {
-    return json(502, { ok: false, error: `OpenAI request failed: ${error.message}` });
+    modelFailureReason = error.message;
   }
 
-  const inScope = Boolean(aiResult.in_scope);
-  const initialCategory = sanitizeCategory(aiResult.category);
-  const isComplaint = aiResult.intent_type === 'complaint' || highRiskMatches.length > 0;
+  const normalizedResult = normalizeAiResult({
+    aiResult,
+    userMessage,
+    fallbackCategory,
+    highRiskMatches,
+    forceHuman,
+    modelFailureReason
+  });
+
+  const inScope = normalizedResult.in_scope;
+  const initialCategory = sanitizeCategory(normalizedResult.category);
+  const isComplaint = normalizedResult.intent_type === 'complaint' || highRiskMatches.length > 0 || forceHuman;
 
   const category = !inScope
     ? 'out_of_scope'
@@ -64,16 +79,17 @@ exports.handler = async function handler(event) {
   const severity = decideSeverity({
     inScope,
     isComplaint,
-    modelSeverity: aiResult.severity,
-    highRiskMatches
+    modelSeverity: normalizedResult.severity,
+    highRiskMatches,
+    forceHuman
   });
 
-  const shouldCreateTicket = inScope && (isComplaint || severity !== 'low');
+  const shouldCreateTicket = inScope && (isComplaint || severity !== 'low' || forceHuman || highRiskMatches.length > 0);
   const shouldAlertAdmin = ['high', 'critical'].includes(severity) && highRiskMatches.length > 0;
 
   const safeReply = inScope
-    ? aiResult.reply
-    : 'I can only help with Starlife support and platform guidance (deposits, withdrawals, investments, referrals, loans, points, KYC, and account support). Please ask a Starlife-related question.';
+    ? formatResponse({ body: normalizedResult.reply })
+    : formatOutOfScopeReply();
 
   const logDoc = {
     userId,
@@ -85,6 +101,9 @@ exports.handler = async function handler(event) {
     highRiskMatches,
     adminAlertTriggered: shouldAlertAdmin,
     ticketCreated: shouldCreateTicket,
+    forceHuman,
+    responseStyle: styleForIntent({ inScope, intentType: normalizedResult.intent_type, severity, forceHuman }),
+    modelFailureReason,
     intentType: isComplaint ? 'complaint' : 'faq',
     inScope,
     createdAt: admin.firestore.FieldValue.serverTimestamp()
@@ -94,28 +113,42 @@ exports.handler = async function handler(event) {
 
   let ticketId = null;
   let ticketDocId = null;
+  let supportTicketId = null;
   if (shouldCreateTicket) {
     ticketId = `TK-${Date.now().toString(36).toUpperCase()}`;
-    const ticketRef = await db.collection('tickets').add({
-      uid: userId,
+    const baseTicketPayload = {
       userId,
       memberId,
       ticketId,
-      subject: `AI Support: ${category.replace(/_/g, ' ')}`,
       category,
       severity,
       source: 'ai_support_assistant',
       logId: logRef.id,
       status: 'open',
       highRiskMatches,
+      forceHuman,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    const ticketRef = await db.collection('tickets').add({
+      ...baseTicketPayload,
+      uid: userId,
+      subject: `AI Support: ${category.replace(/_/g, ' ')}`,
       messages: [
         { from: 'user', name: memberId || userId, text: userMessage, time: new Date().toISOString() },
         { from: 'ai', name: 'Starlife AI', text: safeReply, time: new Date().toISOString() }
       ],
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      aiReply: safeReply
     });
     ticketDocId = ticketRef.id;
+
+    const supportTicketRef = await db.collection('support_tickets').add({
+      ...baseTicketPayload,
+      userMessage,
+      aiReply: safeReply
+    });
+    supportTicketId = supportTicketRef.id;
   }
 
   if (shouldAlertAdmin) {
@@ -141,13 +174,17 @@ exports.handler = async function handler(event) {
     adminAlertTriggered: shouldAlertAdmin,
     ticketId,
     ticketDocId,
+    supportTicketId,
+    fallbackUsed: Boolean(modelFailureReason),
+    defaultGreeting: RESPONSE_STYLES.greeting,
     supportedTopics: SUPPORTED_TOPICS
   });
 };
 
-function decideSeverity({ inScope, isComplaint, modelSeverity, highRiskMatches }) {
+function decideSeverity({ inScope, isComplaint, modelSeverity, highRiskMatches, forceHuman }) {
   if (!inScope) return 'low';
   if (highRiskMatches.length > 0) return highRiskMatches.length >= 2 ? 'critical' : 'high';
+  if (forceHuman && !['high', 'critical'].includes(modelSeverity)) return 'medium';
 
   const severity = String(modelSeverity || '').toLowerCase();
   if (['low', 'medium', 'high', 'critical'].includes(severity)) {
@@ -175,6 +212,9 @@ async function generateSupportReply({ userMessage, highRiskMatches, fallbackCate
 
   const systemPrompt = [
     'You are Starlife AI Support Assistant.',
+    `Default greeting to use naturally for first contact: "${RESPONSE_STYLES.greeting}"`,
+    'Tone must always be professional, calm, and confident.',
+    'Keep responses short, clear, and structured in 2-4 bullet points or numbered steps when useful.',
     'You only answer Starlife platform support and guidance.',
     'Allowed topics: what is starlife, deposits, withdrawals, investments, referrals, loans, points, kyc, support, and general platform guidance.',
     'If user asks unrelated topic, set in_scope=false and provide a brief refusal.',
@@ -190,13 +230,19 @@ async function generateSupportReply({ userMessage, highRiskMatches, fallbackCate
     knowledge_base: knowledgeBase
   };
 
-  const response = await fetch('https://api.openai.com/v1/responses', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
+  const controller = new AbortController();
+  const timeoutMs = Number(process.env.OPENAI_TIMEOUT_MS || 15000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  let response;
+  try {
+    response = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
       model,
       input: [
         { role: 'system', content: systemPrompt },
@@ -223,8 +269,11 @@ async function generateSupportReply({ userMessage, highRiskMatches, fallbackCate
           }
         }
       }
-    })
-  });
+      })
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -237,6 +286,66 @@ async function generateSupportReply({ userMessage, highRiskMatches, fallbackCate
   }
 
   return JSON.parse(content);
+}
+
+function normalizeAiResult({ aiResult, userMessage, fallbackCategory, highRiskMatches, forceHuman, modelFailureReason }) {
+  if (!aiResult || typeof aiResult !== 'object') {
+    return buildFallbackModelResult({ userMessage, fallbackCategory, highRiskMatches, forceHuman, modelFailureReason });
+  }
+
+  const inScope = typeof aiResult.in_scope === 'boolean'
+    ? aiResult.in_scope
+    : true;
+  const intentType = aiResult.intent_type === 'complaint' || highRiskMatches.length > 0 || forceHuman
+    ? 'complaint'
+    : 'faq';
+  const category = sanitizeCategory(aiResult.category) || fallbackCategory;
+  const severity = ['low', 'medium', 'high', 'critical'].includes(String(aiResult.severity || '').toLowerCase())
+    ? String(aiResult.severity).toLowerCase()
+    : (intentType === 'complaint' ? 'medium' : 'low');
+  const reply = String(aiResult.reply || '').trim() || buildFallbackReply({ inScope, intentType, forceHuman, modelFailureReason });
+
+  return {
+    in_scope: inScope,
+    intent_type: intentType,
+    category,
+    severity,
+    reply
+  };
+}
+
+function buildFallbackModelResult({ userMessage, fallbackCategory, highRiskMatches, forceHuman, modelFailureReason }) {
+  const normalized = String(userMessage || '').toLowerCase();
+  const inScope = normalized.includes('starlife') || fallbackCategory !== 'general_guidance' || highRiskMatches.length > 0 || forceHuman;
+  const intentType = highRiskMatches.length > 0 || forceHuman ? 'complaint' : 'faq';
+  return {
+    in_scope: inScope,
+    intent_type: intentType,
+    category: inScope ? fallbackCategory : 'out_of_scope',
+    severity: highRiskMatches.length > 0 ? 'high' : (intentType === 'complaint' ? 'medium' : 'low'),
+    reply: buildFallbackReply({ inScope, intentType, forceHuman, modelFailureReason })
+  };
+}
+
+function buildFallbackReply({ inScope, intentType, forceHuman, modelFailureReason }) {
+  if (!inScope) return formatOutOfScopeReply();
+  if (forceHuman) {
+    return 'I have handed this over to a human support agent. Please continue in your support ticket.';
+  }
+  if (intentType === 'complaint') {
+    return `I understand this issue. I have logged it for support review${modelFailureReason ? ' while AI response is temporarily limited' : ''}. Please share any transaction ID or screenshot in your ticket.`;
+  }
+  return `I can help with Starlife support. Please ask your question again in short form${modelFailureReason ? ' (AI is temporarily limited)' : ''}.`;
+}
+
+function formatResponse({ body }) {
+  const conciseBody = String(body || '').trim();
+  if (!conciseBody) return 'Thanks for reaching out. Please share your Starlife question and I will guide you.';
+  return conciseBody;
+}
+
+function formatOutOfScopeReply() {
+  return 'I can only help with Starlife support and platform guidance (deposits, withdrawals, investments, referrals, loans, points, KYC, and support). Please ask a Starlife-related question.';
 }
 
 function json(statusCode, payload) {

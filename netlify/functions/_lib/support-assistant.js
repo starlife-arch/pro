@@ -64,6 +64,15 @@ const HIGH_RISK_TRIGGERS = [
   'account hacked'
 ];
 
+const RESPONSE_STYLES = {
+  greeting: 'Hello! Welcome to Starlife Support. I can help with deposits, withdrawals, investments, loans, points, referrals, KYC, and support guidance.',
+  faq: 'Use a professional, calm, confident tone. Keep reply short. Structure as: 1) direct answer, 2) key steps, 3) short next action.',
+  support_issue: 'Use a calm support tone. Acknowledge issue briefly, give safe checks, and state that support review may be required.',
+  high_risk_escalation: 'Use urgent but calm tone. Confirm escalation, avoid promises, ask user to monitor ticket updates.',
+  human_handover: 'Use clear handover language. Confirm ticket created and that a human support agent will continue.',
+  out_of_scope: 'Politely refuse non-Starlife topics and redirect user to Starlife platform/support questions only.'
+};
+
 function normalizeText(value = '') {
   return String(value).toLowerCase().replace(/\s+/g, ' ').trim();
 }
@@ -91,11 +100,21 @@ function buildKnowledgeBaseText() {
     .join('\n');
 }
 
+function styleForIntent({ inScope, intentType, severity, forceHuman }) {
+  if (!inScope) return RESPONSE_STYLES.out_of_scope;
+  if (forceHuman) return RESPONSE_STYLES.human_handover;
+  if (severity === 'high' || severity === 'critical') return RESPONSE_STYLES.high_risk_escalation;
+  if (intentType === 'complaint') return RESPONSE_STYLES.support_issue;
+  return RESPONSE_STYLES.faq;
+}
+
 module.exports = {
   KB_TOPICS,
   HIGH_RISK_TRIGGERS,
+  RESPONSE_STYLES,
   detectHighRiskTriggers,
   inferFaqCategory,
   buildKnowledgeBaseText,
+  styleForIntent,
   normalizeText
 };

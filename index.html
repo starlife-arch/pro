@@ -7815,12 +7815,14 @@
             if (!window._aiChatHistory.length) {
                 window._aiChatHistory = [{
                     from: 'bot',
-                    text: 'Hi 👋 I am your Starlife AI assistant. Ask about deposits, withdrawals, investments, referrals, loans, points, KYC, or support.',
+                    text: 'Hello 👋 Welcome to Starlife Support. I can help with deposits, withdrawals, investments, referrals, loans, points, KYC, and support guidance.',
                     time: new Date().toISOString()
                 }];
             }
             renderAiChat();
         }
+
+        function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
         function toggleAiChat(forceOpen) {
             const panel = $('ai-chat-panel');
@@ -7875,6 +7877,7 @@
                     })
                 });
                 const data = await res.json();
+                await wait(850);
                 window._aiChatHistory.pop();
                 if (!res.ok || !data.ok) throw new Error(data.error || 'AI support unavailable');
                 window._aiLastCategory = data.category || 'general_guidance';
@@ -7888,6 +7891,7 @@
                     pushAiChatRow('bot', 'Your issue is high priority and has been escalated to support admin.', 'human');
                 }
             } catch (e) {
+                await wait(700);
                 window._aiChatHistory.pop();
                 pushAiChatRow('bot', 'Sorry, AI support is temporarily unavailable. You can still open a human support ticket now.', 'human');
             }

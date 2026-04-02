@@ -1,0 +1,103 @@
+# Starlife AI Support Assistant (Emy)
+
+## Endpoint
+- Netlify Function: `/.netlify/functions/ai-support-assistant`
+- Method: `POST`
+- Body:
+
+```json
+{
+  "userId": "u123",
+  "memberId": "SL-1001",
+  "message": "How do I withdraw?"
+}
+```
+
+## What it does
+1. Uses Groq (OpenAI-compatible API) to classify and generate support replies in Emy's warm, calm, professional support tone.
+2. Restricts assistant scope to Starlife-related support only.
+3. Distinguishes FAQ vs complaint/risk intent.
+4. Stores every interaction in Firestore `ai_support_logs` with:
+   - `userMessage`
+   - `aiReply`
+   - `category`
+   - `severity`
+   - `adminAlertTriggered`
+5. Creates/updates Firestore `tickets` (shared support backend) for complaint/higher-risk issues.
+6. Sends Telegram alert for high-risk sensitive triggers.
+
+## UI integration
+- Floating AI chat can answer directly and, for serious issues, create a shared `tickets` record.
+- The same ticket thread is visible from Support page (`My Tickets`) with AI, user, and human replies in one conversation.
+- If Groq is unavailable (missing key, timeout, rate limit, API error), the function falls back to local rule-based Starlife support replies and still continues ticket/escalation logic.
+
+## Supported topic categories
+- `what_is_starlife`
+- `deposit`
+- `withdraw`
+- `invest`
+- `referrals`
+- `loans`
+- `points`
+- `kyc`
+- `support`
+- `general_guidance`
+
+## High-risk triggers (Telegram alert candidates)
+- missing balance
+- failed withdrawal
+- duplicate investment
+- unauthorized loan
+- kyc mismatch
+- security
+- fraud
+- repeated deduction(s)
+- deducted twice
+- money disappeared
+- account hacked
+
+## Environment variables
+- `GROQ_API_KEY` (preferred provider key)
+- `GROQ_BASE_URL` (optional, defaults to `https://api.groq.com/openai/v1`)
+- `GROQ_MODEL` (optional, defaults to `llama-3.3-70b-versatile`)
+- `OPENAI_TIMEOUT_MS` (optional timeout in ms, defaults to `15000`)
+- `FIREBASE_SERVICE_ACCOUNT_JSON` or Firebase split credentials
+- `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` (needed for alerts)
+
+## Firestore writes
+- `ai_support_logs`: `userId`, `memberId`, `userMessage`, `aiReply`, `category`, `severity`, `highRiskMatches`, `adminAlertTriggered`, `ticketCreated`, `forceHuman`, `responseStyle`, `modelFailureReason`, `intentType`, `inScope`, `createdAt`.
+- `support_tickets`: `userId`, `memberId`, `ticketId`, `category`, `severity`, `source`, `logId`, `status`, `highRiskMatches`, `forceHuman`, `userMessage`, `aiReply`, `createdAt`, `updatedAt`.
+
+## Manual test examples
+
+### 1) FAQ test
+```bash
+curl -X POST http://localhost:8888/.netlify/functions/ai-support-assistant \
+  -H 'Content-Type: application/json' \
+  -d '{"userId":"u1","memberId":"SL-1","message":"How do I deposit on Starlife?"}'
+```
+Expected: direct answer, category `deposit`, low severity, no Telegram alert.
+
+### 2) Complaint (non-high-risk) test
+```bash
+curl -X POST http://localhost:8888/.netlify/functions/ai-support-assistant \
+  -H 'Content-Type: application/json' \
+  -d '{"userId":"u2","memberId":"SL-2","message":"My KYC status has been pending for days. Please help."}'
+```
+Expected: careful support response, ticket likely created, usually medium severity.
+
+### 3) High-risk alert test
+```bash
+curl -X POST http://localhost:8888/.netlify/functions/ai-support-assistant \
+  -H 'Content-Type: application/json' \
+  -d '{"userId":"u3","memberId":"SL-3","message":"I have a failed withdrawal and missing balance. I think my account was hacked."}'
+```
+Expected: careful response, support ticket created, high/critical severity, Telegram alert sent.
+
+### 4) Out-of-scope test
+```bash
+curl -X POST http://localhost:8888/.netlify/functions/ai-support-assistant \
+  -H 'Content-Type: application/json' \
+  -d '{"userId":"u4","memberId":"SL-4","message":"Who won last night\'s football game?"}'
+```
+Expected: refusal that assistant only handles Starlife support topics.

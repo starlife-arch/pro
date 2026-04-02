@@ -93,21 +93,29 @@ exports.handler = async function handler(event) {
   const logRef = await db.collection('ai_support_logs').add(logDoc);
 
   let ticketId = null;
+  let ticketDocId = null;
   if (shouldCreateTicket) {
-    const ticketRef = await db.collection('support_tickets').add({
-      source: 'ai_support_assistant',
-      logId: logRef.id,
+    ticketId = `TK-${Date.now().toString(36).toUpperCase()}`;
+    const ticketRef = await db.collection('tickets').add({
+      uid: userId,
       userId,
       memberId,
-      message: userMessage,
+      ticketId,
+      subject: `AI Support: ${category.replace(/_/g, ' ')}`,
       category,
       severity,
+      source: 'ai_support_assistant',
+      logId: logRef.id,
       status: 'open',
       highRiskMatches,
+      messages: [
+        { from: 'user', name: memberId || userId, text: userMessage, time: new Date().toISOString() },
+        { from: 'ai', name: 'Starlife AI', text: safeReply, time: new Date().toISOString() }
+      ],
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
-    ticketId = ticketRef.id;
+    ticketDocId = ticketRef.id;
   }
 
   if (shouldAlertAdmin) {
@@ -119,7 +127,7 @@ exports.handler = async function handler(event) {
       `Triggers: ${highRiskMatches.join(', ')}`,
       '',
       `<b>Message</b>: ${escapeHtml(userMessage)}`,
-      ticketId ? `Ticket ID: <b>${ticketId}</b>` : ''
+      ticketId ? `Ticket ID: <b>${ticketId}</b> (${ticketDocId || 'n/a'})` : ''
     ].filter(Boolean).join('\n');
 
     await sendTelegramMessage(alertMessage);
@@ -132,6 +140,7 @@ exports.handler = async function handler(event) {
     severity,
     adminAlertTriggered: shouldAlertAdmin,
     ticketId,
+    ticketDocId,
     supportedTopics: SUPPORTED_TOPICS
   });
 };

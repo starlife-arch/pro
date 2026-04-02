@@ -23,6 +23,13 @@
    - `category`
    - `severity`
    - `adminAlertTriggered`
+5. Creates/updates Firestore `tickets` (shared support backend) for complaint/higher-risk issues.
+6. Sends Telegram alert for high-risk sensitive triggers.
+
+## UI integration
+- Floating AI chat can answer directly and, for serious issues, create a shared `tickets` record.
+- The same ticket thread is visible from Support page (`My Tickets`) with AI, user, and human replies in one conversation.
+
 5. Creates Firestore `support_tickets` for complaint/higher-risk issues.
 6. Sends Telegram alert for high-risk sensitive triggers.
 

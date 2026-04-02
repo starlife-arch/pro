@@ -99,11 +99,13 @@ function detectUserTone(message = '') {
 
   const thankful = ['thanks', 'thank you', 'appreciate', 'grateful'];
   const frustrated = ['angry', 'frustrated', 'terrible', 'useless', 'annoyed', 'fed up'];
-  const upset = ['upset', 'sad', 'worried', 'concerned', 'scared', 'stressed'];
+  const worried = ['worried', 'concerned', 'scared', 'stressed', 'anxious'];
+  const upset = ['upset', 'sad'];
   const confused = ['confused', "don't understand", 'not sure', 'how does this work', 'explain'];
 
   if (thankful.some((x) => normalized.includes(x))) return 'thankful';
   if (frustrated.some((x) => normalized.includes(x)) || /!{2,}/.test(message)) return 'frustrated';
+  if (worried.some((x) => normalized.includes(x))) return 'worried';
   if (upset.some((x) => normalized.includes(x))) return 'upset';
   if (confused.some((x) => normalized.includes(x)) || normalized.includes('?')) return 'confused';
   return 'friendly';

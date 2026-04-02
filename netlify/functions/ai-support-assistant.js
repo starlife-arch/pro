@@ -47,21 +47,29 @@ exports.handler = async function handler(event) {
   const fallbackCategory = inferFaqCategory(userMessage);
   const forceHuman = Boolean(payload.forceHuman);
   const userTone = detectUserTone(userMessage);
+  const sessionState = sanitizeSessionState(payload.sessionState);
 
   let aiResult = null;
   let modelFailureReason = null;
   let providerUsed = 'rule_based_fallback';
-  try {
-    aiResult = await generateSupportReply({
-      userMessage,
-      highRiskMatches,
-      fallbackCategory,
-      forceHuman,
-      userTone
-    });
-    providerUsed = 'groq';
-  } catch (error) {
-    modelFailureReason = error.message;
+  const localReply = buildStatefulLocalReply({ userMessage, sessionState, fallbackCategory, highRiskMatches });
+  if (localReply) {
+    aiResult = localReply;
+    providerUsed = 'stateful_local';
+  } else {
+    try {
+      aiResult = await generateSupportReply({
+        userMessage,
+        highRiskMatches,
+        fallbackCategory,
+        forceHuman,
+        userTone,
+        sessionState
+      });
+      providerUsed = 'groq';
+    } catch (error) {
+      modelFailureReason = error.message;
+    }
   }
 
   const normalizedResult = normalizeAiResult({
@@ -192,6 +200,8 @@ exports.handler = async function handler(event) {
     providerUsed,
     defaultGreeting: "Hi 👋 I’m Emy, Starlife Support Assistant. How can I help you today?",
     supportedTopics: SUPPORTED_TOPICS
+    ,
+    sessionState: aiResult?.session_state || sessionState
   });
 };
 
@@ -214,7 +224,7 @@ function sanitizeCategory(category) {
   return null;
 }
 
-async function generateSupportReply({ userMessage, highRiskMatches, fallbackCategory, userTone }) {
+async function generateSupportReply({ userMessage, highRiskMatches, fallbackCategory, userTone, sessionState }) {
   const apiKey = process.env.GROQ_API_KEY;
   const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
   const baseUrl = (process.env.GROQ_BASE_URL || 'https://api.groq.com/openai/v1').replace(/\/$/, '');
@@ -245,6 +255,7 @@ async function generateSupportReply({ userMessage, highRiskMatches, fallbackCate
   const userPrompt = {
     user_message: userMessage,
     user_tone: userTone,
+    session_state: sessionState,
     high_risk_matches: highRiskMatches,
     fallback_category: fallbackCategory,
     knowledge_base: knowledgeBase
@@ -283,7 +294,18 @@ async function generateSupportReply({ userMessage, highRiskMatches, fallbackCate
                 enum: [...SUPPORTED_TOPICS, 'out_of_scope']
               },
               severity: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] },
-              reply: { type: 'string' }
+              reply: { type: 'string' },
+              session_state: {
+                type: 'object',
+                additionalProperties: false,
+                properties: {
+                  activeTask: { type: ['string', 'null'], enum: ['deposit', 'withdraw', 'invest', 'kyc', 'referrals', 'loans', null] },
+                  step: { type: 'integer' },
+                  lastInstruction: { type: 'string' },
+                  status: { type: 'string', enum: ['idle', 'guiding', 'stuck'] }
+                },
+                required: ['activeTask', 'step', 'lastInstruction', 'status']
+              }
             },
             required: ['in_scope', 'intent_type', 'category', 'severity', 'reply']
           }
@@ -339,7 +361,8 @@ function normalizeAiResult({ aiResult, userMessage, fallbackCategory, highRiskMa
     intent_type: intentType,
     category,
     severity,
-    reply
+    reply,
+    session_state: sanitizeSessionState(aiResult.session_state)
   };
 }
 
@@ -363,7 +386,8 @@ function buildFallbackModelResult({ userMessage, fallbackCategory, highRiskMatch
       fallbackCategory,
       highRiskMatches,
       userTone
-    })
+    }),
+    session_state: sanitizeSessionState(null)
   };
 }
 
@@ -464,6 +488,144 @@ function tonePrefixFor(userTone) {
   if (tone === 'worried') return 'I understand this can feel worrying. ';
   if (tone === 'confused') return 'No worries — I can clarify this. ';
   return '';
+}
+
+function sanitizeSessionState(raw) {
+  const allowedTasks = new Set(['deposit', 'withdraw', 'invest', 'kyc', 'referrals', 'loans']);
+  const base = {
+    activeTask: null,
+    step: 0,
+    lastInstruction: '',
+    status: 'idle'
+  };
+  if (!raw || typeof raw !== 'object') return base;
+  const task = allowedTasks.has(raw.activeTask) ? raw.activeTask : null;
+  const step = Number.isFinite(Number(raw.step)) ? Math.max(0, Math.min(10, Number(raw.step))) : 0;
+  const status = ['idle', 'guiding', 'stuck'].includes(raw.status) ? raw.status : 'idle';
+  return {
+    activeTask: task,
+    step,
+    lastInstruction: String(raw.lastInstruction || ''),
+    status
+  };
+}
+
+function buildStatefulLocalReply({ userMessage, sessionState, fallbackCategory, highRiskMatches }) {
+  const text = String(userMessage || '').trim();
+  const normalized = text.toLowerCase();
+  const isHighRisk = highRiskMatches.length > 0;
+  if (isHighRisk) return null;
+
+  const smallTalk = handleSmallTalk(normalized);
+  if (smallTalk) {
+    return {
+      in_scope: true,
+      intent_type: 'faq',
+      category: 'support',
+      severity: 'low',
+      reply: smallTalk,
+      session_state: sessionState
+    };
+  }
+
+  const activeTask = sessionState.activeTask;
+  const shortFollowUp = /^(yes|no|done|next|what now|ok|okay|i can't see it|cant see it|i cannot see it)$/i.test(normalized);
+  if (activeTask && (shortFollowUp || normalized.startsWith('i see'))) {
+    const progress = nextGuidedStep(activeTask, sessionState.step, normalized);
+    return {
+      in_scope: true,
+      intent_type: 'faq',
+      category: activeTask,
+      severity: 'low',
+      reply: progress.reply,
+      session_state: progress.sessionState
+    };
+  }
+
+  const guidedTask = detectGuidedTask(normalized, fallbackCategory);
+  if (guidedTask) {
+    const start = startGuidedFlow(guidedTask);
+    return {
+      in_scope: true,
+      intent_type: 'faq',
+      category: guidedTask,
+      severity: 'low',
+      reply: start.reply,
+      session_state: start.sessionState
+    };
+  }
+
+  return null;
+}
+
+function handleSmallTalk(normalized) {
+  if (/^(hi|hello|hey)\b/.test(normalized)) return "Hi 👋 I’m Emy. How can I help you today?";
+  if (/\b(how are you|how're you|how r u)\b/.test(normalized)) return 'I’m doing well, thank you 😊 How can I help you with Starlife today?';
+  if (/^(thanks|thank you|thx)\b/.test(normalized)) return 'You’re welcome 😊 I’m glad I could help.';
+  if (/^(bye|goodbye|see you)\b/.test(normalized)) return 'You’re welcome. Have a great day 👋';
+  if (/^(ok|okay|alright)$/.test(normalized)) return 'Great 👍 Tell me what you want to do next in Starlife, and I’ll guide you.';
+  return null;
+}
+
+function detectGuidedTask(normalized, fallbackCategory) {
+  if (/\b(guide|walk me|step by step|how do i|help me)\b/.test(normalized) || fallbackCategory !== 'general_guidance') {
+    const taskMap = [
+      ['deposit', /\bdeposit|top up|fund\b/],
+      ['withdraw', /\bwithdraw|cash out\b/],
+      ['invest', /\binvest|investment\b/],
+      ['kyc', /\bkyc|verify|verification\b/],
+      ['referrals', /\breferral|invite\b/],
+      ['loans', /\bloan|borrow\b/]
+    ];
+    for (const [task, pattern] of taskMap) {
+      if (pattern.test(normalized) || fallbackCategory === task) return task;
+    }
+  }
+  return null;
+}
+
+function startGuidedFlow(task) {
+  const starts = {
+    deposit: 'Sure 👋 Open the Deposit tab first. Tell me what you see there.',
+    withdraw: 'Sure 👋 Open the Withdraw tab first. Tell me what withdrawal methods you can see.',
+    invest: 'Sure 👋 Open the Invest tab first and tell me what package options you see.',
+    kyc: 'Sure 👋 Open the KYC/Verification section first. Tell me what fields or document prompts are shown.',
+    referrals: 'Sure 👋 Open the Referral tab first. Tell me if you can see your referral link/code.',
+    loans: 'Sure 👋 Open the Loan tab first and tell me what eligibility or limit you see.'
+  };
+  return {
+    reply: starts[task] || 'Sure 👋 Tell me which screen you are on and I’ll guide you.',
+    sessionState: { activeTask: task, step: 1, lastInstruction: starts[task] || '', status: 'guiding' }
+  };
+}
+
+function nextGuidedStep(task, step, normalized) {
+  const cantSee = normalized.includes("can't see") || normalized.includes('cannot see') || normalized.includes('cant see') || normalized === 'no';
+  if (cantSee) {
+    if (task === 'deposit' && step <= 1) {
+      const reply = 'No worries. Look for the row with buttons like Invest, Withdraw, Deposit, and Spin. Do you see the Deposit button there?';
+      return { reply, sessionState: { activeTask: 'deposit', step: 1, lastInstruction: reply, status: 'stuck' } };
+    }
+    const reply = 'No worries — you’re close. Please tell me exactly what buttons or labels you can see now, and I’ll guide you from there.';
+    return { reply, sessionState: { activeTask: task, step, lastInstruction: reply, status: 'stuck' } };
+  }
+
+  if (normalized === 'yes' || normalized === 'done' || normalized === 'next' || normalized === 'what now' || normalized === 'ok' || normalized === 'okay') {
+    if (task === 'deposit' && step <= 1) {
+      const reply = 'Great. Tap Deposit, then tell me which payment methods appear.';
+      return { reply, sessionState: { activeTask: 'deposit', step: 2, lastInstruction: reply, status: 'guiding' } };
+    }
+    const reply = 'Perfect. Follow the next on-screen step, then tell me what you see next.';
+    return { reply, sessionState: { activeTask: task, step: step + 1, lastInstruction: reply, status: 'guiding' } };
+  }
+
+  if (normalized.startsWith('i see')) {
+    const reply = 'Perfect. Choose the option you want to use, then tell me what the next screen shows.';
+    return { reply, sessionState: { activeTask: task, step: step + 1, lastInstruction: reply, status: 'guiding' } };
+  }
+
+  const reply = 'Great progress. Tell me what you see next, and I’ll guide you step by step.';
+  return { reply, sessionState: { activeTask: task, step: step + 1, lastInstruction: reply, status: 'guiding' } };
 }
 
 function isGuidedSupportRequest(category, message) {

@@ -6384,6 +6384,7 @@
         window._aiChatHistory = [];
         window._aiLastCategory = 'general_guidance';
         window._aiLastSeverity = 'low';
+        window._emySessionState = { activeTask: null, step: 0, lastInstruction: '', status: 'idle' };
 
         // ════════════════════════════════════════════════════════
         // AUTO LOGOUT AFTER 10 MINUTES INACTIVITY
@@ -7873,7 +7874,8 @@
                     body: JSON.stringify({
                         userId: window.CU?.uid || '',
                         memberId: window.CU?.memberId || '',
-                        message: text
+                        message: text,
+                        sessionState: window._emySessionState || { activeTask: null, step: 0, lastInstruction: '', status: 'idle' }
                     })
                 });
                 const data = await res.json().catch(() => ({}));
@@ -7895,6 +7897,9 @@
                 }
                 window._aiLastCategory = data.category || 'general_guidance';
                 window._aiLastSeverity = data.severity || 'low';
+                if (data.sessionState && typeof data.sessionState === 'object') {
+                    window._emySessionState = data.sessionState;
+                }
                 pushAiChatRow('bot', data.reply || 'I can help with Starlife support topics only.');
 
                 if (data.ticketId) {

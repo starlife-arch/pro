@@ -6,7 +6,9 @@ const {
   buildKnowledgeBaseText,
   RESPONSE_STYLES,
   styleForIntent,
-  detectUserTone
+  detectUserTone,
+  EMY_PERSONALITY,
+  SMALL_TALK_PATTERNS
 } = require('./_lib/support-assistant');
 
 const SUPPORTED_TOPICS = [
@@ -236,9 +238,16 @@ async function generateSupportReply({ userMessage, highRiskMatches, fallbackCate
   const knowledgeBase = buildKnowledgeBaseText();
 
   const systemPrompt = [
+<<<<<<< codex/add-ai-support-assistant-for-starlife-as6mo8
+    `You are ${EMY_PERSONALITY.identity}.`,
+    `Tone must always be ${EMY_PERSONALITY.tone}.`,
+    `Style must be ${EMY_PERSONALITY.style}.`,
+    `If user says hi/hello/hey, greet naturally: "${SMALL_TALK_PATTERNS.hello}"`,
+=======
     'You are Emy, Starlife Support Assistant.',
     'Tone must always be human, warm, calm, professional, and helpful.',
     'If user says hi/hello/hey, greet naturally: "Hi 👋 I’m Emy, Starlife Support Assistant. How can I help you today?"',
+>>>>>>> main
     'For platform help requests, guide users step-by-step instead of always giving full instructions at once.',
     'Give the next step, ask what they see on screen, and wait for their response before continuing.',
     'Keep responses short, clear, and conversational.',
@@ -414,7 +423,11 @@ function buildFallbackReply({
     return "Hi 👋 I’m Emy, Starlife Support Assistant. How can I help you today?";
   }
   if (asksHowAreYou) {
+<<<<<<< codex/add-ai-support-assistant-for-starlife-as6mo8
+    return SMALL_TALK_PATTERNS.how_are_you;
+=======
     return 'I’m doing well, thank you 😊 I’m here and ready to help with your Starlife account. What would you like to do first?';
+>>>>>>> main
   }
   if (forceHuman) {
     return `${tonePrefix}I’ve handed this over to a human support agent. A support ticket has been created. Please check My Tickets for updates.`;
@@ -433,7 +446,11 @@ function buildFallbackReply({
   const faqAnswer = getRuleBasedFaqFallback(category, userMessage);
   if (faqAnswer) return `${tonePrefix}${faqAnswer}`;
 
+<<<<<<< codex/add-ai-support-assistant-for-starlife-as6mo8
+  return `${tonePrefix}I’m here to help with Starlife support. Tell me what you’re trying to do, and I’ll guide you step by step.`;
+=======
   return `${tonePrefix}I can assist with Starlife support and platform guidance. Please ask about deposits, withdrawals, investments, referrals, loans, points, KYC, or support.`;
+>>>>>>> main
 }
 
 function getRuleBasedFaqFallback(category, userMessage) {
@@ -447,8 +464,13 @@ function getRuleBasedFaqFallback(category, userMessage) {
     loans: 'To request a loan, open the Loan section, check eligibility, choose your preferred term, and submit your request.',
     points: 'Points are earned from platform activities and can affect rewards or eligibility based on current Starlife rules.',
     kyc: 'KYC review may take some time. Make sure your submitted documents are clear, valid, and match your account details.',
+<<<<<<< codex/add-ai-support-assistant-for-starlife-as6mo8
+    support: 'For support, open the Support page or use Talk to human. You can track replies in My Tickets. Official support email is support@starlifeadvert.com.',
+    general_guidance: 'I can help with Starlife deposits, withdrawals, investments, referrals, loans, points, KYC, security, and support tickets.'
+=======
     support: 'For support, open the Support page or use Talk to human. You can track responses in My Tickets. Official support email is support@starlifeadvert.com.',
     general_guidance: 'I can help with Starlife deposits, withdrawals, investments, referrals, loans, points, KYC, and support guidance.'
+>>>>>>> main
   };
 
   if (categoryResponses[category]) return categoryResponses[category];
@@ -559,11 +581,19 @@ function buildStatefulLocalReply({ userMessage, sessionState, fallbackCategory, 
 }
 
 function handleSmallTalk(normalized) {
+<<<<<<< codex/add-ai-support-assistant-for-starlife-as6mo8
+  if (/^(hi|hello|hey)\b/.test(normalized)) return SMALL_TALK_PATTERNS.hello;
+  if (/\b(how are you|how're you|how r u)\b/.test(normalized)) return SMALL_TALK_PATTERNS.how_are_you;
+  if (/^(thanks|thank you|thx)\b/.test(normalized)) return SMALL_TALK_PATTERNS.thanks;
+  if (/^(bye|goodbye|see you)\b/.test(normalized)) return SMALL_TALK_PATTERNS.bye;
+  if (/^(ok|okay|alright)$/.test(normalized)) return SMALL_TALK_PATTERNS.okay;
+=======
   if (/^(hi|hello|hey)\b/.test(normalized)) return "Hi 👋 I’m Emy. How can I help you today?";
   if (/\b(how are you|how're you|how r u)\b/.test(normalized)) return 'I’m doing well, thank you 😊 How can I help you with Starlife today?';
   if (/^(thanks|thank you|thx)\b/.test(normalized)) return 'You’re welcome 😊 I’m glad I could help.';
   if (/^(bye|goodbye|see you)\b/.test(normalized)) return 'You’re welcome. Have a great day 👋';
   if (/^(ok|okay|alright)$/.test(normalized)) return 'Great 👍 Tell me what you want to do next in Starlife, and I’ll guide you.';
+>>>>>>> main
   return null;
 }
 

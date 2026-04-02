@@ -1,0 +1,8 @@
+{
+  "name": "starlife-netlify-functions",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "firebase-admin": "^12.7.0"
+  }
+}

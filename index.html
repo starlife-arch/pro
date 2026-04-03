@@ -10528,12 +10528,24 @@ Message: ${message}`);
                 if (fromPurchasedAfter < 0) throw new Error('Operation would create negative purchased balance');
                 const fromTotalAfter = fromPurchasedAfter + fromReceivedBefore;
 
+<<<<<<< codex/perform-inspection-only-review-of-starlife-changes-c0i1ul
+                const toHasSplit = (toData.purchasedGiftCoinBalance !== undefined) || (toData.receivedGiftCoinBalance !== undefined);
+                const toPurchasedBefore = toHasSplit ? Number(toData.purchasedGiftCoinBalance || 0) : Number(toData.giftCoinBalance || 0);
+=======
                 const toPurchasedBefore = Number(toData.purchasedGiftCoinBalance ?? toData.giftCoinBalance ?? 0);
+>>>>>>> main
                 const toReceivedBefore = Number(toData.receivedGiftCoinBalance || 0);
                 const toReceivedAfter = toReceivedBefore + coins;
                 const toTotalAfter = toPurchasedBefore + toReceivedAfter;
                 t.update(fromRef, { purchasedGiftCoinBalance: fromPurchasedAfter, giftCoinBalance: fromTotalAfter });
+<<<<<<< codex/perform-inspection-only-review-of-starlife-changes-c0i1ul
+                t.update(toRef, {
+                    receivedGiftCoinBalance: FS().increment(coins),
+                    giftCoinBalance: FS().increment(coins)
+                });
+=======
                 t.update(toRef, { receivedGiftCoinBalance: toReceivedAfter, giftCoinBalance: toTotalAfter });
+>>>>>>> main
                 t.set(db.collection('giftLogs').doc(), {
                     uid: u.uid, memberId: userMemberId(u.uid, fromData), type: 'send',
                     giftType, giftName, giftIcon, coins, entryPoint, status,
@@ -10740,11 +10752,28 @@ Message: ${message}`);
             logsEl.innerHTML = '<div class="es">Loading…</div>';
             try {
                 const [uSnap, lSnap] = await Promise.all([db.collection('users').get(), db.collection('giftLogs').get()]);
+<<<<<<< codex/perform-inspection-only-review-of-starlife-changes-c0i1ul
+                const users = uSnap.docs.map(d => ({ uid: d.id, ...d.data() })).sort((a, b) => {
+                    const bHasSplit = (b.purchasedGiftCoinBalance !== undefined) || (b.receivedGiftCoinBalance !== undefined);
+                    const aHasSplit = (a.purchasedGiftCoinBalance !== undefined) || (a.receivedGiftCoinBalance !== undefined);
+                    const bPurchased = bHasSplit ? Number(b.purchasedGiftCoinBalance || 0) : Number(b.giftCoinBalance || 0);
+                    const aPurchased = aHasSplit ? Number(a.purchasedGiftCoinBalance || 0) : Number(a.giftCoinBalance || 0);
+                    const bTotal = bHasSplit ? (bPurchased + Number(b.receivedGiftCoinBalance || 0)) : Number(b.giftCoinBalance || 0);
+                    const aTotal = aHasSplit ? (aPurchased + Number(a.receivedGiftCoinBalance || 0)) : Number(a.giftCoinBalance || 0);
+                    return bTotal - aTotal;
+                });
+                usersEl.innerHTML = users.map(u => {
+                    const hasSplit = (u.purchasedGiftCoinBalance !== undefined) || (u.receivedGiftCoinBalance !== undefined);
+                    const purchased = hasSplit ? Number(u.purchasedGiftCoinBalance || 0) : Number(u.giftCoinBalance || 0);
+                    const received = Number(u.receivedGiftCoinBalance || 0);
+                    const total = hasSplit ? (purchased + received) : Number(u.giftCoinBalance || 0);
+=======
                 const users = uSnap.docs.map(d => ({ uid: d.id, ...d.data() })).sort((a, b) => ((Number(b.purchasedGiftCoinBalance ?? b.giftCoinBalance ?? 0) + Number(b.receivedGiftCoinBalance || 0))) - ((Number(a.purchasedGiftCoinBalance ?? a.giftCoinBalance ?? 0) + Number(a.receivedGiftCoinBalance || 0))));
                 usersEl.innerHTML = users.map(u => {
                     const purchased = Number(u.purchasedGiftCoinBalance ?? u.giftCoinBalance ?? 0);
                     const received = Number(u.receivedGiftCoinBalance || 0);
                     const total = purchased + received;
+>>>>>>> main
                     return `<div class="arow"><div class="ar-top"><div><div class="ar-name">${u.name || 'User'}</div><div class="ar-sub">UID: ${u.uid} · Member ID: ${userMemberId(u.uid, u)} · Purchased: ${purchased} · Received: ${received}</div></div><div class="badge bg">${total} total</div></div></div>`;
                 }).join('') || '<div class="es">No users</div>';
                 const logs = lSnap.docs.map(d => d.data()).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).slice(0, 80);

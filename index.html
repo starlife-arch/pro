@@ -10317,6 +10317,7 @@ Message: ${message}`);
 
         async function executeTokenPurchase(tokenAmount, usdCost) {
             const u = window.CU;
+            const computedUsdCost = parseFloat((Number(tokenAmount) / 5).toFixed(2));
             try {
                 await db.runTransaction(async (t) => {
                     const ref = db.collection('users').doc(u.uid);
@@ -10324,26 +10325,27 @@ Message: ${message}`);
                     if (!snap.exists) throw new Error('Account not found');
                     const d = snap.data() || {};
                     const bal = Number(d.balance || 0);
-                    if (bal < usdCost) throw new Error('Insufficient main wallet balance');
-                    const nextBal = bal - usdCost;
+                    if (!Number.isFinite(computedUsdCost) || computedUsdCost <= 0) throw new Error('Invalid token purchase amount');
+                    if (bal < computedUsdCost) throw new Error('Insufficient main wallet balance');
+                    const nextBal = bal - computedUsdCost;
                     if (nextBal < 0) throw new Error('Operation would create negative balance');
                     const nextToken = Number(d.tokenBalance || 0) + tokenAmount;
-                    t.update(ref, { balance: FS().increment(-usdCost), tokenBalance: nextToken });
+                    t.update(ref, { balance: FS().increment(-computedUsdCost), tokenBalance: nextToken });
                     t.set(db.collection('tokenLogs').doc(), {
                         uid: u.uid,
                         memberId: userMemberId(u.uid, d),
                         type: 'purchase',
                         tokens: tokenAmount,
-                        usd: usdCost,
-                        walletDeducted: usdCost,
+                        usd: computedUsdCost,
+                        walletDeducted: computedUsdCost,
                         tokenBalanceAfter: nextToken,
                         createdAt: FS().serverTimestamp()
                     });
                 });
-                window.CU.balance = (window.CU.balance || 0) - usdCost;
+                window.CU.balance = (window.CU.balance || 0) - computedUsdCost;
                 window.CU.tokenBalance = (window.CU.tokenBalance || 0) + tokenAmount;
-                await logAct(u.uid, `Token purchase: ${tokenAmount} tokens for $${fmt(usdCost)}`, -usdCost, '🪙', 'other');
-                toast(`Purchased ${tokenAmount} tokens for $${fmt(usdCost)} ✓`, 'tg');
+                await logAct(u.uid, `Token purchase: ${tokenAmount} tokens for $${fmt(computedUsdCost)}`, -computedUsdCost, '🪙', 'other');
+                toast(`Purchased ${tokenAmount} tokens for $${fmt(computedUsdCost)} ✓`, 'tg');
                 if ($('tk-buy-qty')) $('tk-buy-qty').value = '';
                 loadTokenLogs();
                 refreshTokenGiftBalances();
@@ -10377,6 +10379,7 @@ Message: ${message}`);
 
         async function executeGiftPurchase(coinAmount, usdCost) {
             const u = window.CU;
+            const computedUsdCost = parseFloat((Number(coinAmount) / 100).toFixed(2));
             try {
                 await db.runTransaction(async (t) => {
                     const ref = db.collection('users').doc(u.uid);
@@ -10384,15 +10387,16 @@ Message: ${message}`);
                     if (!snap.exists) throw new Error('Account not found');
                     const d = snap.data() || {};
                     const bal = Number(d.balance || 0);
-                    if (bal < usdCost) throw new Error('Insufficient main wallet balance');
-                    const nextBal = bal - usdCost;
+                    if (!Number.isFinite(computedUsdCost) || computedUsdCost <= 0) throw new Error('Invalid gift coin purchase amount');
+                    if (bal < computedUsdCost) throw new Error('Insufficient main wallet balance');
+                    const nextBal = bal - computedUsdCost;
                     if (nextBal < 0) throw new Error('Operation would create negative balance');
                     const purchasedBefore = Number(d.purchasedGiftCoinBalance ?? d.giftCoinBalance ?? 0);
                     const receivedBefore = Number(d.receivedGiftCoinBalance || 0);
                     const nextPurchased = purchasedBefore + coinAmount;
                     const nextTotal = nextPurchased + receivedBefore;
                     t.update(ref, {
-                        balance: FS().increment(-usdCost),
+                        balance: FS().increment(-computedUsdCost),
                         purchasedGiftCoinBalance: nextPurchased,
                         giftCoinBalance: nextTotal
                     });
@@ -10402,19 +10406,19 @@ Message: ${message}`);
                         type: 'purchase',
                         sourceLayer: 'purchased',
                         coins: coinAmount,
-                        usd: usdCost,
-                        walletDeducted: usdCost,
+                        usd: computedUsdCost,
+                        walletDeducted: computedUsdCost,
                         purchasedBalanceAfter: nextPurchased,
                         receivedBalanceAfter: receivedBefore,
                         totalGiftBalanceAfter: nextTotal,
                         createdAt: FS().serverTimestamp()
                     });
                 });
-                window.CU.balance = (window.CU.balance || 0) - usdCost;
+                window.CU.balance = (window.CU.balance || 0) - computedUsdCost;
                 window.CU.purchasedGiftCoinBalance = getPurchasedGiftCoins(window.CU) + coinAmount;
                 window.CU.giftCoinBalance = getTotalGiftCoins(window.CU);
-                await logAct(u.uid, `Gift coin purchase: ${coinAmount} coins for $${fmt(usdCost)}`, -usdCost, '🎁', 'other');
-                toast(`Purchased ${coinAmount} gift coins for $${fmt(usdCost)} ✓`, 'tg');
+                await logAct(u.uid, `Gift coin purchase: ${coinAmount} coins for $${fmt(computedUsdCost)}`, -computedUsdCost, '🎁', 'other');
+                toast(`Purchased ${coinAmount} gift coins for $${fmt(computedUsdCost)} ✓`, 'tg');
                 if ($('gf-buy-qty')) $('gf-buy-qty').value = '';
                 loadGiftLogs();
                 refreshTokenGiftBalances();

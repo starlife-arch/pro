@@ -1056,6 +1056,27 @@
             align-self: flex-start
         }
 
+        .dm-list-item.official {
+            border-color: rgba(255, 213, 79, .45);
+            background: linear-gradient(135deg, rgba(255, 213, 79, .08), rgba(64, 196, 255, .06));
+        }
+
+        .official-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: .62rem;
+            font-weight: 800;
+            color: #0b1020;
+            background: linear-gradient(135deg, #ffd54f, #40c4ff);
+            border: 1px solid rgba(255, 255, 255, .35);
+            border-radius: 999px;
+            padding: 2px 8px;
+            margin-left: 6px;
+            box-shadow: 0 2px 8px rgba(64, 196, 255, .22);
+            vertical-align: middle;
+        }
+
         /* ── BADGES & VIP ── */
         .vip-crown {
             font-size: .9rem;
@@ -1093,6 +1114,24 @@
             margin-left: 4px;
             vertical-align: middle;
             box-shadow: 0 1px 4px rgba(255, 165, 0, .5);
+            flex-shrink: 0
+        }
+
+        .badge-official {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 22px;
+            height: 18px;
+            padding: 0 6px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #ffd54f, #40c4ff);
+            color: #07121f;
+            font-size: .62rem;
+            font-weight: 900;
+            margin-left: 4px;
+            vertical-align: middle;
+            box-shadow: 0 1px 5px rgba(64, 196, 255, .35);
             flex-shrink: 0
         }
 
@@ -3304,7 +3343,7 @@
             <!-- WITHDRAW -->
             <div id="t-withdraw" class="itc" style="display:none">
                 <div class="ptitle">Withdraw Funds</div>
-                <div class="psub">Minimum $10 · 10% processing fee applies</div>
+                <div class="psub" id="wd-sub">Minimum $10 · 10% processing fee applies</div>
                 <div id="wd-hold-notice"
                     style="display:none;background:rgba(255,82,82,.08);border:1px solid rgba(255,82,82,.25);border-radius:8px;padding:10px;margin-bottom:12px;font-size:.82rem;color:var(--red)">
                     🔒 <span id="wd-hold-txt"></span></div>
@@ -3319,7 +3358,7 @@
                     <div id="wd-prev"
                         style="display:none;margin-bottom:14px;padding:11px;background:var(--s2);border-radius:var(--rs);border:1px solid var(--bd)">
                         <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span
-                                style="font-size:.8rem;color:var(--t2)">Fee (10%)</span><span
+                                style="font-size:.8rem;color:var(--t2)" id="wd-fee-label">Fee (10%)</span><span
                                 style="color:var(--red);font-family:'JetBrains Mono',monospace;font-size:.88rem"
                                 id="wd-fee">$0.00</span></div>
                         <div style="display:flex;justify-content:space-between"><span
@@ -4379,7 +4418,7 @@
             <!-- MESSAGES / DM TAB -->
             <div id="t-messages" class="itc" style="display:none">
                 <div class="ptitle">💬 Messages</div>
-                <div class="psub">Private conversations with other members</div>
+                <div class="psub">Private conversations with members + official Starlife channels</div>
                 <!-- New DM button -->
                 <div style="display:flex;gap:8px;margin-bottom:14px">
                     <input class="fi" id="dm-search-id" placeholder="Enter Member ID to message…"
@@ -4410,7 +4449,7 @@
                             <button onclick="dmViewProfile()"
                                 style="background:none;border:none;color:var(--sky);cursor:pointer;font-size:.75rem">View
                                 Profile</button>
-                            <button onclick="openDMReportModal()"
+                            <button id="dm-report-btn" onclick="openDMReportModal()"
                                 style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:.75rem">Report</button>
                             <button id="dm-block-btn" onclick="toggleDMBlock()"
                                 style="background:none;border:none;color:var(--red);cursor:pointer;font-size:.75rem">Block</button>
@@ -4431,6 +4470,8 @@
                             <textarea id="dm-inp" rows="1" placeholder="Message…"
                                 style="flex:1;background:var(--s2);border:1px solid var(--bd);border-radius:20px;padding:9px 14px;color:var(--t1);font-size:.85rem;resize:none;outline:none;font-family:inherit;max-height:100px"
                                 onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendDM();}"></textarea>
+                            <button id="dm-gift-btn" onclick="openGiftPickerFromDM()"
+                                style="width:38px;height:38px;border-radius:50%;background:var(--s2);border:1px solid var(--bd);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:1rem;flex-shrink:0">🎁</button>
                             <button onclick="sendDM()"
                                 style="width:38px;height:38px;border-radius:50%;background:var(--g);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#000;font-size:1rem;flex-shrink:0">➤</button>
                         </div>
@@ -4507,9 +4548,24 @@
                             <button class="btn btn-p" style="flex:1" id="pp-follow-btn"
                                 onclick="toggleFollow()">Follow</button>
                             <button class="btn btn-gh" style="flex:1" onclick="dmFromProfile()">💬 Message</button>
+                            <button class="btn btn-gold" style="flex:1" onclick="openGiftPickerFromProfile()">🎁 Send Gift</button>
                             <button onclick="closeModal('m-pub-profile')"
                                 style="background:none;border:1px solid var(--bd);border-radius:10px;padding:8px 12px;color:var(--t2);cursor:pointer">✕</button>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mover" id="m-gift-picker">
+                <div class="modal" style="max-width:460px">
+                    <div class="modal-title">🎁 Send Gift</div>
+                    <div style="font-size:.78rem;color:var(--t2);margin-bottom:4px">Recipient: <span id="gift-pick-recipient" style="color:var(--gold)">—</span></div>
+                    <div style="font-size:.78rem;color:var(--t2);margin-bottom:10px">Your balance: <span id="gift-pick-balance" style="color:var(--sky)">0</span> coins</div>
+                    <div id="gift-pick-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px"></div>
+                    <div style="font-size:.76rem;color:var(--t3);margin-bottom:10px" id="gift-pick-selected">Select a gift item.</div>
+                    <div class="modal-acts">
+                        <button class="btn btn-p" onclick="confirmGiftPickerSend()">Send Gift</button>
+                        <button class="btn btn-gh" onclick="closeModal('m-gift-picker')">Cancel</button>
                     </div>
                 </div>
             </div>
@@ -4594,6 +4650,63 @@
                 <div id="tf-history">
                     <div class="es">No transfers yet</div>
                 </div>
+            </div>
+
+            <div id="t-tokens" class="itc" style="display:none">
+                <div class="ptitle">🪙 Tokens</div>
+                <div class="psub">Buy with main wallet. Tokens are not withdrawable.</div>
+                <div class="card" style="margin-bottom:12px">
+                    <div style="font-size:.8rem;color:var(--t3)">Token Balance</div>
+                    <div style="font-size:1.8rem;font-weight:800;color:var(--gold)"><span id="tk-balance">0</span> Tokens</div>
+                    <div style="font-size:.75rem;color:var(--t3)">Rate: 5 tokens = $1.00</div>
+                </div>
+                <div class="card" style="margin-bottom:12px">
+                    <div style="font-weight:700;margin-bottom:8px">Purchase Tokens</div>
+                    <div class="fg"><label class="fl">Custom Tokens (min 1)</label><div style="display:flex;gap:8px"><input class="fi" id="tk-buy-qty" type="number" min="1" step="1" placeholder="e.g. 1"><button class="btn btn-p btn-sm" onclick="buyTokensCustom()">Buy</button></div></div>
+                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+                        <button class="btn btn-gh btn-sm" onclick="buyTokens(5,1)">5<br><span style="font-size:.7rem">$1</span></button>
+                        <button class="btn btn-gh btn-sm" onclick="buyTokens(10,2)">10<br><span style="font-size:.7rem">$2</span></button>
+                        <button class="btn btn-gh btn-sm" onclick="buyTokens(25,5)">25<br><span style="font-size:.7rem">$5</span></button>
+                    </div>
+                </div>
+                <div class="sh"><h3>Token Activity</h3></div>
+                <div id="tk-logs"><div class="es">No token activity yet</div></div>
+            </div>
+
+            <div id="t-gifts" class="itc" style="display:none">
+                <div class="ptitle">🎁 Gift Coins</div>
+                <div class="psub">Buy with wallet, send to members, redeem to wallet at 60% value.</div>
+                <div class="card" style="margin-bottom:12px">
+                    <div style="font-size:.8rem;color:var(--t3)">Purchased Gift Coins (Sendable, not redeemable)</div>
+                    <div style="font-size:1.4rem;font-weight:800;color:var(--sky)"><span id="gf-balance-purchased">0</span> Coins</div>
+                    <div style="font-size:.8rem;color:var(--t3);margin-top:6px">Received Gift Coins (Redeemable)</div>
+                    <div style="font-size:1.4rem;font-weight:800;color:var(--gold)"><span id="gf-balance-received">0</span> Coins</div>
+                    <div style="font-size:.73rem;color:var(--t3);margin-top:4px">Total: <span id="gf-balance-total">0</span> coins</div>
+                    <div style="font-size:.75rem;color:var(--t3)">Rate: 100 coins = $1.00</div>
+                </div>
+                <div class="card" style="margin-bottom:12px">
+                    <div style="font-weight:700;margin-bottom:8px">Purchase Gift Coins</div>
+                    <div class="fg"><label class="fl">Custom Gift Coins (min 100)</label><div style="display:flex;gap:8px"><input class="fi" id="gf-buy-qty" type="number" min="100" step="100" placeholder="e.g. 100"><button class="btn btn-p btn-sm" onclick="buyGiftCoinsCustom()">Buy</button></div></div>
+                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+                        <button class="btn btn-gh btn-sm" onclick="buyGiftCoins(100,1)">100<br><span style="font-size:.7rem">$1</span></button>
+                        <button class="btn btn-gh btn-sm" onclick="buyGiftCoins(500,5)">500<br><span style="font-size:.7rem">$5</span></button>
+                        <button class="btn btn-gh btn-sm" onclick="buyGiftCoins(1000,10)">1,000<br><span style="font-size:.7rem">$10</span></button>
+                    </div>
+                </div>
+                <div class="card" style="margin-bottom:12px">
+                    <div style="font-weight:700;margin-bottom:8px">Send Gift Coins</div>
+                    <div class="fg"><label class="fl">Recipient Member ID</label><input class="fi" id="gf-send-member" placeholder="e.g. XW4TD8YS"></div>
+                    <div class="fg"><label class="fl">Coins</label><input class="fi" id="gf-send-amount" type="number" min="1" placeholder="e.g. 500"></div>
+                    <button class="btn btn-p btn-full" onclick="sendGiftCoins()">Send Gift Coins →</button>
+                </div>
+                <div class="card" style="margin-bottom:12px">
+                    <div style="font-weight:700;margin-bottom:8px">Redeem Gift Coins</div>
+                    <div style="font-size:.75rem;color:var(--t3);margin-bottom:8px">Only <strong>Received Gift Coins</strong> are redeemable. Minimum redeem: 1,000 coins = $10. You receive 60% in main wallet; 40% goes to Starlife.</div>
+                    <div class="fg"><label class="fl">Coins to Redeem</label><input class="fi" id="gf-redeem-amount" type="number" min="1000" step="100" placeholder="e.g. 1000"></div>
+                    <button class="btn btn-gold btn-full" onclick="redeemGiftCoins()">Redeem to Main Wallet →</button>
+                </div>
+                <div class="sh"><h3>Gift Activity (Sent / Received / Redeemed)</h3></div>
+                <div id="gf-logs"><div class="es">No gift activity yet</div></div>
             </div>
 
             <!-- P2P TRADING TAB -->
@@ -4999,6 +5112,8 @@
             <div class="more-item" onclick="tab('leaderboard');hideMore()">🏆 Leaderboard</div>
             <div class="more-item" onclick="tab('rewards');hideMore()">🎮 Rewards</div>
             <div class="more-item" onclick="tab('contest');hideMore()">🏆 Contest</div>
+            <div class="more-item" onclick="tab('tokens');hideMore()">🪙 Tokens</div>
+            <div class="more-item" onclick="tab('gifts');hideMore()">🎁 Gift Coins</div>
             <div class="more-item" onclick="tab('support');hideMore()">🎧 Support</div>
             <div class="more-item" onclick="tab('activity');hideMore()">📋 Activity</div>
             <div class="more-item" onclick="tab('about');hideMore()">ℹ️ About Us</div>
@@ -5189,6 +5304,19 @@
                     <button class="btn btn-gh btn-sm" onclick="loadAdminStakes('pending')">Pending</button>
                     <button class="btn btn-gh btn-sm" onclick="loadAdminStakes('all')">All</button>
                 </div>
+                <div class="card" style="margin-bottom:12px">
+                    <div style="font-weight:700;margin-bottom:8px">Shareholder Manual Controls</div>
+                    <div class="fg"><label class="fl">User UID</label><input class="fi" id="at-sh-uid" placeholder="User UID"></div>
+                    <div class="fg"><label class="fl">Stake Change (USD, negative allowed)</label><input class="fi" id="at-sh-delta" type="number" step="0.01" placeholder="e.g. 100 or -50"></div>
+                    <div class="fg"><label class="fl">Reason</label><input class="fi" id="at-sh-reason" placeholder="e.g. correction"></div>
+                    <button class="btn btn-p btn-full" onclick="adminAdjustShareholderStake()">Apply Stake Adjustment</button>
+                    <div style="height:8px"></div>
+                    <button class="btn btn-gh btn-full" onclick="adminToggleShareholderEarnings()">Toggle Earnings Stop/Restart</button>
+                </div>
+                <div class="card" style="margin-bottom:12px">
+                    <div style="font-weight:700;margin-bottom:8px">Shareholder Overview</div>
+                    <div id="at-shareholders-users"><div class="es">Loading…</div></div>
+                </div>
                 <div id="at-stakes-list"></div>
             </div>
 
@@ -5310,7 +5438,77 @@
                     <div style="font-size:.82rem;font-weight:600;margin-bottom:10px">Fee History</div>
                     <div id="at-fees-list"></div>
                 </div>
+                <div class="card" style="margin-top:12px">
+                    <div style="font-weight:700;margin-bottom:8px">Financial Control Settings</div>
+                    <div class="fg"><label class="fl">Minimum Withdrawal (USD)</label><input class="fi" id="fin-wd-min" type="number" min="1" step="0.01"></div>
+                    <div class="fg"><label class="fl">Withdrawal Fee (%)</label><input class="fi" id="fin-wd-fee" type="number" min="0" max="100" step="0.01"></div>
+                    <div class="fg"><label class="fl">Transfer Fee (%)</label><input class="fi" id="fin-tf-fee" type="number" min="0" max="100" step="0.01"></div>
+                    <button class="btn btn-p btn-full" onclick="adminSaveFinancialSettings()">Save Financial Settings</button>
+                </div>
                 <div style="font-size:.72rem;color:var(--t3);margin-top:10px">Aggregated from Withdrawals (10%), Transfers (5%), P2P spreads, and Loan interest.</div>
+            </div>
+
+            <div id="at-tokens" class="atab">
+                <h3 style="margin-bottom:12px">🪙 Token Economy (Admin)</h3>
+                <div class="card" style="margin-bottom:12px">
+                    <div style="font-weight:700;margin-bottom:8px">User Token Balances</div>
+                    <div id="at-tokens-users"><div class="es">Loading…</div></div>
+                </div>
+                <div class="card" style="margin-bottom:12px">
+                    <div style="font-weight:700;margin-bottom:8px">Manual Token Adjustment</div>
+                    <div class="fg"><label class="fl">User UID</label><input class="fi" id="at-tk-uid" placeholder="User UID"></div>
+                    <div class="fg"><label class="fl">Change (can be negative)</label><input class="fi" id="at-tk-delta" type="number" placeholder="e.g. 10 or -5"></div>
+                    <div class="fg"><label class="fl">Reason</label><input class="fi" id="at-tk-reason" placeholder="e.g. correction"></div>
+                    <button class="btn btn-p btn-full" onclick="adminAdjustTokenBalance()">Apply Token Adjustment</button>
+                </div>
+                <div class="sh"><h3>Token Logs</h3></div>
+                <div id="at-tokens-logs"><div class="es">Loading…</div></div>
+            </div>
+
+            <div id="at-gifts" class="atab">
+                <h3 style="margin-bottom:12px">🎁 Gift Economy (Admin)</h3>
+                <div class="card" style="margin-bottom:12px">
+                    <div style="font-weight:700;margin-bottom:8px">User Gift Balances</div>
+                    <div id="at-gifts-users"><div class="es">Loading…</div></div>
+                </div>
+                <div class="card" style="margin-bottom:12px">
+                    <div style="font-weight:700;margin-bottom:8px">Manual Gift Adjustment</div>
+                    <div class="fg"><label class="fl">User UID</label><input class="fi" id="at-gf-uid" placeholder="User UID"></div>
+                    <div class="fg"><label class="fl">Balance Layer</label><select class="fi" id="at-gf-layer"><option value="purchased">Purchased Gift Coins</option><option value="received">Received Gift Coins</option></select></div>
+                    <div class="fg"><label class="fl">Change (can be negative)</label><input class="fi" id="at-gf-delta" type="number" placeholder="e.g. 100 or -50"></div>
+                    <div class="fg"><label class="fl">Reason</label><input class="fi" id="at-gf-reason" placeholder="e.g. correction"></div>
+                    <button class="btn btn-p btn-full" onclick="adminAdjustGiftBalance()">Apply Gift Adjustment</button>
+                </div>
+                <div class="sh"><h3>Gift Logs</h3></div>
+                <div id="at-gifts-logs"><div class="es">Loading…</div></div>
+            </div>
+
+            <div id="at-official" class="atab">
+                <h3 style="margin-bottom:12px">📣 Official Channels (Admin)</h3>
+                <div class="card" style="margin-bottom:12px">
+                    <div style="font-weight:700;margin-bottom:8px">Post Broadcast</div>
+                    <div class="fg"><label class="fl">Channel</label>
+                        <select class="fi" id="at-official-channel">
+                            <option value="official_starlife_main">Starlife Official</option>
+                            <option value="official_starlife_updates">Starlife Updates</option>
+                        </select>
+                    </div>
+                    <div class="fg"><label class="fl">Message</label><textarea class="fi" id="at-official-message" rows="4" placeholder="Write the official broadcast message..."></textarea></div>
+                    <button class="btn btn-p btn-full" onclick="adminSendOfficialPost()">Send to all users</button>
+                </div>
+                <div class="card" style="margin-bottom:12px">
+                    <div style="font-weight:700;margin-bottom:8px">Reply Controls</div>
+                    <div class="fg"><label class="fl">Channel</label>
+                        <select class="fi" id="at-official-reply-channel" onchange="loadAdminOfficialChannels()">
+                            <option value="official_starlife_main">Starlife Official</option>
+                            <option value="official_starlife_updates">Starlife Updates</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-gh btn-full" onclick="adminToggleOfficialReplies()">Toggle Replies Open/Closed</button>
+                    <div style="font-size:.75rem;color:var(--t3);margin-top:6px" id="at-official-reply-status">Loading status…</div>
+                </div>
+                <div class="sh"><h3>Official Replies</h3></div>
+                <div id="at-official-replies"><div class="es">Loading…</div></div>
             </div>
 
             <div id="at-kyc" class="atab">
@@ -5921,6 +6119,19 @@
             </div>
             <div class="fg"><label class="fl">Agent Region</label><input class="fi" id="eu-agent-region"
                     placeholder="Region"></div>
+            <div class="fg">
+                <label class="fl">Promo / Privilege Access</label>
+                <label><input type="checkbox" id="eu-promo-enabled"> Enable privilege overrides for this user</label>
+            </div>
+            <div class="fg">
+                <label class="fl">Privilege Toggles</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:.8rem;background:var(--s1);padding:10px;border-radius:8px;border:1px solid var(--bd)">
+                    <label><input type="checkbox" class="cb-priv" id="eu-free-wd-fees"> Free withdrawal fees</label>
+                    <label><input type="checkbox" class="cb-priv" id="eu-free-official-replies"> Free official-channel replies</label>
+                    <label><input type="checkbox" class="cb-priv" id="eu-free-token-actions"> Free token-required actions</label>
+                </div>
+            </div>
+            <div class="fg"><label class="fl">Custom Withdrawal Fee (%)</label><input class="fi" id="eu-custom-wd-fee" type="number" min="0" max="100" step="0.01" placeholder="Leave blank to use platform default"></div>
 
             <div class="modal-acts">
                 <button class="btn btn-p" onclick="confirmEditUser()">Save</button>
@@ -6300,6 +6511,7 @@
                 'selTerm', 'selTicketType', 'addSurveyQuestion', 'copyText',
                 'openBdayEdit', 'closeBdayEdit', 'openModal', 'closeModal',
                 'viewPublicProfile', 'toggleFollow', 'dmFromProfile', 'startNewDM', 'openDMChat', 'sendDM', 'loadDMList',
+                'adminSendOfficialPost', 'adminToggleOfficialReplies', 'loadAdminOfficialChannels',
                 'applyVerification', 'adminToggleVerified', 'adminToggleAgent', 'adminSetVIP', 'adminFakeFollowers',
                 'showFollowers', 'showFollowing', 'updateProfileBadges',
                 'viewPublicProfile', 'followUser', 'unfollowUser', 'toggleFollowFromProfile', 'startDM', 'sendDM',
@@ -6316,7 +6528,7 @@
                 'selectVaultPlan', 'calcVault', 'lockInVault', 'loadSavingsVault',
                 'createSavingsGoal', 'loadSavingsGoals', 'addToGoal', 'deleteGoal',
                 'applyPromoCode', 'adminCreatePromoCode', 'loadAdminPromoCodes', 'adminDeletePromoCode',
-                'adminHoldFunds',
+                'adminHoldFunds', 'adminSaveFinancialSettings', 'adminAdjustShareholderStake', 'adminToggleShareholderEarnings', 'adminViewUserFinance',
                 'tab', 'atab', 'lbTab', 'shTab', 'svTab', 'lnTab', 'spTab', 'actTab',
                 'aboutTab', 'cmTab', 'loadMyTickets', 'toggleMore', 'hideMore',
                 'openSurvey', 'openSetPin', 'openSurveyBuilder', 'savePIN', 'confirmPIN'
@@ -6344,6 +6556,79 @@
         const FIREBASE_CONFIG = { apiKey: "AIzaSyCF09qr8P8_BOzWt53wopZlavHFZb7sBnM", authDomain: "starlife-advert-a6587.firebaseapp.com", projectId: "starlife-advert-a6587", storageBucket: "starlife-advert-a6587.firebasestorage.app", messagingSenderId: "946780590831", appId: "1:946780590831:web:dd22e4879ec0786a31011a" };
         const ADMIN_EMAIL = "starlifeadvert@gmail.com";
         const SUPPORT_EMAIL = "support@starlifeadvert.com";
+        const DEFAULT_PLATFORM_SETTINGS = {
+            withdrawMinAmount: 10,
+            withdrawFeeRate: 0.10,
+            transferFeeRate: 0.05
+        };
+        const DEFAULT_USER_PRIVILEGES = {
+            promoAccessEnabled: false,
+            freeWithdrawFees: false,
+            customWithdrawFeeRate: null,
+            freeOfficialReplies: false,
+            freeTokenActions: false
+        };
+        window._platformSettings = { ...DEFAULT_PLATFORM_SETTINGS };
+
+        async function loadPlatformSettings(force = false) {
+            if (!force && window._platformSettingsLoaded) return window._platformSettings;
+            try {
+                const snap = await db.collection('platformSettings').doc('financial').get();
+                if (snap.exists) {
+                    const d = snap.data() || {};
+                    window._platformSettings = {
+                        withdrawMinAmount: Number.isFinite(Number(d.withdrawMinAmount)) ? Number(d.withdrawMinAmount) : DEFAULT_PLATFORM_SETTINGS.withdrawMinAmount,
+                        withdrawFeeRate: Number.isFinite(Number(d.withdrawFeeRate)) ? Number(d.withdrawFeeRate) : DEFAULT_PLATFORM_SETTINGS.withdrawFeeRate,
+                        transferFeeRate: Number.isFinite(Number(d.transferFeeRate)) ? Number(d.transferFeeRate) : DEFAULT_PLATFORM_SETTINGS.transferFeeRate
+                    };
+                } else {
+                    window._platformSettings = { ...DEFAULT_PLATFORM_SETTINGS };
+                }
+            } catch (_) {
+                window._platformSettings = { ...DEFAULT_PLATFORM_SETTINGS };
+            }
+            window._platformSettingsLoaded = true;
+            const wdMin = getFinancialSetting('withdrawMinAmount');
+            const wdFeePct = getFinancialSetting('withdrawFeeRate') * 100;
+            if ($('wd-sub')) $('wd-sub').textContent = `Minimum $${fmt(wdMin)} · ${fmt(wdFeePct)}% processing fee applies`;
+            if ($('wd-fee-label')) $('wd-fee-label').textContent = `Fee (${fmt(wdFeePct)}%)`;
+            if ($('wd-amt')) {
+                $('wd-amt').min = wdMin;
+                $('wd-amt').placeholder = `Min $${fmt(wdMin)}`;
+            }
+            return window._platformSettings;
+        }
+        function getFinancialSetting(key) {
+            const v = window._platformSettings?.[key];
+            return Number.isFinite(Number(v)) ? Number(v) : Number(DEFAULT_PLATFORM_SETTINGS[key]);
+        }
+        function normalizeUserPrivileges(p) {
+            const raw = (p && typeof p === 'object') ? p : {};
+            const parsedCustom = Number(raw.customWithdrawFeeRate);
+            const customWithdrawFeeRate = Number.isFinite(parsedCustom) && parsedCustom >= 0 && parsedCustom <= 1 ? parsedCustom : null;
+            return {
+                promoAccessEnabled: !!raw.promoAccessEnabled,
+                freeWithdrawFees: !!raw.freeWithdrawFees,
+                customWithdrawFeeRate,
+                freeOfficialReplies: !!raw.freeOfficialReplies,
+                freeTokenActions: !!raw.freeTokenActions
+            };
+        }
+        function getUserPrivileges(userObj) {
+            const p = normalizeUserPrivileges(userObj?.privileges);
+            if (!p.promoAccessEnabled) return { ...DEFAULT_USER_PRIVILEGES };
+            return p;
+        }
+        function getEffectiveWithdrawalFeeRate(userObj) {
+            const p = getUserPrivileges(userObj);
+            if (p.freeWithdrawFees) return 0;
+            if (Number.isFinite(Number(p.customWithdrawFeeRate))) return Number(p.customWithdrawFeeRate);
+            return getFinancialSetting('withdrawFeeRate');
+        }
+        function isTokenChargeWaived(userObj) {
+            const p = getUserPrivileges(userObj);
+            return !!(p.freeTokenActions || p.freeOfficialReplies);
+        }
 
         async function tg(msg) {
             if (!msg) return;
@@ -6455,12 +6740,13 @@
             const ref = db.collection('users').doc(user.uid);
             let snap = await ref.get();
             if (!snap.exists) {
-                await ref.set({ name: user.displayName || 'User', email: user.email, phone: '', balance: 1, totalInvested: 0, totalEarned: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, shareholderDistributed: 0, surveyPoints: 0, surveysCompleted: 0, surveysSkipped: 0, referralCode: genRef(), referredBy: null, referrals: [], isBanned: false, isAdmin: false, firstStakeAt: null, loanDefaultCount: 0, createdAt: FS().serverTimestamp() });
+                await ref.set({ name: user.displayName || 'User', email: user.email, phone: '', balance: 1, tokenBalance: 0, purchasedGiftCoinBalance: 0, receivedGiftCoinBalance: 0, giftCoinBalance: 0, totalInvested: 0, totalEarned: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, shareholderDistributed: 0, surveyPoints: 0, surveysCompleted: 0, surveysSkipped: 0, referralCode: genRef(), referredBy: null, referrals: [], privileges: { ...DEFAULT_USER_PRIVILEGES }, isBanned: false, isAdmin: false, firstStakeAt: null, loanDefaultCount: 0, createdAt: FS().serverTimestamp() });
                 snap = await ref.get();
                 logAct(user.uid, 'Welcome bonus', .1, '💎', 'deposit');
             }
             const d = snap.data();
             window.CU = { uid: user.uid, ...d };
+            await loadPlatformSettings(true);
             if (d.isBanned) { go('pg-banned'); return; }
             await warmSecurityContext();
             const blocked = await isCurrentIpBlocked();
@@ -6557,7 +6843,7 @@
                         await db.collection('users').doc(referredBy).update({ referrals: FS().arrayUnion(uid) });
                     }
                 }
-                await db.collection('users').doc(uid).set({ name, email, phone, balance: 1, totalInvested: 0, totalEarned: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, shareholderDistributed: 0, surveyPoints: 0, surveysCompleted: 0, surveysSkipped: 0, referralCode: rc, referredBy, referrals: [], isBanned: false, isAdmin: false, firstStakeAt: null, loanDefaultCount: 0, createdAt: FS().serverTimestamp() });
+                await db.collection('users').doc(uid).set({ name, email, phone, balance: 1, tokenBalance: 0, purchasedGiftCoinBalance: 0, receivedGiftCoinBalance: 0, giftCoinBalance: 0, totalInvested: 0, totalEarned: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, shareholderDistributed: 0, surveyPoints: 0, surveysCompleted: 0, surveysSkipped: 0, referralCode: rc, referredBy, referrals: [], privileges: { ...DEFAULT_USER_PRIVILEGES }, isBanned: false, isAdmin: false, firstStakeAt: null, loanDefaultCount: 0, createdAt: FS().serverTimestamp() });
                 toast('Account created! Welcome bonus added 🎉');
                 tg(`🆕 <b>New Member</b>\nName: ${name}\nEmail: ${email}\nPhone: ${phone || '—'}\nRef: ${ref || 'none'}`);
             } catch (e) {
@@ -6858,6 +7144,44 @@
                 console.error(e);
                 el.innerHTML = '<div class="es">Error loading fees</div>';
             }
+            await loadAdminFinancialSettings();
+        }
+
+        async function loadAdminFinancialSettings() {
+            await loadPlatformSettings(true);
+            if ($('fin-wd-min')) $('fin-wd-min').value = getFinancialSetting('withdrawMinAmount');
+            if ($('fin-wd-fee')) $('fin-wd-fee').value = parseFloat((getFinancialSetting('withdrawFeeRate') * 100).toFixed(4));
+            if ($('fin-tf-fee')) $('fin-tf-fee').value = parseFloat((getFinancialSetting('transferFeeRate') * 100).toFixed(4));
+        }
+
+        async function adminSaveFinancialSettings() {
+            if (!['superadmin', 'finance'].includes(getAdminRole())) return toast('Finance or Super Admin access required', 'tr');
+            const wdMin = Number($('fin-wd-min')?.value || 0);
+            const wdFeePct = Number($('fin-wd-fee')?.value || 0);
+            const tfFeePct = Number($('fin-tf-fee')?.value || 0);
+            if (!Number.isFinite(wdMin) || wdMin < 1) return toast('Minimum withdrawal must be at least $1', 'ty');
+            if (!Number.isFinite(wdFeePct) || wdFeePct < 0 || wdFeePct > 100) return toast('Withdrawal fee must be between 0% and 100%', 'ty');
+            if (!Number.isFinite(tfFeePct) || tfFeePct < 0 || tfFeePct > 100) return toast('Transfer fee must be between 0% and 100%', 'ty');
+            const payload = {
+                withdrawMinAmount: parseFloat(wdMin.toFixed(4)),
+                withdrawFeeRate: parseFloat((wdFeePct / 100).toFixed(6)),
+                transferFeeRate: parseFloat((tfFeePct / 100).toFixed(6)),
+                updatedAt: FS().serverTimestamp(),
+                updatedBy: window.CU?.uid || null
+            };
+            try {
+                await db.collection('platformSettings').doc('financial').set(payload, { merge: true });
+                await db.collection('adminAuditLogs').add({
+                    type: 'financial_settings_update',
+                    byUid: window.CU?.uid || null,
+                    byEmail: window.CU?.email || null,
+                    payload,
+                    createdAt: FS().serverTimestamp()
+                });
+                window._platformSettingsLoaded = false;
+                await loadPlatformSettings(true);
+                toast('Financial settings updated ✓', 'tg');
+            } catch (e) { toast(e.message || 'Failed to save settings', 'tr'); }
         }
 
         function shTab(el, id) { document.querySelectorAll('#t-shareholder .itab').forEach(t => t.classList.remove('on')); el.classList.add('on');['sh-t-stake', 'sh-t-history', 'sh-t-withdraw'].forEach(i => $(i).style.display = 'none'); $(id).style.display = 'block'; }
@@ -7194,7 +7518,8 @@
             const a = parseFloat($('wd-amt').value);
             if (!a || a <= 0) { $('wd-prev').style.display = 'none'; return; }
             $('wd-prev').style.display = 'block';
-            const fee = a * 0.10;
+            const feeRate = getEffectiveWithdrawalFeeRate(window.CU || {});
+            const fee = a * feeRate;
             $('wd-fee').textContent = '$' + fmt(fee);
             $('wd-net').textContent = '$' + fmt(a - fee);
         }
@@ -7207,7 +7532,9 @@
             const method = $('wd-method').value;
             const details = $('wd-details').value.trim();
             const u = window.CU;
-            if (!amt || amt < 10) return toast('Minimum withdrawal $10', 'ty');
+            await loadPlatformSettings();
+            const wdMin = getFinancialSetting('withdrawMinAmount');
+            if (!amt || amt < wdMin) return toast(`Minimum withdrawal $${fmt(wdMin)}`, 'ty');
             if (!details) return toast('Enter your payment details', 'ty');
             const availBal = getAvailableBalance(u);
             if (availBal < amt) return toast(`Insufficient available balance. Available: $${fmt(availBal)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' on hold)' : ''}`, 'tr');
@@ -7252,19 +7579,25 @@
             const u = window.CU;
             const ex = await db.collection('withdrawals').where('uid', '==', u.uid).where('status', '==', 'pending').get();
             if (!ex.empty) return toast('You already have a pending withdrawal', 'ty');
-            const fee = amt * 0.10; const net = amt - fee; const txId = genTxId();
+            await loadPlatformSettings();
+            const freshUserSnap = await db.collection('users').doc(u.uid).get();
+            const freshUser = freshUserSnap.exists ? { uid: u.uid, ...(freshUserSnap.data() || {}) } : { ...u };
+            const feeRate = getEffectiveWithdrawalFeeRate(freshUser);
+            const fee = amt * feeRate; const net = amt - fee; const txId = genTxId();
             const batch = db.batch();
             const wdRef = db.collection('withdrawals').doc();
-            batch.set(wdRef, { uid: u.uid, userName: u.name, userEmail: u.email, txId, amount: amt, fee, net, method, details, status: 'pending', createdAt: FS().serverTimestamp() });
+            batch.set(wdRef, { uid: u.uid, userName: u.name, userEmail: u.email, txId, amount: amt, fee, feeRate, net, method, details, status: 'pending', createdAt: FS().serverTimestamp() });
             // Log platforms fees for tracking
-            batch.set(db.collection('platformFees').doc(), {
-                type: 'withdrawal',
-                amt: fee,
-                uid: u.uid,
-                userName: u.name,
-                txId: txId,
-                createdAt: FS().serverTimestamp()
-            });
+            if (fee > 0) {
+                batch.set(db.collection('platformFees').doc(), {
+                    type: 'withdrawal',
+                    amt: fee,
+                    uid: u.uid,
+                    userName: u.name,
+                    txId: txId,
+                    createdAt: FS().serverTimestamp()
+                });
+            }
             batch.update(db.collection('users').doc(u.uid), { balance: FS().increment(-amt) });
             await batch.commit();
             await logAct(u.uid, `Withdrawal requested $${fmt(amt)} via ${method} (${txId})`, -amt, '💳', 'withdrawal');
@@ -7976,11 +8309,13 @@
             let html = '';
             if (u.isVerified) html += '<span class="vbadge vbadge-blue" title="Verified">✓</span>';
             if (u.isAgent) html += '<span class="vbadge vbadge-gold" title="Agent">★</span>';
+            if (isOfficialChannelUid(u.id || u.uid || u.officialChannelId)) html += '<span class="badge-official" title="Starlife Official">★SL</span>';
             return html;
         }
 
         function getTagsHTML(u) {
             let tags = '';
+            if (isOfficialChannelUid(u.id || u.uid || u.officialChannelId)) tags += '<span class="user-tag" style="background:linear-gradient(135deg,#ffd54f,#40c4ff);color:#06121f;font-weight:800">🛡️ Starlife Official</span>';
             if (u.isAgent) tags += '<span class="user-tag tag-agent">⭐ Agent</span>';
             if (u.vipLevel === 'Platinum') tags += '<span class="user-tag tag-vip-platinum">👑 Platinum</span>';
             else if (u.vipLevel === 'Gold') tags += '<span class="user-tag tag-vip-gold">🥇 Gold</span>';
@@ -8152,13 +8487,27 @@
         async function viewPublicProfile(uid) {
             if (!uid) return;
             _viewingProfileUid = uid;
-            const snap = await db.collection('users').doc(uid).get();
-            if (!snap.exists) return toast('User not found', 'ty');
-            const u = { id: uid, ...snap.data() };
+            let u = null;
+            if (isOfficialChannelUid(uid)) {
+                const profile = getOfficialChannelProfile(uid);
+                u = {
+                    ...profile,
+                    followersCount: 0,
+                    followingCount: 0,
+                    p2pRatingCount: 0,
+                    createdAt: null,
+                    rank: 'Official'
+                };
+            } else {
+                const snap = await db.collection('users').doc(uid).get();
+                if (!snap.exists) return toast('User not found', 'ty');
+                u = { id: uid, ...snap.data() };
+            }
             const me = window.CU;
             // Populate modal
             if ($('pp-av')) {
                 if (u.avatarBase64) $('pp-av').innerHTML = `<img src="${u.avatarBase64}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+                else if (u.isOfficialProfile) $('pp-av').textContent = u.officialIcon || '🛡️';
                 else $('pp-av').textContent = (getPublicDisplayName(u) || 'U')[0].toUpperCase();
             }
             if ($('pp-name')) $('pp-name').textContent = getPublicDisplayName(u);
@@ -8181,6 +8530,25 @@
 
             if ($('pp-joined')) $('pp-joined').textContent = fmtD(u.createdAt);
             if ($('pp-rank')) $('pp-rank').textContent = u.rank || 'Starter';
+            if (u.isOfficialProfile) {
+                if ($('pp-bio-wrap')) {
+                    $('pp-bio-wrap').style.display = 'block';
+                    $('pp-bio-text').textContent = u.officialDescription || 'Official Starlife-owned communication channel.';
+                }
+                if ($('pp-joined')) $('pp-joined').textContent = 'Platform Channel';
+                if ($('pp-rank')) $('pp-rank').textContent = 'Official';
+                const actions = $('pp-actions');
+                if (actions) {
+                    const followBtn = $('pp-follow-btn');
+                    if (followBtn) followBtn.style.display = 'none';
+                    const btns = actions.querySelectorAll('button');
+                    btns.forEach((btn) => {
+                        if ((btn.textContent || '').includes('🎁')) btn.style.display = 'none';
+                    });
+                }
+                openModal('m-pub-profile');
+                return;
+            }
             // Check if already following
             const followSnap = await db.collection('follows').doc(me.uid + '_' + uid).get();
             const isFollowing = followSnap.exists;
@@ -8191,6 +8559,10 @@
                 followBtn.style.color = isFollowing ? 'var(--t1)' : '#000';
                 if (uid === me.uid) followBtn.style.display = 'none';
                 else followBtn.style.display = 'block';
+            }
+            const actions = $('pp-actions');
+            if (actions) {
+                actions.querySelectorAll('button').forEach((btn) => { btn.style.display = 'inline-flex'; });
             }
             openModal('m-pub-profile');
         }
@@ -8274,9 +8646,46 @@
         // ════════════════════════════════════════════════════════
         // DIRECT MESSAGES (DM)
         // ════════════════════════════════════════════════════════
+        const OFFICIAL_CHANNELS = {
+            official_starlife_main: {
+                id: 'official_starlife_main',
+                name: 'Starlife Official',
+                icon: '🛡️',
+                description: 'Security alerts, emergency notices, and critical announcements',
+                defaultRepliesOpen: false
+            },
+            official_starlife_updates: {
+                id: 'official_starlife_updates',
+                name: 'Starlife Updates',
+                icon: '📣',
+                description: 'Promotions, features, and platform news',
+                defaultRepliesOpen: true
+            }
+        };
+
+        function isOfficialChannelUid(uid) {
+            return !!OFFICIAL_CHANNELS[uid];
+        }
+        function getOfficialChannelProfile(uid) {
+            const c = OFFICIAL_CHANNELS[uid];
+            if (!c) return null;
+            return {
+                id: c.id,
+                uid: c.id,
+                name: c.name,
+                publicName: c.name,
+                isOfficialProfile: true,
+                isOfficial: true,
+                officialChannelId: c.id,
+                officialIcon: c.icon,
+                officialDescription: c.description
+            };
+        }
+
         let _activeDMUser = null;
         let _activeDMId = null;
         let _dmBlockState = { iBlocked: false, blockedMe: false, muted: false };
+        let _activeOfficialChannel = null;
         window._activeDMUser = null;
 
         function getDMId(uid1, uid2) {
@@ -8293,6 +8702,12 @@
             const u = window.CU, peer = _activeDMUser?.id || _activeDMUser?.uid;
             if (!u || !peer) return;
             const blockBtn = $('dm-block-btn'), inp = $('dm-inp');
+            if (isOfficialChannelUid(peer)) {
+                _dmBlockState = { iBlocked: false, blockedMe: false, muted: false };
+                if (blockBtn) blockBtn.style.display = 'none';
+                if (inp) inp.disabled = false;
+                return;
+            }
             try {
                 const [mine, other, freshMe] = await Promise.all([
                     db.collection('dmBlocks').doc(`${u.uid}_${peer}`).get(),
@@ -8305,6 +8720,7 @@
                 const strikeUntil = promoTsToDate(meData.dmStrikeUntil);
                 _dmBlockState.muted = !!meData.dmMuted || (!!strikeUntil && strikeUntil > new Date());
                 if (blockBtn) blockBtn.textContent = _dmBlockState.iBlocked ? 'Unblock' : 'Block';
+                if (blockBtn) blockBtn.style.display = 'inline-block';
                 const statusEl = $('dm-chat-status');
                 if (statusEl && _dmBlockState.blockedMe) statusEl.innerHTML = (getTagsHTML(_activeDMUser) || 'Member') + ' · <span style="color:var(--red)">Blocked you</span>';
                 if (inp) {
@@ -8330,6 +8746,9 @@
         async function openDMChat(uid, userData, rowEl) {
             const u = window.CU;
             if (!uid || uid === 'undefined') return toast('Invalid user', 'ty');
+            if (isOfficialChannelUid(uid)) {
+                userData = getOfficialChannelProfile(uid);
+            }
             if (!userData || typeof userData === 'string') {
                 try {
                     const snap = await db.collection('users').doc(uid).get();
@@ -8340,6 +8759,7 @@
             _activeDMUser = userData;
             window._activeDMUser = userData;
             _activeDMId = getDMId(u.uid, uid);
+            _activeOfficialChannel = isOfficialChannelUid(uid) ? OFFICIAL_CHANNELS[uid] : null;
             if (rowEl) {
                 const b = rowEl.querySelector('[data-unread-badge]');
                 if (b) b.remove();
@@ -8348,11 +8768,28 @@
             const av = $('dm-chat-av'), nameEl = $('dm-chat-name'), statusEl = $('dm-chat-status');
             if (av) {
                 if (userData.avatarBase64) av.innerHTML = `<img src="${userData.avatarBase64}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+                else if (userData.isOfficialProfile) av.textContent = userData.officialIcon || '🛡️';
                 else av.textContent = (userData.name || 'U')[0].toUpperCase();
             }
             if (nameEl) nameEl.innerHTML = getNameWithBadges(userData, true);
-            if (statusEl) statusEl.innerHTML = getTagsHTML(userData) || 'Member';
+            if (statusEl) statusEl.innerHTML = userData.isOfficialProfile ? '<span class="official-badge">🛡️ VERIFIED OFFICIAL</span>' : (getTagsHTML(userData) || 'Member');
+            if ($('dm-block-btn')) $('dm-block-btn').style.display = userData.isOfficialProfile ? 'none' : 'inline-block';
+            if ($('dm-report-btn')) $('dm-report-btn').style.display = userData.isOfficialProfile ? 'none' : 'inline-block';
+            if ($('dm-gift-btn')) $('dm-gift-btn').style.display = userData.isOfficialProfile ? 'none' : 'flex';
             await refreshDMModerationState();
+            if (userData.isOfficialProfile) {
+                const eligibility = await getOfficialReplyEligibility();
+                const inp = $('dm-inp');
+                if (inp) {
+                    if (!eligibility.repliesOpen) {
+                        inp.disabled = true;
+                        inp.placeholder = 'Replies are currently closed for this official channel';
+                    } else {
+                        inp.disabled = false;
+                        inp.placeholder = eligibility.isFree ? 'Reply to official channel (Free)' : 'Reply to official channel (Costs 1 token)';
+                    }
+                }
+            }
             // Load messages
             await loadDMMessages();
             openModal('m-dm-chat');
@@ -8383,10 +8820,37 @@
                             </div>
                         </div>`;
                     }
+                    if (m.type === 'gift') {
+                        const mineGift = m.from === u.uid;
+                        const timeGift = m.createdAt ? new Date(m.createdAt.seconds * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+                        const giftName = m.giftName || 'Gift';
+                        const giftIcon = m.giftIcon || '🎁';
+                        const coins = Number(m.giftCoins || 0);
+                        return `<div style="display:flex;flex-direction:column;align-items:${mineGift ? 'flex-end' : 'flex-start'};margin-bottom:8px">
+        <div style="max-width:78%;background:${mineGift ? 'rgba(0,200,83,.12)' : 'rgba(64,196,255,.10)'};border:1px solid ${mineGift ? 'rgba(0,200,83,.25)' : 'rgba(64,196,255,.25)'};border-radius:12px;padding:9px 12px">
+          <div style="font-size:.88rem;font-weight:700">${giftIcon} ${mineGift ? 'You sent a' : 'You received a'} ${giftName}</div>
+          <div style="font-size:.72rem;color:var(--t3);margin-top:2px">${coins} coins</div>
+        </div>
+        <div style="font-size:.65rem;color:var(--t3);margin:0 6px">${timeGift}</div>
+      </div>`;
+                    }
+                    if (m.type === 'official_post') {
+                        const when = m.createdAt ? new Date(m.createdAt.seconds * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+                        const ch = OFFICIAL_CHANNELS[m.officialChannelId] || _activeOfficialChannel || { name: 'Starlife Official', icon: '🛡️' };
+                        return `<div style="display:flex;justify-content:flex-start;margin:8px 0">
+        <div style="max-width:86%;background:linear-gradient(135deg,rgba(255,213,79,.12),rgba(64,196,255,.10));border:1px solid rgba(255,213,79,.4);border-radius:12px;padding:10px 12px">
+          <div style="font-size:.72rem;font-weight:800;color:var(--gold)">${ch.icon || '🛡️'} ${ch.name} <span class="official-badge">Verified Official</span></div>
+          <div style="font-size:.84rem;line-height:1.45;margin-top:4px;color:var(--t1)">${m.text || ''}</div>
+          <div style="font-size:.65rem;color:var(--t3);margin-top:4px">${when}</div>
+        </div>
+      </div>`;
+                    }
                     const mine = m.from === u.uid;
                     const time = m.createdAt ? new Date(m.createdAt.seconds * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+                    const modeNote = m.type === 'official_reply' ? (m.replyMode === 'token_paid' ? ' · 1 token' : ' · free') : '';
                     return `<div style="display:flex;flex-direction:column;align-items:${mine ? 'flex-end' : 'flex-start'};margin-bottom:6px">
         <div class="dm-bubble ${mine ? 'mine' : 'theirs'}">${m.text}</div>
+        ${m.type === 'official_reply' ? `<div style="font-size:.64rem;color:var(--t3);margin-top:1px">${mine ? 'Official reply sent' : 'Member reply'}${modeNote}</div>` : ''}
         <div style="font-size:.65rem;color:var(--t3);margin:0 6px">${time}${mine && m.read ? ' · ✓✓' : ''}</div>
       </div>`;
                 }).join('');
@@ -8394,10 +8858,107 @@
             } catch (e) { el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--red)">Error loading</div>'; }
         }
 
+        async function getOfficialReplyEligibility() {
+            const u = window.CU;
+            const channel = _activeOfficialChannel;
+            if (!u || !channel) return { repliesOpen: false, isFree: false, tokenCost: 1 };
+            try {
+                const s = await db.collection('officialChannelSettings').doc(channel.id).get();
+                const cfg = s.exists ? s.data() : {};
+                const repliesOpen = cfg.repliesOpen !== undefined ? !!cfg.repliesOpen : !!channel.defaultRepliesOpen;
+                const privilegeApplied = isTokenChargeWaived(u);
+                const isFree = privilegeApplied || Number(u.totalInvested || 0) >= 50;
+                return { repliesOpen, isFree, tokenCost: isFree ? 0 : 1, privilegeApplied };
+            } catch (_) {
+                const privilegeApplied = isTokenChargeWaived(u);
+                const isFree = privilegeApplied || Number(u.totalInvested || 0) >= 50;
+                return { repliesOpen: !!channel.defaultRepliesOpen, isFree, tokenCost: isFree ? 0 : 1, privilegeApplied };
+            }
+        }
+
+        async function sendOfficialReply(text) {
+            const u = window.CU;
+            const channel = _activeOfficialChannel;
+            if (!u || !channel) return;
+            const eligibility = await getOfficialReplyEligibility();
+            if (!eligibility.repliesOpen) return toast('Replies are currently closed for this official channel', 'ty');
+            try {
+                await db.runTransaction(async (t) => {
+                    const userRef = db.collection('users').doc(u.uid);
+                    const dmRef = db.collection('dms').doc(_activeDMId);
+                    const msgRef = dmRef.collection('msgs').doc();
+                    const userSnap = await t.get(userRef);
+                    if (!userSnap.exists) throw new Error('Account not found');
+                    const userData = userSnap.data() || {};
+                    const tokenBal = Number(userData.tokenBalance || 0);
+                    const paid = !eligibility.isFree;
+                    if (paid && tokenBal < 1) throw new Error('You need at least 1 token to reply in this channel');
+                    if (paid) t.update(userRef, { tokenBalance: tokenBal - 1 });
+                    t.set(msgRef, {
+                        from: u.uid, to: channel.id, text, read: false,
+                        type: 'official_reply',
+                        officialChannelId: channel.id,
+                        replyMode: paid ? 'token_paid' : (eligibility.privilegeApplied ? 'privilege_free' : 'free'),
+                        tokenCost: paid ? 1 : 0,
+                        createdAt: FS().serverTimestamp()
+                    });
+                    t.set(dmRef, {
+                        participants: [u.uid, channel.id],
+                        lastMsg: text.substring(0, 80),
+                        lastMsgAt: FS().serverTimestamp(),
+                        lastMsgFrom: u.uid,
+                        [`unread_${u.uid}`]: 0,
+                        names: { [u.uid]: u.name, [channel.id]: channel.name },
+                        publicNames: { [u.uid]: getPublicDisplayName(u), [channel.id]: channel.name },
+                        officialChannelId: channel.id,
+                        official: true
+                    }, { merge: true });
+                    t.set(db.collection('officialReplies').doc(), {
+                        channelId: channel.id,
+                        channelName: channel.name,
+                        uid: u.uid,
+                        memberId: memberIdFromUid(u.uid),
+                        text,
+                        replyMode: paid ? 'token_paid' : (eligibility.privilegeApplied ? 'privilege_free' : 'free'),
+                        tokenCost: paid ? 1 : 0,
+                        createdAt: FS().serverTimestamp()
+                    });
+                    if (paid) {
+                        t.set(db.collection('tokenLogs').doc(), {
+                            uid: u.uid,
+                            memberId: memberIdFromUid(u.uid),
+                            type: 'official_reply',
+                            tokens: -1,
+                            usd: 0,
+                            note: `Reply to ${channel.name}`,
+                            officialChannelId: channel.id,
+                            replyMode: 'token_paid',
+                            tokenBalanceAfter: tokenBal - 1,
+                            createdAt: FS().serverTimestamp()
+                        });
+                    }
+                });
+                if (!eligibility.isFree) {
+                    window.CU.tokenBalance = Math.max(0, Number(window.CU.tokenBalance || 0) - 1);
+                }
+                await loadDMMessages();
+                await loadDMList();
+                toast(eligibility.isFree ? 'Reply sent ✓' : 'Reply sent (1 token used) ✓', 'tg');
+            } catch (e) {
+                toast(e.message || 'Could not send reply', 'tr');
+                throw e;
+            }
+        }
+
         async function sendDM() {
             const inp = $('dm-inp');
             const text = inp?.value.trim();
             if (!text || !_activeDMId || !_activeDMUser) return;
+            if (_activeOfficialChannel) {
+                if (inp) inp.value = '';
+                try { await sendOfficialReply(text); } catch (_) { if (inp) inp.value = text; }
+                return;
+            }
             await refreshDMModerationState();
             if (_dmBlockState.muted) return toast('You are muted from sending DMs', 'tr');
             if (_dmBlockState.blockedMe) return toast('This user has blocked you', 'ty');
@@ -8526,8 +9087,23 @@
             const u = window.CU;
             try {
                 const snap = await db.collection('dms').where('participants', 'array-contains', u.uid).get();
-                const convs = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.lastMsgAt?.seconds || 0) - (a.lastMsgAt?.seconds || 0));
-                if (!convs.length) { el.innerHTML = '<div class="es">No messages yet.<br><span style="font-size:.78rem;color:var(--t3)">Enter a Member ID above to start chatting</span></div>'; return; }
+                const convs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                const officialConvs = Object.values(OFFICIAL_CHANNELS).map(ch => {
+                    const dmId = getDMId(u.uid, ch.id);
+                    const found = convs.find(c => c.id === dmId);
+                    return found || {
+                        id: dmId,
+                        participants: [u.uid, ch.id],
+                        lastMsg: ch.description,
+                        lastMsgAt: null,
+                        lastMsgFrom: ch.id,
+                        official: true,
+                        officialChannelId: ch.id
+                    };
+                });
+                const nonOfficialConvs = convs.filter(c => !isOfficialChannelUid((c.participants || []).find(p => p !== u.uid)));
+                const allConvs = [...officialConvs, ...nonOfficialConvs].sort((a, b) => (b.lastMsgAt?.seconds || 0) - (a.lastMsgAt?.seconds || 0));
+                if (!allConvs.length) { el.innerHTML = '<div class="es">No messages yet.<br><span style="font-size:.78rem;color:var(--t3)">Enter a Member ID above to start chatting</span></div>'; return; }
                 const others = [...new Set(convs.map(c => (c.participants || []).find(p => p !== u.uid)).filter(Boolean))];
                 const otherDocs = await Promise.all(others.map(uid => db.collection('users').doc(uid).get()));
                 const publicNameMap = {};
@@ -8542,14 +9118,20 @@
                         if (data.avatarBase64) avatarMap[s.id] = data.avatarBase64;
                     }
                 });
-                el.innerHTML = convs.map(c => {
+                el.innerHTML = allConvs.map(c => {
                     const otherUid = c.participants.find(p => p !== u.uid);
+                    const official = isOfficialChannelUid(otherUid);
+                    const offProfile = official ? getOfficialChannelProfile(otherUid) : null;
                     const uObj = userObjMap[otherUid];
-                    const otherName = publicNameMap[otherUid] || c.publicNames?.[otherUid] || getPublicDisplayName({ name: c.names?.[otherUid] || 'Member' });
-                    const nameHTML = uObj ? getNameWithBadges(uObj, true) : `<span style="font-weight:600;font-size:.88rem">${otherName}</span>`;
+                    const otherName = official ? offProfile.name : (publicNameMap[otherUid] || c.publicNames?.[otherUid] || getPublicDisplayName({ name: c.names?.[otherUid] || 'Member' }));
+                    const nameHTML = official
+                        ? `<span style="font-weight:700;font-size:.88rem">${offProfile.officialIcon || '🛡️'} ${offProfile.name}</span><span class="official-badge">Official</span>`
+                        : (uObj ? getNameWithBadges(uObj, true) : `<span style="font-weight:600;font-size:.88rem">${otherName}</span>`);
                     const unread = c[`unread_${u.uid}`] || 0;
-                    const avHTML = avatarMap[otherUid] ? `<img class="dm-av" src="${avatarMap[otherUid]}" style="width:42px;height:42px;border-radius:50%;object-fit:cover;padding:0;border:none;flex-shrink:0;">` : `<div class="dm-av" style="width:42px;height:42px;font-size:.95rem">${(otherName || 'M')[0].toUpperCase()}</div>`;
-                    return `<div class="dm-list-item" onclick="openDMChat('${otherUid}',null,this)">
+                    const avHTML = official
+                        ? `<div class="dm-av" style="width:42px;height:42px;font-size:1.05rem;background:linear-gradient(135deg,#ffd54f,#40c4ff);color:#06121f">${offProfile.officialIcon || '🛡️'}</div>`
+                        : (avatarMap[otherUid] ? `<img class="dm-av" src="${avatarMap[otherUid]}" style="width:42px;height:42px;border-radius:50%;object-fit:cover;padding:0;border:none;flex-shrink:0;">` : `<div class="dm-av" style="width:42px;height:42px;font-size:.95rem">${(otherName || 'M')[0].toUpperCase()}</div>`);
+                    return `<div class="dm-list-item ${official ? 'official' : ''}" onclick="openDMChat('${otherUid}',null,this)">
         ${avHTML}
         <div style="flex:1;min-width:0">
           <div style="display:flex;justify-content:space-between;align-items:center">
@@ -8572,11 +9154,11 @@
         const ADMIN_ROLES = {
             superadmin: {
                 label: '⭐ Super Admin', color: 'var(--gold)',
-                tabs: ['investments', 'deposits', 'withdrawals', 'users', 'kyc', 'leaderboard', 'community', 'stakes', 'loans', 'tickets', 'surveys', 'redemptions', 'activity', 'revenue', 'analytics', 'security', 'maintenance', 'testi', 'prizecodes', 'luckydraw', 'contest', 'p2p', 'broadcast', 'ads', 'admins', 'promocodes', 'fees']
+                tabs: ['investments', 'deposits', 'withdrawals', 'users', 'kyc', 'leaderboard', 'community', 'stakes', 'loans', 'tickets', 'surveys', 'redemptions', 'activity', 'revenue', 'analytics', 'security', 'maintenance', 'testi', 'prizecodes', 'luckydraw', 'contest', 'p2p', 'broadcast', 'ads', 'admins', 'promocodes', 'fees', 'tokens', 'gifts', 'official']
             },
             finance: {
                 label: '💰 Finance', color: 'var(--g)',
-                tabs: ['deposits', 'withdrawals', 'revenue', 'analytics', 'activity', 'users', 'promocodes', 'fees']
+                tabs: ['deposits', 'withdrawals', 'revenue', 'analytics', 'activity', 'users', 'promocodes', 'fees', 'tokens', 'gifts']
             },
             support: {
                 label: '🎧 Support', color: 'var(--sky)',
@@ -8584,7 +9166,7 @@
             },
             moderator: {
                 label: '🌐 Moderator', color: '#a78bfa',
-                tabs: ['community', 'testi', 'broadcast', 'ads', 'activity']
+                tabs: ['community', 'testi', 'broadcast', 'ads', 'activity', 'official']
             },
             operations: {
                 label: '⚙️ Operations', color: 'var(--gold)',
@@ -8621,6 +9203,9 @@
             admins: () => loadAdminsList(),
             promocodes: () => loadAdminPromoCodes(),
             fees: () => loadAdminFees(),
+            tokens: () => loadAdminTokens(),
+            gifts: () => loadAdminGifts(),
+            official: () => loadAdminOfficialChannels(),
         };
 
         const ALL_ADMIN_TABS = [
@@ -8651,6 +9236,9 @@
             { id: 'admins', label: '👥 Admins' },
             { id: 'promocodes', label: '🎁 Promo Codes' },
             { id: 'fees', label: '💵 Fees' },
+            { id: 'tokens', label: '🪙 Tokens' },
+            { id: 'gifts', label: '🎁 Gifts' },
+            { id: 'official', label: '📣 Official' },
         ];
 
         function getAdminRole() {
@@ -8825,38 +9413,74 @@
         function adminApproveInvById(btn) { const id = btn.dataset.id; const d = window['_inv_' + id]; if (d) adminApproveInv(d.id, d.uid, d.amount); }
         function adminRejectInvById(btn) { const id = btn.dataset.id; const d = window['_inv_' + id]; if (d) adminRejectInv(d.id, d.uid); }
 
+        async function applyReferralBonusesForInvestment(investmentId, uid, amount) {
+            const payout = { triggered: false, alreadyPaid: false, levels: [] };
+            await db.runTransaction(async (t) => {
+                const invRef = db.collection('investments').doc(investmentId);
+                const userRef = db.collection('users').doc(uid);
+                const eventRef = db.collection('referralBonuses').doc(investmentId);
+                const [invSnap, userSnap, eventSnap] = await Promise.all([t.get(invRef), t.get(userRef), t.get(eventRef)]);
+                if (!invSnap.exists || !userSnap.exists) return;
+                const inv = invSnap.data() || {};
+                const user = userSnap.data() || {};
+                if (eventSnap.exists || user.referralBonusPaid) { payout.alreadyPaid = true; return; }
+                if (inv.status !== 'active' || !user.referredBy) return;
+                payout.triggered = true;
+
+                const l1Ref = db.collection('users').doc(user.referredBy);
+                const l1Snap = await t.get(l1Ref);
+                const bonuses = [];
+                if (l1Snap.exists) bonuses.push({ level: 1, uid: user.referredBy, amount: parseFloat((amount * 0.10).toFixed(4)), via: user.name || 'member' });
+                if (l1Snap.exists && l1Snap.data()?.referredBy) {
+                    const l2uid = l1Snap.data().referredBy;
+                    const l2Ref = db.collection('users').doc(l2uid);
+                    const l2Snap = await t.get(l2Ref);
+                    if (l2Snap.exists) bonuses.push({ level: 2, uid: l2uid, amount: parseFloat((amount * 0.05).toFixed(4)), via: l1Snap.data()?.name || 'member' });
+                    if (l2Snap.exists && l2Snap.data()?.referredBy) {
+                        const l3uid = l2Snap.data().referredBy;
+                        const l3Ref = db.collection('users').doc(l3uid);
+                        const l3Snap = await t.get(l3Ref);
+                        if (l3Snap.exists) bonuses.push({ level: 3, uid: l3uid, amount: parseFloat((amount * 0.02).toFixed(4)), via: l2Snap.data()?.name || 'member' });
+                    }
+                }
+                bonuses.forEach(b => {
+                    t.update(db.collection('users').doc(b.uid), {
+                        balance: FS().increment(b.amount),
+                        totalEarned: FS().increment(b.amount),
+                        referralEarned: FS().increment(b.amount)
+                    });
+                });
+                t.update(userRef, {
+                    referralBonusPaid: true,
+                    referralBonusPaidAt: FS().serverTimestamp(),
+                    referralBonusInvestmentId: investmentId
+                });
+                t.set(eventRef, {
+                    investmentId,
+                    invitedUid: uid,
+                    invitedName: user.name || 'Member',
+                    referredBy: user.referredBy || null,
+                    amount,
+                    bonuses,
+                    createdAt: FS().serverTimestamp()
+                });
+                payout.levels = bonuses;
+            });
+            return payout;
+        }
+
         async function adminApproveInv(id, uid, amount) {
             const batch = db.batch();
             batch.update(db.collection('investments').doc(id), { status: 'active', earningEnabled: true, approvedAt: FS().serverTimestamp(), totalPaid: 0 });
             batch.update(db.collection('users').doc(uid), { totalInvested: FS().increment(amount) });
             await batch.commit();
-            // Referral bonus — first investment check
             const userSnap = await db.collection('users').doc(uid).get();
-            const u = userSnap.data();
-            if (!u.referralBonusPaid && u.referredBy) {
-                await db.collection('users').doc(uid).update({ referralBonusPaid: true });
-                // Level 1 — direct referrer gets 10%
-                const bonus = parseFloat((amount * 0.10).toFixed(4));
-                await db.collection('users').doc(u.referredBy).update({ balance: FS().increment(bonus), totalEarned: FS().increment(bonus), referralEarned: FS().increment(bonus) });
-                logAct(u.referredBy, `Level 1 referral bonus from ${u.name} first investment`, bonus, '👥', 'deposit');
-                await db.collection('userNotifs').add({ uid: u.referredBy, msg: `👥 Level 1 referral bonus: +$${fmt(bonus)} from ${u.name} first investment!`, read: false, createdAt: FS().serverTimestamp() });
-                // Level 2 — referrer's referrer gets 5%
-                const l1Snap = await db.collection('users').doc(u.referredBy).get();
-                if (l1Snap.exists && l1Snap.data().referredBy) {
-                    const l2uid = l1Snap.data().referredBy;
-                    const bonus2 = parseFloat((amount * 0.05).toFixed(4));
-                    await db.collection('users').doc(l2uid).update({ balance: FS().increment(bonus2), totalEarned: FS().increment(bonus2), referralEarned: FS().increment(bonus2) });
-                    logAct(l2uid, `Level 2 referral bonus from ${u.name} first investment`, bonus2, '👥', 'deposit');
-                    await db.collection('userNotifs').add({ uid: l2uid, msg: `👥 Level 2 referral bonus: +$${fmt(bonus2)} from ${u.name} (via ${l1Snap.data().name || 'member'})!`, read: false, createdAt: FS().serverTimestamp() });
-                    // Level 3 — 2%
-                    const l2Snap = await db.collection('users').doc(l2uid).get();
-                    if (l2Snap.exists && l2Snap.data().referredBy) {
-                        const l3uid = l2Snap.data().referredBy;
-                        const bonus3 = parseFloat((amount * 0.02).toFixed(4));
-                        await db.collection('users').doc(l3uid).update({ balance: FS().increment(bonus3), totalEarned: FS().increment(bonus3), referralEarned: FS().increment(bonus3) });
-                        logAct(l3uid, `Level 3 referral bonus from ${u.name} first investment`, bonus3, '👥', 'deposit');
-                        await db.collection('userNotifs').add({ uid: l3uid, msg: `👥 Level 3 referral bonus: +$${fmt(bonus3)} from ${u.name}!`, read: false, createdAt: FS().serverTimestamp() });
-                    }
+            const u = userSnap.data() || {};
+            const referralResult = await applyReferralBonusesForInvestment(id, uid, amount);
+            if (referralResult?.triggered) {
+                for (const lv of referralResult.levels || []) {
+                    await logAct(lv.uid, `Level ${lv.level} referral bonus from ${u.name} qualifying investment`, lv.amount, '👥', 'deposit');
+                    await db.collection('userNotifs').add({ uid: lv.uid, msg: `👥 Level ${lv.level} referral bonus: +$${fmt(lv.amount)} from ${u.name} investment!`, read: false, createdAt: FS().serverTimestamp() });
                 }
             }
             // Notify investor
@@ -8934,7 +9558,9 @@
         <div class="ar-name">${u.name || '—'} ${u.isBanned ? '<span class="badge br">BANNED</span>' : ''}</div>
         <div class="ar-sub">${u.email} · ${u.phone || '—'}</div>
         <div class="ar-sub">Balance: <strong style="color:var(--g)">$${fmt(u.balance)}</strong>${(u.heldAmount || 0) > 0 ? ' · <span style="color:var(--red)">🔒 Held: $' + fmt(u.heldAmount || 0) + '</span>' : ''} · Invested: $${fmt(u.totalInvested)} · Stake: $${fmt(u.shareholderStake)}</div>
-        <div class="ar-sub">Ref: ${u.referralCode || '—'} · Joined: ${fmtD(u.createdAt)}</div>
+        <div class="ar-sub">Member ID: ${memberIdFromUid(u.id)} · Points: ${u.surveyPoints || 0} · Savings: $${fmt(u.savingsBalance || 0)}</div>
+        <div class="ar-sub">Ref: ${u.referralCode || '—'} · Referral Earned: $${fmt(u.referralEarned || 0)} · Bonus Paid: ${u.referralBonusPaid ? 'Yes' : 'No'} · Joined: ${fmtD(u.createdAt)}</div>
+        <div class="ar-sub">${(() => { const p = getUserPrivileges(u); return `Promo: <strong>${p.promoAccessEnabled ? 'Enabled' : 'Disabled'}</strong> · Free WD Fee: ${p.freeWithdrawFees ? 'Yes' : 'No'} · Custom WD Fee: ${p.customWithdrawFeeRate == null ? 'Default' : (fmt(p.customWithdrawFeeRate * 100) + '%')} · Free Official Replies: ${p.freeOfficialReplies ? 'Yes' : 'No'} · Free Token Actions: ${p.freeTokenActions ? 'Yes' : 'No'}`; })()}</div>
         <div class="ar-sub">🎂 Birthday: <strong style="color:var(--gold)">${u.birthday || 'Not set'}</strong></div>
       </div></div>
       <div class="ar-acts">
@@ -8949,15 +9575,49 @@
         <button class="btn btn-sky btn-sm" onclick="adminHoldFunds(&quot;${u.id}&quot;,&quot;${(u.name || '').replace(/"/g, '') || 'User'}&quot;,${u.balance || 0},${u.heldAmount || 0})">${(u.heldAmount || 0) > 0 ? '🔓 Held: $' + parseFloat(u.heldAmount || 0).toFixed(2) : '🔒 Hold Funds'}</button>
         ${u.withdrawPin ? '<button class="btn btn-sky btn-sm" onclick="adminResetPin(&quot;' + u.id + '&quot;,&quot;' + (u.name || 'User').replace(/"/g, '') + '&quot;)">🔐 Reset PIN</button>' : ''}
         <button class="btn btn-gold btn-sm" onclick="openInvAdj(&quot;${u.id}&quot;,&quot;${(u.name || '').replace(/"/g, '') || 'User'}&quot;,&quot;${u.email}&quot;,${u.totalInvested || 0})">📈 Investment</button>
+        <button class="btn btn-gh btn-sm" onclick="adminViewUserFinance(&quot;${u.id}&quot;)">📊 Finance View</button>
         <button class="btn btn-gh btn-sm" onclick="openEditUser(&quot;${u.id}&quot;,&quot;${(u.name || '').replace(/"/g, '') || 'User'}&quot;,&quot;${u.email}&quot;,&quot;${(u.phone || '').replace(/"/g, '')}&quot;)">✏️ Edit</button>
         <button class="btn btn-sky btn-sm" onclick="adminEditBirthday(&quot;${u.id}&quot;,&quot;${(u.name || 'User').replace(/"/g, '')}&quot;,&quot;${u.birthday || ''}&quot;)">🎂 Birthday</button>
         ${u.isBanned ? '<button class="btn btn-p btn-sm" onclick="banUser(&quot;' + u.id + '&quot;,false)">Unban</button>' : '<button class="btn btn-d btn-sm" onclick="banUser(&quot;' + u.id + '&quot;,true)">Ban</button>'}
         <button class="btn btn-d btn-sm" onclick="deleteUser(&quot;${u.id}&quot;)">🗑 Delete</button>
       </div>
+      <div id="ufx-${u.id}" style="display:none;margin-top:8px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:10px;font-size:.78rem;color:var(--t2)"></div>
     </div>`).join('');
         }
 
         function searchUsers() { const q = $('user-search').value.toLowerCase(); renderUsers((window.AU || []).filter(u => (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q) || (u.phone || '').toLowerCase().includes(q))); }
+
+        async function adminViewUserFinance(uid) {
+            const box = $('ufx-' + uid);
+            if (!box) return;
+            if (box.style.display === 'block') { box.style.display = 'none'; return; }
+            box.style.display = 'block';
+            box.innerHTML = 'Loading finance/profile systems…';
+            try {
+                const [uSnap, vaultSnap, goalsSnap] = await Promise.all([
+                    db.collection('users').doc(uid).get(),
+                    db.collection('savingsVault').where('uid', '==', uid).get(),
+                    db.collection('savingsGoals').where('uid', '==', uid).get()
+                ]);
+                if (!uSnap.exists) { box.innerHTML = 'User not found'; return; }
+                const u = uSnap.data() || {};
+                const p = getUserPrivileges(u);
+                const vaultActive = vaultSnap.docs.filter(d => (d.data().status || 'active') === 'active').length;
+                const goalsActive = goalsSnap.docs.filter(d => (d.data().status || 'active') === 'active').length;
+                const goalsTotal = goalsSnap.size;
+                box.innerHTML = `
+                    <div><strong>Member ID:</strong> ${memberIdFromUid(uid)} · <strong>Points:</strong> ${u.surveyPoints || 0}</div>
+                    <div><strong>Savings Wallet:</strong> $${fmt(u.savingsBalance || 0)} · <strong>Savings Earned:</strong> $${fmt(u.savingsEarned || 0)}</div>
+                    <div><strong>Vault Locks:</strong> ${vaultSnap.size} total (${vaultActive} active)</div>
+                    <div><strong>Savings Goals:</strong> ${goalsTotal} total (${goalsActive} active)</div>
+                    <div><strong>Shareholder Stake:</strong> $${fmt(u.shareholderStake || 0)} · <strong>Shareholder Earned:</strong> $${fmt(u.shareholderEarned || 0)} · <strong>Distributed:</strong> $${fmt(u.shareholderDistributed || 0)} · <strong>Earnings:</strong> ${u.shareholderEarningsPaused ? '<span style="color:var(--red)">Stopped</span>' : '<span style="color:var(--g)">Active</span>'}</div>
+                    <div><strong>Promo Access:</strong> ${p.promoAccessEnabled ? '<span style="color:var(--g)">Enabled</span>' : '<span style="color:var(--t3)">Disabled</span>'} · <strong>Free WD Fees:</strong> ${p.freeWithdrawFees ? 'Yes' : 'No'} · <strong>Custom WD Fee:</strong> ${p.customWithdrawFeeRate == null ? 'Platform default' : fmt(p.customWithdrawFeeRate * 100) + '%'}</div>
+                    <div><strong>Free Official Replies:</strong> ${p.freeOfficialReplies ? 'Yes' : 'No'} · <strong>Free Token Actions:</strong> ${p.freeTokenActions ? 'Yes' : 'No'}</div>
+                `;
+            } catch (e) {
+                box.innerHTML = 'Could not load finance view';
+            }
+        }
 
         window._adjTarget = null;
         function openAdjust(id, name, bal) {
@@ -9113,6 +9773,11 @@
         function openEditUser(id, name, email, phone) {
             window._editTarget = id;
             $('eu-name').value = name; $('eu-email').value = email; $('eu-phone').value = phone;
+            $('eu-promo-enabled').checked = false;
+            $('eu-free-wd-fees').checked = false;
+            $('eu-free-official-replies').checked = false;
+            $('eu-free-token-actions').checked = false;
+            $('eu-custom-wd-fee').value = '';
             const u = (window.AU || []).find(x => x.id === id);
             if (u) {
                 const roles = u.officialRoles || [];
@@ -9124,6 +9789,12 @@
                 $('eu-office-status').value = u.officeStatus || 'Not started';
                 $('eu-perf-rank').value = u.performanceRank || 'Bronze';
                 $('eu-agent-region').value = u.agentRegion || '';
+                const pv = normalizeUserPrivileges(u.privileges);
+                $('eu-promo-enabled').checked = !!pv.promoAccessEnabled;
+                $('eu-free-wd-fees').checked = !!pv.freeWithdrawFees;
+                $('eu-free-official-replies').checked = !!pv.freeOfficialReplies;
+                $('eu-free-token-actions').checked = !!pv.freeTokenActions;
+                $('eu-custom-wd-fee').value = Number.isFinite(Number(pv.customWithdrawFeeRate)) ? (Number(pv.customWithdrawFeeRate) * 100).toFixed(4).replace(/\.?0+$/, '') : '';
             }
             openModal('m-edit-user');
         }
@@ -9136,16 +9807,50 @@
             const oStat = $('eu-office-status').value;
             const pRank = $('eu-perf-rank').value;
             const aReg = $('eu-agent-region').value.trim();
+            const promoEnabled = !!$('eu-promo-enabled').checked;
+            const freeWithdrawFees = !!$('eu-free-wd-fees').checked;
+            const freeOfficialReplies = !!$('eu-free-official-replies').checked;
+            const freeTokenActions = !!$('eu-free-token-actions').checked;
+            const customFeeInput = $('eu-custom-wd-fee').value.trim();
+            const customFeePct = customFeeInput === '' ? null : Number(customFeeInput);
+            if (customFeeInput !== '' && (!Number.isFinite(customFeePct) || customFeePct < 0 || customFeePct > 100)) return toast('Custom withdrawal fee must be between 0 and 100', 'ty');
+            const nextPrivileges = normalizeUserPrivileges({
+                promoAccessEnabled: promoEnabled,
+                freeWithdrawFees,
+                customWithdrawFeeRate: customFeeInput === '' ? null : parseFloat((customFeePct / 100).toFixed(6)),
+                freeOfficialReplies,
+                freeTokenActions
+            });
 
             const roles = Array.from(document.querySelectorAll('.cb-off:checked')).map(cb => cb.value);
+            const prevSnap = await db.collection('users').doc(id).get();
+            const prevData = prevSnap.exists ? (prevSnap.data() || {}) : {};
+            const prevPrivileges = normalizeUserPrivileges(prevData.privileges);
 
             await db.collection('users').doc(id).update({
                 name: n, phone: p,
                 officialRoles: roles,
                 salaryAmount: sAmt, secretaryAllowance: sAllow,
                 salaryStatus: sStat, officeStatus: oStat,
-                performanceRank: pRank, agentRegion: aReg
+                performanceRank: pRank, agentRegion: aReg,
+                privileges: nextPrivileges
             });
+            const privilegeFields = ['promoAccessEnabled', 'freeWithdrawFees', 'customWithdrawFeeRate', 'freeOfficialReplies', 'freeTokenActions'];
+            for (const field of privilegeFields) {
+                const oldVal = prevPrivileges[field] ?? null;
+                const newVal = nextPrivileges[field] ?? null;
+                if (JSON.stringify(oldVal) === JSON.stringify(newVal)) continue;
+                await db.collection('privilegeAdminLogs').add({
+                    adminUid: window.CU?.uid || null,
+                    targetUid: id,
+                    targetMemberId: memberIdFromUid(id),
+                    field,
+                    oldValue: oldVal,
+                    newValue: newVal,
+                    changedAt: FS().serverTimestamp(),
+                    source: 'admin_edit_user'
+                });
+            }
             toast('User updated ✓'); closeModal('m-edit-user'); loadAdminAll();
         }
 
@@ -9209,7 +9914,7 @@
             await fakeRef.set({
                 name: customName, email: 'fake_' + fakeRef.id + '@starlife.fake', phone: '',
                 balance: 0, totalInvested: invested, totalEarned: invested * 0.4,
-                referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, savingsEarned: 0,
+                tokenBalance: 0, purchasedGiftCoinBalance: 0, receivedGiftCoinBalance: 0, giftCoinBalance: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, savingsEarned: 0, privileges: { ...DEFAULT_USER_PRIVILEGES },
                 surveyPoints: Math.floor(Math.random() * 200),
                 referralCode: rc, referredBy: null, referrals: [],
                 isBanned: false, isAdmin: false, isFakeProfile: true,
@@ -9242,6 +9947,7 @@
             const snap = await q.get();
             const list = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
             const el = $('at-stakes-list');
+            await loadAdminShareholderOverview();
             if (!list.length) { el.innerHTML = '<div class="es"><div class="ei">💎</div>No stakes</div>'; return; }
             el.innerHTML = list.map(s => {
                 const b = s.status === 'active' ? '<span class="badge bpur">Active</span>' : s.status === 'pending' ? '<span class="badge bgold">Pending</span>' : '<span class="badge br">Rejected</span>';
@@ -9275,6 +9981,70 @@
             await db.collection('stakes').doc(id).update({ status: 'rejected' });
             await db.collection('userNotifs').add({ uid, msg: 'Your shareholder stake was rejected. Contact support.', read: false, createdAt: FS().serverTimestamp() });
             toast('Stake rejected'); loadAdminAll();
+        }
+
+        async function loadAdminShareholderOverview() {
+            const el = $('at-shareholders-users'); if (!el) return;
+            try {
+                const snap = await db.collection('users').where('shareholderStake', '>', 0).get();
+                const users = snap.docs.map(d => ({ uid: d.id, ...d.data() })).sort((a, b) => Number(b.shareholderStake || 0) - Number(a.shareholderStake || 0));
+                if (!users.length) { el.innerHTML = '<div class="es">No active shareholders</div>'; return; }
+                el.innerHTML = users.map(u => `<div class="arow"><div class="ar-top"><div><div class="ar-name">${u.name || 'User'}</div><div class="ar-sub">UID: ${u.uid} · Stake: $${fmt(u.shareholderStake || 0)} · Earned: $${fmt(u.shareholderEarned || 0)} · Distributed: $${fmt(u.shareholderDistributed || 0)} · ${u.shareholderEarningsPaused ? '<span style="color:var(--red)">Earnings Stopped</span>' : '<span style="color:var(--g)">Earnings Active</span>'}</div></div></div></div>`).join('');
+            } catch (e) { el.innerHTML = '<div class="es">Could not load shareholder overview</div>'; }
+        }
+
+        async function adminAdjustShareholderStake() {
+            const uid = ($('at-sh-uid')?.value || '').trim();
+            const delta = Number($('at-sh-delta')?.value || 0);
+            const reason = ($('at-sh-reason')?.value || '').trim() || 'manual_shareholder_adjustment';
+            if (!uid) return toast('Enter user UID', 'ty');
+            if (!Number.isFinite(delta) || delta === 0) return toast('Enter non-zero stake change', 'ty');
+            try {
+                await db.runTransaction(async (t) => {
+                    const ref = db.collection('users').doc(uid);
+                    const snap = await t.get(ref);
+                    if (!snap.exists) throw new Error('User not found');
+                    const d = snap.data() || {};
+                    const nextStake = Number(d.shareholderStake || 0) + delta;
+                    if (nextStake < 0) throw new Error('Shareholder stake cannot go negative');
+                    t.update(ref, { shareholderStake: nextStake });
+                    t.set(db.collection('shareholderAdminLogs').doc(), {
+                        uid,
+                        type: 'stake_adjust',
+                        delta,
+                        stakeAfter: nextStake,
+                        reason,
+                        adminUid: window.CU?.uid || null,
+                        createdAt: FS().serverTimestamp()
+                    });
+                });
+                await logAct(uid, `Admin shareholder stake adjustment (${reason})`, delta, '💎', 'other');
+                toast('Shareholder stake adjusted ✓', 'tg');
+                loadAdminStakes('all');
+            } catch (e) { toast(e.message || 'Adjustment failed', 'tr'); }
+        }
+
+        async function adminToggleShareholderEarnings() {
+            const uid = ($('at-sh-uid')?.value || '').trim();
+            if (!uid) return toast('Enter user UID', 'ty');
+            try {
+                const ref = db.collection('users').doc(uid);
+                const snap = await ref.get();
+                if (!snap.exists) return toast('User not found', 'tr');
+                const d = snap.data() || {};
+                const next = !d.shareholderEarningsPaused;
+                await ref.update({ shareholderEarningsPaused: next, shareholderEarningsPausedAt: FS().serverTimestamp(), shareholderEarningsPausedBy: window.CU?.uid || null });
+                await db.collection('shareholderAdminLogs').add({
+                    uid,
+                    type: 'earnings_toggle',
+                    paused: next,
+                    adminUid: window.CU?.uid || null,
+                    createdAt: FS().serverTimestamp()
+                });
+                await logAct(uid, `Admin ${next ? 'stopped' : 'restarted'} shareholder earnings`, 0, '💎', 'other');
+                toast(`Shareholder earnings ${next ? 'stopped' : 'restarted'} ✓`, 'tg');
+                loadAdminStakes('all');
+            } catch (e) { toast(e.message || 'Update failed', 'tr'); }
         }
 
         // ════════════════════════════════════════════════════════
@@ -10050,8 +10820,9 @@ Message: ${message}`);
             const { uid: toUid, name: toName, memberId } = _tfRecipient;
             // Build typeLabel BEFORE try block so it's always defined
             const isCash = _tfType === 'cash';
-            const TRANSFER_FEE_RATE = 0.05;
-            const fee = isCash ? parseFloat((amt * TRANSFER_FEE_RATE).toFixed(2)) : 0;
+            await loadPlatformSettings();
+            const transferFeeRate = getFinancialSetting('transferFeeRate');
+            const fee = isCash ? parseFloat((amt * transferFeeRate).toFixed(2)) : 0;
             const received = isCash ? parseFloat((amt - fee).toFixed(2)) : amt;
             const typeLabel = isCash ? '$' + fmt(amt) : amt + ' pts';
             const icon = isCash ? '💸' : '⭐';
@@ -10078,7 +10849,7 @@ Message: ${message}`);
                 });
                 // Only runs if transaction succeeded
                 await logAct(u.uid, `Gift sent to ${toName}: ${typeLabel}${msg ? ' — "' + msg + '"' : ''}`, -amt, icon, 'transfer');
-                await logAct(toUid, `Gift received from ${u.name}: ${isCash ? '$' + fmt(received) + ' (5% fee $' + fmt(fee) + ' deducted)' : amt + ' pts'}${msg ? ' — "' + msg + '"' : ''}`, received, icon, 'transfer');
+                await logAct(toUid, `Gift received from ${u.name}: ${isCash ? '$' + fmt(received) + ' (' + fmt(transferFeeRate * 100) + '% fee $' + fmt(fee) + ' deducted)' : amt + ' pts'}${msg ? ' — "' + msg + '"' : ''}`, received, icon, 'transfer');
                 await db.collection('userNotifs').add({ uid: toUid, msg: `🎁 ${u.name} sent you ${typeLabel}!${msg ? ' Message: "' + msg + '"' : ''}`, read: false, createdAt: FS().serverTimestamp() });
                 if (isCash) { window.CU.balance = (u.balance || 0) - amt; }
                 else { window.CU.surveyPoints = (u.surveyPoints || 0) - amt; }
@@ -10110,6 +10881,699 @@ Message: ${message}`);
                     return `<div class="ai"><div class="ai-l"><div class="ai-ico ${pos ? 'g' : 'r'}">${a.icon || '💸'}</div><div><div class="ai-desc">${a.desc}</div><div class="ai-time">${fmtDT(a.createdAt)}</div></div></div><div class="ai-amt ${pos ? 'pos' : 'neg'}">${pos ? '+' : ''}${pos ? '$' + fmt(a.amt) : '-$' + fmt(Math.abs(a.amt))}</div></div>`;
                 }).join('');
             } catch (e) { el.innerHTML = '<div class="es">No transfers yet</div>'; }
+        }
+
+        // ════════════════════════════════════════════════════════
+        // TOKENS & GIFTS ECONOMY (PHASE 1)
+        // ════════════════════════════════════════════════════════
+        function userMemberId(uid, data) {
+            return (data?.memberId || data?.memberCode || (uid || '').substring(0, 8).toUpperCase() || '—');
+        }
+        const GIFT_CATALOG = [
+            { id: 'rose', name: 'Rose', icon: '🌹', coins: 5 },
+            { id: 'heart', name: 'Heart', icon: '❤️', coins: 10 },
+            { id: 'teddy', name: 'Teddy', icon: '🧸', coins: 15 },
+            { id: 'puppy', name: 'Puppy', icon: '🐶', coins: 30 },
+            { id: 'cake', name: 'Cake', icon: '🎂', coins: 50 },
+            { id: 'diamond', name: 'Diamond', icon: '💎', coins: 100 },
+            { id: 'crown', name: 'Crown', icon: '👑', coins: 250 },
+            { id: 'car', name: 'Car', icon: '🚗', coins: 500 }
+        ];
+        let _giftSendContext = null;
+        let _giftSelectedId = null;
+        let _giftSendBusy = false;
+        let _giftTabSendBusy = false;
+
+        function giftRequestId() {
+            return 'GREQ-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+        }
+        function getPurchasedGiftCoins(u = window.CU) {
+            const hasSplit = (u?.purchasedGiftCoinBalance !== undefined) || (u?.receivedGiftCoinBalance !== undefined);
+            if (hasSplit) return Number(u?.purchasedGiftCoinBalance ?? 0);
+            return Number(u?.giftCoinBalance ?? 0);
+        }
+        function getReceivedGiftCoins(u = window.CU) {
+            return Number(u?.receivedGiftCoinBalance ?? 0);
+        }
+        function getTotalGiftCoins(u = window.CU) {
+            const legacy = Number(u?.giftCoinBalance ?? 0);
+            const split = getPurchasedGiftCoins(u) + getReceivedGiftCoins(u);
+            return split > 0 || legacy === 0 ? split : legacy;
+        }
+
+        async function refreshTokenGiftBalances() {
+            const u = window.CU; if (!u) return;
+            try {
+                const snap = await db.collection('users').doc(u.uid).get();
+                if (snap.exists) {
+                    window.CU = { uid: u.uid, ...snap.data() };
+                }
+            } catch (_) { }
+            if ($('tk-balance')) $('tk-balance').textContent = window.CU.tokenBalance || 0;
+            const purchased = getPurchasedGiftCoins(window.CU);
+            const received = getReceivedGiftCoins(window.CU);
+            const total = getTotalGiftCoins(window.CU);
+            if ($('gf-balance-purchased')) $('gf-balance-purchased').textContent = purchased;
+            if ($('gf-balance-received')) $('gf-balance-received').textContent = received;
+            if ($('gf-balance-total')) $('gf-balance-total').textContent = total;
+            updateUI();
+        }
+
+        async function buyTokens(tokenAmount, usdCost) {
+            const u = window.CU;
+            if (!u) return;
+            if (!tokenAmount || !usdCost) return;
+            if (Number(tokenAmount) < 1) return toast('Minimum token purchase is 1 token', 'ty');
+            if (!u.withdrawPin) {
+                toast('Set a withdrawal PIN first from your Profile', 'ty', 5000);
+                tab('profile');
+                return;
+            }
+            window._pinCallback = 'token_purchase';
+            window._pendingTokenPurchase = { tokenAmount: Number(tokenAmount), usdCost: Number(usdCost) };
+            $('pin-title').textContent = 'Confirm Token Purchase';
+            $('pin-sub').textContent = `Enter your 6-digit PIN to buy ${tokenAmount} tokens for $${fmt(usdCost)}`;
+            ['pin1', 'pin2', 'pin3', 'pin4', 'pin5', 'pin6'].forEach(id => { if ($(id)) $(id).value = ''; });
+            openModal('m-pin');
+        }
+
+        async function executeTokenPurchase(tokenAmount, usdCost) {
+            const u = window.CU;
+            const computedUsdCost = parseFloat((Number(tokenAmount) / 5).toFixed(2));
+            try {
+                await db.runTransaction(async (t) => {
+                    const ref = db.collection('users').doc(u.uid);
+                    const snap = await t.get(ref);
+                    if (!snap.exists) throw new Error('Account not found');
+                    const d = snap.data() || {};
+                    const bal = Number(d.balance || 0);
+                    if (!Number.isFinite(computedUsdCost) || computedUsdCost <= 0) throw new Error('Invalid token purchase amount');
+                    if (bal < computedUsdCost) throw new Error('Insufficient main wallet balance');
+                    const nextBal = bal - computedUsdCost;
+                    if (nextBal < 0) throw new Error('Operation would create negative balance');
+                    const nextToken = Number(d.tokenBalance || 0) + tokenAmount;
+                    t.update(ref, { balance: FS().increment(-computedUsdCost), tokenBalance: nextToken });
+                    t.set(db.collection('tokenLogs').doc(), {
+                        uid: u.uid,
+                        memberId: userMemberId(u.uid, d),
+                        type: 'purchase',
+                        tokens: tokenAmount,
+                        usd: computedUsdCost,
+                        walletDeducted: computedUsdCost,
+                        tokenBalanceAfter: nextToken,
+                        createdAt: FS().serverTimestamp()
+                    });
+                });
+                window.CU.balance = (window.CU.balance || 0) - computedUsdCost;
+                window.CU.tokenBalance = (window.CU.tokenBalance || 0) + tokenAmount;
+                await logAct(u.uid, `Token purchase: ${tokenAmount} tokens for $${fmt(computedUsdCost)}`, -computedUsdCost, '🪙', 'other');
+                toast(`Purchased ${tokenAmount} tokens for $${fmt(computedUsdCost)} ✓`, 'tg');
+                if ($('tk-buy-qty')) $('tk-buy-qty').value = '';
+                loadTokenLogs();
+                refreshTokenGiftBalances();
+            } catch (e) { toast(e.message || 'Token purchase failed', 'tr'); }
+        }
+
+        function buyTokensCustom() {
+            const qty = parseInt(($('tk-buy-qty')?.value || '0'), 10);
+            if (!qty || qty < 1) return toast('Minimum token purchase is 1 token', 'ty');
+            const usdCost = parseFloat((qty / 5).toFixed(2));
+            buyTokens(qty, usdCost);
+        }
+
+        async function buyGiftCoins(coinAmount, usdCost) {
+            const u = window.CU;
+            if (!u) return;
+            if (!coinAmount || !usdCost) return;
+            if (Number(coinAmount) < 100) return toast('Minimum gift coin purchase is 100 coins', 'ty');
+            if (!u.withdrawPin) {
+                toast('Set a withdrawal PIN first from your Profile', 'ty', 5000);
+                tab('profile');
+                return;
+            }
+            window._pinCallback = 'gift_purchase';
+            window._pendingGiftPurchase = { coinAmount: Number(coinAmount), usdCost: Number(usdCost) };
+            $('pin-title').textContent = 'Confirm Gift Coin Purchase';
+            $('pin-sub').textContent = `Enter your 6-digit PIN to buy ${coinAmount} gift coins for $${fmt(usdCost)}`;
+            ['pin1', 'pin2', 'pin3', 'pin4', 'pin5', 'pin6'].forEach(id => { if ($(id)) $(id).value = ''; });
+            openModal('m-pin');
+        }
+
+        async function executeGiftPurchase(coinAmount, usdCost) {
+            const u = window.CU;
+            const computedUsdCost = parseFloat((Number(coinAmount) / 100).toFixed(2));
+            try {
+                await db.runTransaction(async (t) => {
+                    const ref = db.collection('users').doc(u.uid);
+                    const snap = await t.get(ref);
+                    if (!snap.exists) throw new Error('Account not found');
+                    const d = snap.data() || {};
+                    const bal = Number(d.balance || 0);
+                    if (!Number.isFinite(computedUsdCost) || computedUsdCost <= 0) throw new Error('Invalid gift coin purchase amount');
+                    if (bal < computedUsdCost) throw new Error('Insufficient main wallet balance');
+                    const nextBal = bal - computedUsdCost;
+                    if (nextBal < 0) throw new Error('Operation would create negative balance');
+                    const purchasedBefore = Number(d.purchasedGiftCoinBalance ?? d.giftCoinBalance ?? 0);
+                    const receivedBefore = Number(d.receivedGiftCoinBalance || 0);
+                    const nextPurchased = purchasedBefore + coinAmount;
+                    const nextTotal = nextPurchased + receivedBefore;
+                    t.update(ref, {
+                        balance: FS().increment(-computedUsdCost),
+                        purchasedGiftCoinBalance: nextPurchased,
+                        giftCoinBalance: nextTotal
+                    });
+                    t.set(db.collection('giftLogs').doc(), {
+                        uid: u.uid,
+                        memberId: userMemberId(u.uid, d),
+                        type: 'purchase',
+                        sourceLayer: 'purchased',
+                        coins: coinAmount,
+                        usd: computedUsdCost,
+                        walletDeducted: computedUsdCost,
+                        purchasedBalanceAfter: nextPurchased,
+                        receivedBalanceAfter: receivedBefore,
+                        totalGiftBalanceAfter: nextTotal,
+                        createdAt: FS().serverTimestamp()
+                    });
+                });
+                window.CU.balance = (window.CU.balance || 0) - computedUsdCost;
+                window.CU.purchasedGiftCoinBalance = getPurchasedGiftCoins(window.CU) + coinAmount;
+                window.CU.giftCoinBalance = getTotalGiftCoins(window.CU);
+                await logAct(u.uid, `Gift coin purchase: ${coinAmount} coins for $${fmt(computedUsdCost)}`, -computedUsdCost, '🎁', 'other');
+                toast(`Purchased ${coinAmount} gift coins for $${fmt(computedUsdCost)} ✓`, 'tg');
+                if ($('gf-buy-qty')) $('gf-buy-qty').value = '';
+                loadGiftLogs();
+                refreshTokenGiftBalances();
+            } catch (e) { toast(e.message || 'Gift purchase failed', 'tr'); }
+        }
+
+        function buyGiftCoinsCustom() {
+            const qty = parseInt(($('gf-buy-qty')?.value || '0'), 10);
+            if (!qty || qty < 100) return toast('Minimum gift coin purchase is 100 coins', 'ty');
+            const usdCost = parseFloat((qty / 100).toFixed(2));
+            buyGiftCoins(qty, usdCost);
+        }
+
+        async function openGiftPickerFromDM() {
+            if (!_activeDMUser?.id) return toast('Open a DM first', 'ty');
+            if (isOfficialChannelUid(_activeDMUser.id)) return toast('Gifts are not supported in official channels', 'ty');
+            await openGiftPicker({ recipientUid: _activeDMUser.id, entryPoint: 'dm' });
+        }
+
+        async function openGiftPickerFromProfile() {
+            if (!_viewingProfileUid) return toast('Open a profile first', 'ty');
+            await openGiftPicker({ recipientUid: _viewingProfileUid, entryPoint: 'discover' });
+        }
+
+        async function openGiftPicker({ recipientUid, entryPoint }) {
+            const u = window.CU;
+            if (!u) return;
+            if (!recipientUid) return toast('Invalid recipient', 'ty');
+            if (recipientUid === u.uid) return toast('Self gifting is not allowed', 'ty');
+            try {
+                const snap = await db.collection('users').doc(recipientUid).get();
+                if (!snap.exists) return toast('Recipient not found', 'tr');
+                const recipient = { id: snap.id, ...snap.data() };
+                _giftSendContext = { recipientUid: recipient.id, recipientName: recipient.name || 'Member', recipientMemberId: userMemberId(recipient.id, recipient), entryPoint, requestId: giftRequestId() };
+                _giftSelectedId = null;
+                if ($('gift-pick-recipient')) $('gift-pick-recipient').textContent = `${_giftSendContext.recipientName} (${_giftSendContext.recipientMemberId})`;
+                if ($('gift-pick-balance')) $('gift-pick-balance').textContent = getPurchasedGiftCoins(window.CU);
+                if ($('gift-pick-selected')) $('gift-pick-selected').textContent = 'Select a gift item.';
+                const grid = $('gift-pick-grid');
+                if (grid) {
+                    grid.innerHTML = GIFT_CATALOG.map(g => `<button class="btn btn-gh btn-sm" id="gift-opt-${g.id}" onclick="selectGiftItem('${g.id}')" style="text-align:left;padding:10px"><div style="font-weight:700">${g.icon} ${g.name}</div><div style="font-size:.72rem;color:var(--t3)">${g.coins} coins</div></button>`).join('');
+                }
+                openModal('m-gift-picker');
+            } catch (e) { toast('Could not open gift picker: ' + e.message, 'tr'); }
+        }
+
+        function selectGiftItem(giftId) {
+            _giftSelectedId = giftId;
+            document.querySelectorAll('#gift-pick-grid .btn').forEach(b => { b.style.borderColor = 'var(--bd)'; b.style.background = 'var(--s1)'; });
+            const el = $('gift-opt-' + giftId);
+            if (el) { el.style.borderColor = 'var(--gold)'; el.style.background = 'rgba(255,213,79,.08)'; }
+            const g = GIFT_CATALOG.find(x => x.id === giftId);
+            if (g && $('gift-pick-selected')) $('gift-pick-selected').textContent = `Selected: ${g.icon} ${g.name} (${g.coins} coins)`;
+        }
+
+        async function confirmGiftPickerSend() {
+            if (_giftSendBusy) return;
+            const ctx = _giftSendContext;
+            if (!ctx?.recipientUid) return toast('Gift target missing', 'ty');
+            const gift = GIFT_CATALOG.find(g => g.id === _giftSelectedId);
+            if (!gift) return toast('Select a gift first', 'ty');
+            _giftSendBusy = true;
+            try {
+                await performGiftTransfer({
+                    recipientUid: ctx.recipientUid,
+                    coins: gift.coins,
+                    giftType: gift.id,
+                    giftName: gift.name,
+                    giftIcon: gift.icon,
+                    entryPoint: ctx.entryPoint || 'dm',
+                    createDMMessage: ctx.entryPoint === 'dm',
+                    requestId: ctx.requestId
+                });
+                closeModal('m-gift-picker');
+                toast(`🎁 Sent ${gift.name} to ${ctx.recipientName}!`, 'tg');
+                await loadGiftLogs();
+                await refreshTokenGiftBalances();
+            } catch (e) {
+                if (e.message === 'DUPLICATE_REQUEST') toast('Gift request already processed', 'ty');
+                else toast(e.message || 'Gift send failed', 'tr');
+            } finally {
+                _giftSendBusy = false;
+            }
+        }
+
+        async function performGiftTransfer({ recipientUid, coins, giftType = 'custom', giftName = 'Gift', giftIcon = '🎁', entryPoint = 'gifts_tab', createDMMessage = false, requestId = null }) {
+            const u = window.CU;
+            if (!u) throw new Error('Not logged in');
+            if (!recipientUid) throw new Error('Invalid recipient');
+            if (!Number.isFinite(Number(coins)) || Number(coins) <= 0) throw new Error('Invalid gift value');
+            if (recipientUid === u.uid) throw new Error('Self gifting is not allowed');
+            const dmId = getDMId(u.uid, recipientUid);
+            const transferRequestId = requestId || giftRequestId();
+            const status = 'sent';
+            await db.runTransaction(async (t) => {
+                const fromRef = db.collection('users').doc(u.uid);
+                const toRef = db.collection('users').doc(recipientUid);
+                const reqRef = db.collection('giftTransferRequests').doc(transferRequestId);
+                const [fromSnap, toSnap, reqSnap] = await Promise.all([t.get(fromRef), t.get(toRef), t.get(reqRef)]);
+                if (reqSnap.exists) throw new Error('DUPLICATE_REQUEST');
+                if (!fromSnap.exists || !toSnap.exists) throw new Error('Recipient not found');
+                const fromData = fromSnap.data() || {};
+                const toData = toSnap.data() || {};
+                const fromPurchasedBefore = Number(fromData.purchasedGiftCoinBalance ?? fromData.giftCoinBalance ?? 0);
+                const fromReceivedBefore = Number(fromData.receivedGiftCoinBalance || 0);
+                if (fromPurchasedBefore < coins) throw new Error('Insufficient purchased gift balance');
+                const fromPurchasedAfter = fromPurchasedBefore - coins;
+                if (fromPurchasedAfter < 0) throw new Error('Operation would create negative purchased balance');
+                const fromTotalAfter = fromPurchasedAfter + fromReceivedBefore;
+
+                const toHasSplit = (toData.purchasedGiftCoinBalance !== undefined) || (toData.receivedGiftCoinBalance !== undefined);
+                const toPurchasedBefore = toHasSplit ? Number(toData.purchasedGiftCoinBalance || 0) : Number(toData.giftCoinBalance || 0);
+                const toReceivedBefore = Number(toData.receivedGiftCoinBalance || 0);
+                const toReceivedAfter = toReceivedBefore + coins;
+                const toTotalAfter = toPurchasedBefore + toReceivedAfter;
+                t.update(fromRef, { purchasedGiftCoinBalance: fromPurchasedAfter, giftCoinBalance: fromTotalAfter });
+                t.update(toRef, {
+                    receivedGiftCoinBalance: FS().increment(coins),
+                    giftCoinBalance: FS().increment(coins)
+                });
+                t.set(db.collection('giftLogs').doc(), {
+                    uid: u.uid, memberId: userMemberId(u.uid, fromData), type: 'send',
+                    giftType, giftName, giftIcon, coins, entryPoint, status,
+                    requestId: transferRequestId,
+                    sourceLayer: 'purchased',
+                    counterpartyUid: recipientUid, counterpartyMemberId: userMemberId(recipientUid, toData),
+                    senderPurchasedBefore: fromPurchasedBefore, senderPurchasedAfter: fromPurchasedAfter,
+                    senderReceivedBefore: fromReceivedBefore, senderTotalAfter: fromTotalAfter,
+                    recipientPurchasedBefore: toPurchasedBefore, recipientReceivedBefore: toReceivedBefore,
+                    recipientReceivedAfter: toReceivedAfter, recipientTotalAfter: toTotalAfter,
+                    createdAt: FS().serverTimestamp()
+                });
+                t.set(db.collection('giftLogs').doc(), {
+                    uid: recipientUid, memberId: userMemberId(recipientUid, toData), type: 'receive',
+                    giftType, giftName, giftIcon, coins, entryPoint, status,
+                    requestId: transferRequestId,
+                    sourceLayer: 'received',
+                    counterpartyUid: u.uid, counterpartyMemberId: userMemberId(u.uid, fromData),
+                    senderPurchasedBefore: fromPurchasedBefore, senderPurchasedAfter: fromPurchasedAfter,
+                    recipientPurchasedBefore: toPurchasedBefore, recipientReceivedBefore: toReceivedBefore,
+                    recipientReceivedAfter: toReceivedAfter, recipientTotalAfter: toTotalAfter,
+                    createdAt: FS().serverTimestamp()
+                });
+                t.set(reqRef, {
+                    requestId: transferRequestId,
+                    senderUid: u.uid,
+                    recipientUid,
+                    senderMemberId: userMemberId(u.uid, fromData),
+                    recipientMemberId: userMemberId(recipientUid, toData),
+                    giftType,
+                    giftName,
+                    coins,
+                    entryPoint,
+                    status: 'processed',
+                    createdAt: FS().serverTimestamp()
+                });
+                if (createDMMessage) {
+                    t.set(db.collection('dms').doc(dmId).collection('msgs').doc(), {
+                        from: u.uid,
+                        to: recipientUid,
+                        type: 'gift',
+                        giftType, giftName, giftIcon, giftCoins: coins,
+                        text: `${giftIcon} ${giftName}`,
+                        read: false,
+                        createdAt: FS().serverTimestamp()
+                    });
+                    t.set(db.collection('dms').doc(dmId), {
+                        participants: [u.uid, recipientUid],
+                        lastMsg: `🎁 ${giftName}`,
+                        lastMsgAt: FS().serverTimestamp(),
+                        lastMsgFrom: u.uid,
+                        [`unread_${recipientUid}`]: firebase.firestore.FieldValue.increment(1),
+                        names: { [u.uid]: u.name, [recipientUid]: toData.name || 'Member' },
+                        publicNames: { [u.uid]: getPublicDisplayName(u), [recipientUid]: getPublicDisplayName(toData) }
+                    }, { merge: true });
+                }
+            });
+            window.CU.purchasedGiftCoinBalance = getPurchasedGiftCoins(window.CU) - coins;
+            window.CU.giftCoinBalance = getTotalGiftCoins(window.CU);
+            await db.collection('userNotifs').add({ uid: recipientUid, msg: `🎁 ${u.name} sent you ${giftIcon} ${giftName} (${coins} coins).`, read: false, createdAt: FS().serverTimestamp() });
+            if (createDMMessage && _activeDMId === dmId) {
+                await loadDMMessages();
+            }
+        }
+
+        async function sendGiftCoins() {
+            const u = window.CU;
+            if (!u) return;
+            const memberId = ($('gf-send-member')?.value || '').trim().toUpperCase();
+            const coins = parseInt($('gf-send-amount')?.value || '0', 10);
+            if (!memberId || memberId.length < 6) return toast('Enter recipient Member ID', 'ty');
+            if (!coins || coins <= 0) return toast('Enter valid coins amount', 'ty');
+            try {
+                if (_giftTabSendBusy) return;
+                _giftTabSendBusy = true;
+                const usersSnap = await db.collection('users').get();
+                const recipientDoc = usersSnap.docs.find(d => userMemberId(d.id, d.data()) === memberId);
+                if (!recipientDoc) return toast('Recipient not found', 'tr');
+                await performGiftTransfer({
+                    recipientUid: recipientDoc.id,
+                    coins,
+                    giftType: 'custom',
+                    giftName: 'Gift Coins',
+                    giftIcon: '🎁',
+                    entryPoint: 'gifts_tab',
+                    createDMMessage: false,
+                    requestId: giftRequestId()
+                });
+                toast(`Sent ${coins} gift coins to ${memberId} ✓`, 'tg');
+                $('gf-send-member').value = '';
+                $('gf-send-amount').value = '';
+                loadGiftLogs();
+                refreshTokenGiftBalances();
+            } catch (e) {
+                if (e.message === 'DUPLICATE_REQUEST') toast('Gift request already processed', 'ty');
+                else toast(e.message || 'Send failed', 'tr');
+            } finally {
+                _giftTabSendBusy = false;
+            }
+        }
+
+        async function redeemGiftCoins() {
+            const u = window.CU;
+            if (!u) return;
+            const coins = parseInt($('gf-redeem-amount')?.value || '0', 10);
+            if (!coins || coins < 1000) return toast('Minimum redeem is 1,000 coins', 'ty');
+            const usdValue = coins / 100;
+            const recipientUsd = parseFloat((usdValue * 0.6).toFixed(2));
+            const starlifeUsd = parseFloat((usdValue * 0.4).toFixed(2));
+            try {
+                await db.runTransaction(async (t) => {
+                    const ref = db.collection('users').doc(u.uid);
+                    const snap = await t.get(ref);
+                    if (!snap.exists) throw new Error('Account not found');
+                    const d = snap.data() || {};
+                    const purchasedBefore = Number(d.purchasedGiftCoinBalance ?? d.giftCoinBalance ?? 0);
+                    const receivedBefore = Number(d.receivedGiftCoinBalance || 0);
+                    if (receivedBefore < coins) throw new Error('Insufficient received gift coins');
+                    const receivedAfter = receivedBefore - coins;
+                    if (receivedAfter < 0) throw new Error('Operation would create negative received gift balance');
+                    const totalAfter = purchasedBefore + receivedAfter;
+                    const walletAfter = Number(d.balance || 0) + recipientUsd;
+                    t.update(ref, {
+                        receivedGiftCoinBalance: receivedAfter,
+                        giftCoinBalance: totalAfter,
+                        balance: walletAfter,
+                        totalEarned: FS().increment(recipientUsd)
+                    });
+                    t.set(db.collection('giftLogs').doc(), {
+                        uid: u.uid,
+                        memberId: userMemberId(u.uid, d),
+                        type: 'redeem',
+                        sourceLayer: 'received',
+                        coins,
+                        usdValue,
+                        walletCredited: recipientUsd,
+                        starlifeShareUsd: starlifeUsd,
+                        purchasedBalanceAfter: purchasedBefore,
+                        receivedBalanceAfter: receivedAfter,
+                        totalGiftBalanceAfter: totalAfter,
+                        createdAt: FS().serverTimestamp()
+                    });
+                });
+                window.CU.receivedGiftCoinBalance = getReceivedGiftCoins(window.CU) - coins;
+                window.CU.giftCoinBalance = getTotalGiftCoins(window.CU);
+                window.CU.balance = (window.CU.balance || 0) + recipientUsd;
+                await logAct(u.uid, `Gift redeem: ${coins} coins → $${fmt(recipientUsd)} wallet credit (40% platform share)`, recipientUsd, '🎁', 'other');
+                toast(`Redeemed ${coins} coins. +$${fmt(recipientUsd)} added to main wallet ✓`, 'tg');
+                $('gf-redeem-amount').value = '';
+                loadGiftLogs();
+                refreshTokenGiftBalances();
+            } catch (e) { toast(e.message || 'Redeem failed', 'tr'); }
+        }
+
+        async function loadTokenLogs() {
+            const u = window.CU; const el = $('tk-logs'); if (!u || !el) return;
+            try {
+                const snap = await db.collection('tokenLogs').where('uid', '==', u.uid).get();
+                const list = snap.docs.map(d => d.data()).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                if (!list.length) { el.innerHTML = '<div class="es">No token activity yet</div>'; return; }
+                el.innerHTML = list.slice(0, 30).map(l => `<div class="arow"><div class="ar-top"><div><div class="ar-name">${l.type === 'purchase' ? 'Token purchase' : (l.type || 'Token log')}</div><div class="ar-sub">${(l.tokens || 0)} tokens · $${fmt(l.usd || 0)} · ${fmtDT(l.createdAt)}</div></div></div></div>`).join('');
+            } catch (_) { el.innerHTML = '<div class="es">Could not load token logs</div>'; }
+        }
+
+        async function loadGiftLogs() {
+            const u = window.CU; const el = $('gf-logs'); if (!u || !el) return;
+            try {
+                const snap = await db.collection('giftLogs').where('uid', '==', u.uid).get();
+                const list = snap.docs.map(d => d.data()).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                if (!list.length) { el.innerHTML = '<div class="es">No gift activity yet</div>'; return; }
+                el.innerHTML = list.slice(0, 30).map(l => {
+                    const title = l.type === 'send' ? 'Sent Gift Coins' : l.type === 'receive' ? 'Received Gift Coins' : l.type === 'redeem' ? 'Redeemed Gift Coins' : 'Gift Purchase';
+                    const details = l.type === 'redeem'
+                        ? `${l.coins || 0} coins → +$${fmt(l.walletCredited || 0)} wallet (${fmt(l.starlifeShareUsd || 0)} to Starlife)`
+                        : `${l.giftIcon || '🎁'} ${l.giftName || ''} · ${l.coins || 0} coins${l.sourceLayer ? ' · layer: ' + l.sourceLayer : ''}${l.counterpartyMemberId ? ' · Member ID: ' + l.counterpartyMemberId : ''}${l.usd ? ' · $' + fmt(l.usd) : ''}${l.entryPoint ? ' · via ' + l.entryPoint : ''}${l.status ? ' · ' + l.status : ''}`;
+                    return `<div class="arow"><div class="ar-top"><div><div class="ar-name">${title}</div><div class="ar-sub">${details} · ${fmtDT(l.createdAt)}</div></div></div></div>`;
+                }).join('');
+            } catch (_) { el.innerHTML = '<div class="es">Could not load gift logs</div>'; }
+        }
+
+        async function loadAdminTokens() {
+            const usersEl = $('at-tokens-users');
+            const logsEl = $('at-tokens-logs');
+            if (!usersEl || !logsEl) return;
+            usersEl.innerHTML = '<div class="es">Loading…</div>';
+            logsEl.innerHTML = '<div class="es">Loading…</div>';
+            try {
+                const [uSnap, lSnap] = await Promise.all([db.collection('users').get(), db.collection('tokenLogs').get()]);
+                const users = uSnap.docs.map(d => ({ uid: d.id, ...d.data() })).sort((a, b) => (b.tokenBalance || 0) - (a.tokenBalance || 0));
+                usersEl.innerHTML = users.map(u => `<div class="arow"><div class="ar-top"><div><div class="ar-name">${u.name || 'User'}</div><div class="ar-sub">UID: ${u.uid} · Member ID: ${userMemberId(u.uid, u)}</div></div><div class="badge bgold">${u.tokenBalance || 0} tokens</div></div></div>`).join('') || '<div class="es">No users</div>';
+                const logs = lSnap.docs.map(d => d.data()).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).slice(0, 80);
+                logsEl.innerHTML = logs.map(l => `<div class="arow"><div class="ar-name">${l.type || 'log'} · ${l.tokens || 0} tokens</div><div class="ar-sub">UID: ${l.uid || '—'} · Member ID: ${l.memberId || '—'} · $${fmt(l.usd || 0)} · ${fmtDT(l.createdAt)}</div></div>`).join('') || '<div class="es">No token logs</div>';
+            } catch (e) {
+                usersEl.innerHTML = '<div class="es">Error loading token users</div>';
+                logsEl.innerHTML = '<div class="es">Error loading token logs</div>';
+            }
+        }
+
+        async function loadAdminGifts() {
+            const usersEl = $('at-gifts-users');
+            const logsEl = $('at-gifts-logs');
+            if (!usersEl || !logsEl) return;
+            usersEl.innerHTML = '<div class="es">Loading…</div>';
+            logsEl.innerHTML = '<div class="es">Loading…</div>';
+            try {
+                const [uSnap, lSnap] = await Promise.all([db.collection('users').get(), db.collection('giftLogs').get()]);
+                const users = uSnap.docs.map(d => ({ uid: d.id, ...d.data() })).sort((a, b) => {
+                    const bHasSplit = (b.purchasedGiftCoinBalance !== undefined) || (b.receivedGiftCoinBalance !== undefined);
+                    const aHasSplit = (a.purchasedGiftCoinBalance !== undefined) || (a.receivedGiftCoinBalance !== undefined);
+                    const bPurchased = bHasSplit ? Number(b.purchasedGiftCoinBalance || 0) : Number(b.giftCoinBalance || 0);
+                    const aPurchased = aHasSplit ? Number(a.purchasedGiftCoinBalance || 0) : Number(a.giftCoinBalance || 0);
+                    const bTotal = bHasSplit ? (bPurchased + Number(b.receivedGiftCoinBalance || 0)) : Number(b.giftCoinBalance || 0);
+                    const aTotal = aHasSplit ? (aPurchased + Number(a.receivedGiftCoinBalance || 0)) : Number(a.giftCoinBalance || 0);
+                    return bTotal - aTotal;
+                });
+                usersEl.innerHTML = users.map(u => {
+                    const hasSplit = (u.purchasedGiftCoinBalance !== undefined) || (u.receivedGiftCoinBalance !== undefined);
+                    const purchased = hasSplit ? Number(u.purchasedGiftCoinBalance || 0) : Number(u.giftCoinBalance || 0);
+                    const received = Number(u.receivedGiftCoinBalance || 0);
+                    const total = hasSplit ? (purchased + received) : Number(u.giftCoinBalance || 0);
+                    return `<div class="arow"><div class="ar-top"><div><div class="ar-name">${u.name || 'User'}</div><div class="ar-sub">UID: ${u.uid} · Member ID: ${userMemberId(u.uid, u)} · Purchased: ${purchased} · Received: ${received}</div></div><div class="badge bg">${total} total</div></div></div>`;
+                }).join('') || '<div class="es">No users</div>';
+                const logs = lSnap.docs.map(d => d.data()).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).slice(0, 80);
+                logsEl.innerHTML = logs.map(l => `<div class="arow"><div class="ar-name">${l.type || 'log'} · ${l.coins || 0} coins${l.giftType ? ' · ' + l.giftType : ''}</div><div class="ar-sub">UID: ${l.uid || '—'} · Member ID: ${l.memberId || '—'}${l.counterpartyMemberId ? ' · Counterparty: ' + l.counterpartyMemberId : ''}${l.sourceLayer ? ' · layer: ' + l.sourceLayer : ''}${l.entryPoint ? ' · via ' + l.entryPoint : ''}${l.status ? ' · ' + l.status : ''}${l.requestId ? ' · req: ' + l.requestId : ''} · ${fmtDT(l.createdAt)}</div></div>`).join('') || '<div class="es">No gift logs</div>';
+            } catch (e) {
+                usersEl.innerHTML = '<div class="es">Error loading gift users</div>';
+                logsEl.innerHTML = '<div class="es">Error loading gift logs</div>';
+            }
+        }
+
+        async function ensureOfficialChannelSetting(channelId) {
+            const ch = OFFICIAL_CHANNELS[channelId];
+            if (!ch) throw new Error('Invalid official channel');
+            const ref = db.collection('officialChannelSettings').doc(channelId);
+            const snap = await ref.get();
+            if (!snap.exists) {
+                await ref.set({
+                    channelId,
+                    channelName: ch.name,
+                    repliesOpen: !!ch.defaultRepliesOpen,
+                    updatedAt: FS().serverTimestamp(),
+                    updatedBy: window.CU?.uid || null
+                });
+            }
+            return ref;
+        }
+
+        async function adminSendOfficialPost() {
+            if (!hasAdminAccess('official')) return toast('Admin access required', 'tr');
+            const channelId = ($('at-official-channel')?.value || 'official_starlife_main').trim();
+            const text = ($('at-official-message')?.value || '').trim();
+            const channel = OFFICIAL_CHANNELS[channelId];
+            if (!channel) return toast('Select valid channel', 'ty');
+            if (!text) return toast('Write a message first', 'ty');
+            try {
+                await ensureOfficialChannelSetting(channelId);
+                const usersSnap = await db.collection('users').get();
+                const users = usersSnap.docs.map(d => ({ uid: d.id, ...d.data() })).filter(u => !u.isBanned);
+                const now = FS().serverTimestamp();
+                const poster = window.CU?.uid || 'admin';
+                await Promise.all(users.map(async (target) => {
+                    const dmId = getDMId(target.uid, channelId);
+                    const dmRef = db.collection('dms').doc(dmId);
+                    await dmRef.collection('msgs').add({
+                        from: channelId,
+                        to: target.uid,
+                        text,
+                        type: 'official_post',
+                        officialChannelId: channelId,
+                        read: false,
+                        createdAt: now
+                    });
+                    await dmRef.set({
+                        participants: [target.uid, channelId],
+                        lastMsg: text.substring(0, 80),
+                        lastMsgAt: now,
+                        lastMsgFrom: channelId,
+                        [`unread_${target.uid}`]: firebase.firestore.FieldValue.increment(1),
+                        names: { [target.uid]: target.name || 'Member', [channelId]: channel.name },
+                        publicNames: { [target.uid]: getPublicDisplayName(target), [channelId]: channel.name },
+                        official: true,
+                        officialChannelId: channelId
+                    }, { merge: true });
+                }));
+                await db.collection('officialChannelPosts').add({
+                    channelId,
+                    channelName: channel.name,
+                    text,
+                    postedBy: poster,
+                    recipients: users.length,
+                    createdAt: now
+                });
+                if ($('at-official-message')) $('at-official-message').value = '';
+                toast(`Posted to ${users.length} users via ${channel.name} ✓`, 'tg');
+                loadAdminOfficialChannels();
+            } catch (e) { toast(e.message || 'Broadcast failed', 'tr'); }
+        }
+
+        async function adminToggleOfficialReplies() {
+            if (!hasAdminAccess('official')) return toast('Admin access required', 'tr');
+            const channelId = ($('at-official-reply-channel')?.value || 'official_starlife_main').trim();
+            const channel = OFFICIAL_CHANNELS[channelId];
+            if (!channel) return toast('Invalid channel', 'ty');
+            try {
+                const ref = await ensureOfficialChannelSetting(channelId);
+                const snap = await ref.get();
+                const current = snap.data()?.repliesOpen !== undefined ? !!snap.data()?.repliesOpen : !!channel.defaultRepliesOpen;
+                await ref.set({
+                    repliesOpen: !current,
+                    updatedAt: FS().serverTimestamp(),
+                    updatedBy: window.CU?.uid || null
+                }, { merge: true });
+                toast(`${channel.name} replies ${!current ? 'opened' : 'closed'} ✓`, 'tg');
+                loadAdminOfficialChannels();
+            } catch (e) { toast(e.message || 'Update failed', 'tr'); }
+        }
+
+        async function loadAdminOfficialChannels() {
+            const statusEl = $('at-official-reply-status');
+            const repliesEl = $('at-official-replies');
+            if (statusEl) statusEl.textContent = 'Loading status…';
+            if (repliesEl) repliesEl.innerHTML = '<div class="es">Loading…</div>';
+            try {
+                const channelId = ($('at-official-reply-channel')?.value || 'official_starlife_main').trim();
+                const channel = OFFICIAL_CHANNELS[channelId];
+                const ref = await ensureOfficialChannelSetting(channelId);
+                const snap = await ref.get();
+                const cfg = snap.data() || {};
+                if (statusEl) statusEl.innerHTML = `${channel?.name || 'Channel'} replies: <strong style="color:${cfg.repliesOpen ? 'var(--g)' : 'var(--red)'}">${cfg.repliesOpen ? 'OPEN' : 'CLOSED'}</strong>`;
+                const repSnap = await db.collection('officialReplies').get();
+                const replies = repSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                if (!repliesEl) return;
+                if (!replies.length) { repliesEl.innerHTML = '<div class="es">No replies yet</div>'; return; }
+                repliesEl.innerHTML = replies.slice(0, 120).map(r => `<div class="arow"><div class="ar-top"><div><div class="ar-name">${OFFICIAL_CHANNELS[r.channelId]?.name || r.channelName || 'Official'} · ${r.replyMode === 'token_paid' ? '🪙 Paid' : '✅ Free'}</div><div class="ar-sub">UID: ${r.uid || '—'} · Member ID: ${r.memberId || '—'} · ${fmtDT(r.createdAt)}${r.tokenCost ? ' · token -' + r.tokenCost : ''}</div></div></div><div style="margin-top:6px;font-size:.82rem;color:var(--t2)">${(r.text || '').replace(/</g, '&lt;')}</div></div>`).join('');
+            } catch (e) {
+                if (statusEl) statusEl.textContent = 'Could not load status';
+                if (repliesEl) repliesEl.innerHTML = '<div class="es">Could not load replies</div>';
+            }
+        }
+
+        async function adminAdjustTokenBalance() {
+            const uid = ($('at-tk-uid')?.value || '').trim();
+            const delta = Number($('at-tk-delta')?.value || 0);
+            const reason = ($('at-tk-reason')?.value || '').trim() || 'manual_adjustment';
+            if (!uid) return toast('Enter user UID', 'ty');
+            if (!Number.isFinite(delta) || delta === 0) return toast('Enter non-zero token change', 'ty');
+            try {
+                await db.runTransaction(async (t) => {
+                    const ref = db.collection('users').doc(uid);
+                    const snap = await t.get(ref);
+                    if (!snap.exists) throw new Error('User not found');
+                    const d = snap.data() || {};
+                    const next = Number(d.tokenBalance || 0) + delta;
+                    if (next < 0) throw new Error('Cannot make token balance negative');
+                    t.update(ref, { tokenBalance: next });
+                    t.set(db.collection('tokenLogs').doc(), {
+                        uid, memberId: userMemberId(uid, d), type: 'admin_adjust', tokens: delta, usd: 0,
+                        note: reason, tokenBalanceAfter: next, createdAt: FS().serverTimestamp(), adminUid: window.CU?.uid || null
+                    });
+                });
+                toast('Token balance adjusted ✓', 'tg');
+                loadAdminTokens();
+            } catch (e) { toast(e.message || 'Adjustment failed', 'tr'); }
+        }
+
+        async function adminAdjustGiftBalance() {
+            const uid = ($('at-gf-uid')?.value || '').trim();
+            const delta = Number($('at-gf-delta')?.value || 0);
+            const reason = ($('at-gf-reason')?.value || '').trim() || 'manual_adjustment';
+            const layer = ($('at-gf-layer')?.value || 'purchased').trim();
+            if (!uid) return toast('Enter user UID', 'ty');
+            if (!Number.isFinite(delta) || delta === 0) return toast('Enter non-zero gift change', 'ty');
+            try {
+                await db.runTransaction(async (t) => {
+                    const ref = db.collection('users').doc(uid);
+                    const snap = await t.get(ref);
+                    if (!snap.exists) throw new Error('User not found');
+                    const d = snap.data() || {};
+                    const purchasedBefore = Number(d.purchasedGiftCoinBalance ?? d.giftCoinBalance ?? 0);
+                    const receivedBefore = Number(d.receivedGiftCoinBalance || 0);
+                    const nextPurchased = layer === 'purchased' ? purchasedBefore + delta : purchasedBefore;
+                    const nextReceived = layer === 'received' ? receivedBefore + delta : receivedBefore;
+                    if (nextPurchased < 0 || nextReceived < 0) throw new Error('Cannot make gift balance negative');
+                    const nextTotal = nextPurchased + nextReceived;
+                    t.update(ref, { purchasedGiftCoinBalance: nextPurchased, receivedGiftCoinBalance: nextReceived, giftCoinBalance: nextTotal });
+                    t.set(db.collection('giftLogs').doc(), {
+                        uid, memberId: userMemberId(uid, d), type: 'admin_adjust', coins: delta,
+                        sourceLayer: layer, note: reason, purchasedBalanceAfter: nextPurchased, receivedBalanceAfter: nextReceived, totalGiftBalanceAfter: nextTotal, createdAt: FS().serverTimestamp(), adminUid: window.CU?.uid || null
+                    });
+                });
+                toast('Gift balance adjusted ✓', 'tg');
+                loadAdminGifts();
+            } catch (e) { toast(e.message || 'Adjustment failed', 'tr'); }
         }
 
         // ════════════════════════════════════════════════════════
@@ -10707,6 +12171,9 @@ Message: ${message}`);
 
         function getBadgeHTML(u, compact = false) {
             let html = '';
+            if (isOfficialChannelUid(u.id || u.uid || u.officialChannelId)) {
+                html += `<span class="badge-official" title="Official Starlife-owned profile">★SL</span>`;
+            }
             if (u.isVerified) {
                 html += `<span class="badge-verified" title="Verified Member">✓</span>`;
             }
@@ -11834,6 +13301,7 @@ You will receive $${fmt(receive)} (+${_vaultPlan.rate}%) on ${unlock.toLocaleDat
                     for (const doc of shSnap.docs) {
                         const u = doc.data();
                         if (!u || u.isBanned) continue;
+                        if (u.shareholderEarningsPaused) continue;
                         if (!shouldRunProfitForUid(doc.id, opts)) continue;
                         if (u.shLastProfitDate === today) continue; // prevent double run
                         const stake = u.shareholderStake || 0;
@@ -13518,6 +14986,16 @@ ${points}pts → $${fmt(usd)}`);
             } else if (window._pinCallback === 'transfer') {
                 window._pinCallback = null;
                 await executeTransfer();
+            } else if (window._pinCallback === 'token_purchase' && window._pendingTokenPurchase) {
+                const p = window._pendingTokenPurchase;
+                window._pinCallback = null;
+                window._pendingTokenPurchase = null;
+                await executeTokenPurchase(p.tokenAmount, p.usdCost);
+            } else if (window._pinCallback === 'gift_purchase' && window._pendingGiftPurchase) {
+                const p = window._pendingGiftPurchase;
+                window._pinCallback = null;
+                window._pendingGiftPurchase = null;
+                await executeGiftPurchase(p.coinAmount, p.usdCost);
             } else if (window._pinCallback === 'p2p_release') {
                 window._pinCallback = null;
                 await executeP2PRelease();
@@ -14374,6 +15852,8 @@ By: ${u.name}`);
             }
             if (name === 'messages') { loadDMList(); }
             if (name === 'support') { loadMyTickets(); loadFAQ(); }
+            if (name === 'tokens') { refreshTokenGiftBalances(); loadTokenLogs(); }
+            if (name === 'gifts') { refreshTokenGiftBalances(); loadGiftLogs(); }
             if (name === 'profile') {
                 refreshBirthdayDisplay();
                 if (window.CU) { renderRank(window.CU); renderBadges(); }

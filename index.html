@@ -4470,10 +4470,17 @@
                             <textarea id="dm-inp" rows="1" placeholder="Message…"
                                 style="flex:1;background:var(--s2);border:1px solid var(--bd);border-radius:20px;padding:9px 14px;color:var(--t1);font-size:.85rem;resize:none;outline:none;font-family:inherit;max-height:100px"
                                 onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendDM();}"></textarea>
+                            <button id="dm-image-btn" onclick="document.getElementById('dm-img-input').click()"
+                                style="width:38px;height:38px;border-radius:50%;background:var(--s2);border:1px solid var(--bd);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--sky);font-size:1rem;flex-shrink:0">📷</button>
                             <button id="dm-gift-btn" onclick="openGiftPickerFromDM()"
                                 style="width:38px;height:38px;border-radius:50%;background:var(--s2);border:1px solid var(--bd);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:1rem;flex-shrink:0">🎁</button>
                             <button onclick="sendDM()"
                                 style="width:38px;height:38px;border-radius:50%;background:var(--g);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#000;font-size:1rem;flex-shrink:0">➤</button>
+                        </div>
+                        <input type="file" id="dm-img-input" accept="image/*" style="display:none" onchange="previewDMImg(this)">
+                        <div id="dm-img-prev" style="display:none;margin-top:8px;align-items:center;gap:8px">
+                            <img id="dm-img-prev-img" style="height:56px;border-radius:8px;border:1px solid var(--bd);object-fit:cover">
+                            <button class="btn btn-gh btn-sm" onclick="clearDMImg()">Remove image</button>
                         </div>
                     </div>
                 </div>
@@ -5494,6 +5501,16 @@
                         </select>
                     </div>
                     <div class="fg"><label class="fl">Message</label><textarea class="fi" id="at-official-message" rows="4" placeholder="Write the official broadcast message..."></textarea></div>
+                    <div class="fg"><label class="fl">Attach Image (optional)</label>
+                        <div style="display:flex;gap:8px;align-items:center">
+                            <button class="btn btn-gh btn-sm" onclick="document.getElementById('at-official-img-input').click()">📷 Choose Image</button>
+                            <input type="file" id="at-official-img-input" accept="image/*" style="display:none" onchange="previewOfficialPostImg(this)">
+                            <button class="btn btn-gh btn-sm" onclick="clearOfficialPostImg()">Remove</button>
+                        </div>
+                        <div id="at-official-img-prev" style="display:none;margin-top:8px">
+                            <img id="at-official-img-prev-img" style="max-height:120px;border-radius:8px;border:1px solid var(--bd);object-fit:contain">
+                        </div>
+                    </div>
                     <button class="btn btn-p btn-full" onclick="adminSendOfficialPost()">Send to all users</button>
                 </div>
                 <div class="card" style="margin-bottom:12px">
@@ -8686,7 +8703,65 @@
         let _activeDMId = null;
         let _dmBlockState = { iBlocked: false, blockedMe: false, muted: false };
         let _activeOfficialChannel = null;
+        let _dmImgB64 = null;
+        let _officialPostImgB64 = null;
         window._activeDMUser = null;
+        window._dmImgB64 = null;
+
+        function validateMediaImage(file, maxBytes = 1500 * 1024) {
+            if (!file) return 'No file selected';
+            if (!String(file.type || '').startsWith('image/')) return 'Only image files are allowed';
+            if (file.size > maxBytes) return `Image too large. Max ${(maxBytes / 1024).toFixed(0)}KB`;
+            return null;
+        }
+        function readSupportStyleImage(file, done, useCompression = true) {
+            const fail = validateMediaImage(file, 1500 * 1024);
+            if (fail) { toast(fail, 'ty'); return; }
+            if (useCompression) {
+                compressImg(file, b64 => done(b64));
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function (e) { done(e.target.result); };
+            reader.onerror = function () { toast('Could not read image. Try another file.', 'tr'); };
+            reader.readAsDataURL(file);
+        }
+        function previewDMImg(input) {
+            const file = input?.files?.[0];
+            if (!file) return;
+            readSupportStyleImage(file, (b64) => {
+                _dmImgB64 = b64;
+                window._dmImgB64 = b64;
+                const prev = $('dm-img-prev'), img = $('dm-img-prev-img');
+                if (img) img.src = b64;
+                if (prev) prev.style.display = 'flex';
+            }, true);
+        }
+        function clearDMImg() {
+            _dmImgB64 = null;
+            window._dmImgB64 = null;
+            const prev = $('dm-img-prev');
+            if (prev) prev.style.display = 'none';
+            const inp = $('dm-img-input');
+            if (inp) inp.value = '';
+        }
+        function previewOfficialPostImg(input) {
+            const file = input?.files?.[0];
+            if (!file) return;
+            readSupportStyleImage(file, (b64) => {
+                _officialPostImgB64 = b64;
+                const prev = $('at-official-img-prev'), img = $('at-official-img-prev-img');
+                if (img) img.src = b64;
+                if (prev) prev.style.display = 'block';
+            }, true);
+        }
+        function clearOfficialPostImg() {
+            _officialPostImgB64 = null;
+            const prev = $('at-official-img-prev');
+            if (prev) prev.style.display = 'none';
+            const inp = $('at-official-img-input');
+            if (inp) inp.value = '';
+        }
 
         function getDMId(uid1, uid2) {
             return [uid1, uid2].sort().join('_');
@@ -8760,6 +8835,7 @@
             window._activeDMUser = userData;
             _activeDMId = getDMId(u.uid, uid);
             _activeOfficialChannel = isOfficialChannelUid(uid) ? OFFICIAL_CHANNELS[uid] : null;
+            clearDMImg();
             if (rowEl) {
                 const b = rowEl.querySelector('[data-unread-badge]');
                 if (b) b.remove();
@@ -8841,6 +8917,7 @@
         <div style="max-width:86%;background:linear-gradient(135deg,rgba(255,213,79,.12),rgba(64,196,255,.10));border:1px solid rgba(255,213,79,.4);border-radius:12px;padding:10px 12px">
           <div style="font-size:.72rem;font-weight:800;color:var(--gold)">${ch.icon || '🛡️'} ${ch.name} <span class="official-badge">Verified Official</span></div>
           <div style="font-size:.84rem;line-height:1.45;margin-top:4px;color:var(--t1)">${m.text || ''}</div>
+          ${m.image ? `<img src="${m.image}" style="max-width:100%;max-height:240px;border-radius:10px;object-fit:contain;display:block;margin-top:8px;border:1px solid rgba(255,255,255,.12)">` : ''}
           <div style="font-size:.65rem;color:var(--t3);margin-top:4px">${when}</div>
         </div>
       </div>`;
@@ -8849,7 +8926,7 @@
                     const time = m.createdAt ? new Date(m.createdAt.seconds * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
                     const modeNote = m.type === 'official_reply' ? (m.replyMode === 'token_paid' ? ' · 1 token' : ' · free') : '';
                     return `<div style="display:flex;flex-direction:column;align-items:${mine ? 'flex-end' : 'flex-start'};margin-bottom:6px">
-        <div class="dm-bubble ${mine ? 'mine' : 'theirs'}">${m.text}</div>
+        <div class="dm-bubble ${mine ? 'mine' : 'theirs'}">${m.text || ''}${m.image ? `<img src="${m.image}" style="max-width:220px;max-height:220px;border-radius:10px;object-fit:contain;display:block;margin-top:${m.text ? '6px' : '0'}">` : ''}</div>
         ${m.type === 'official_reply' ? `<div style="font-size:.64rem;color:var(--t3);margin-top:1px">${mine ? 'Official reply sent' : 'Member reply'}${modeNote}</div>` : ''}
         <div style="font-size:.65rem;color:var(--t3);margin:0 6px">${time}${mine && m.read ? ' · ✓✓' : ''}</div>
       </div>`;
@@ -8876,10 +8953,13 @@
             }
         }
 
-        async function sendOfficialReply(text) {
+        async function sendOfficialReply(text, imageB64 = null) {
             const u = window.CU;
             const channel = _activeOfficialChannel;
             if (!u || !channel) return;
+            const cleanText = (text || '').trim();
+            const hasImage = !!imageB64;
+            if (!cleanText && !hasImage) return;
             const eligibility = await getOfficialReplyEligibility();
             if (!eligibility.repliesOpen) return toast('Replies are currently closed for this official channel', 'ty');
             try {
@@ -8894,17 +8974,19 @@
                     const paid = !eligibility.isFree;
                     if (paid && tokenBal < 1) throw new Error('You need at least 1 token to reply in this channel');
                     if (paid) t.update(userRef, { tokenBalance: tokenBal - 1 });
+                    const previewText = cleanText ? cleanText : '📷 Image';
                     t.set(msgRef, {
-                        from: u.uid, to: channel.id, text, read: false,
+                        from: u.uid, to: channel.id, text: cleanText, read: false,
                         type: 'official_reply',
                         officialChannelId: channel.id,
                         replyMode: paid ? 'token_paid' : (eligibility.privilegeApplied ? 'privilege_free' : 'free'),
                         tokenCost: paid ? 1 : 0,
+                        image: imageB64 || null,
                         createdAt: FS().serverTimestamp()
                     });
                     t.set(dmRef, {
                         participants: [u.uid, channel.id],
-                        lastMsg: text.substring(0, 80),
+                        lastMsg: previewText.substring(0, 80),
                         lastMsgAt: FS().serverTimestamp(),
                         lastMsgFrom: u.uid,
                         [`unread_${u.uid}`]: 0,
@@ -8918,7 +9000,8 @@
                         channelName: channel.name,
                         uid: u.uid,
                         memberId: memberIdFromUid(u.uid),
-                        text,
+                        text: cleanText,
+                        image: imageB64 || null,
                         replyMode: paid ? 'token_paid' : (eligibility.privilegeApplied ? 'privilege_free' : 'free'),
                         tokenCost: paid ? 1 : 0,
                         createdAt: FS().serverTimestamp()
@@ -8930,7 +9013,7 @@
                             type: 'official_reply',
                             tokens: -1,
                             usd: 0,
-                            note: `Reply to ${channel.name}`,
+                            note: `Reply to ${channel.name}${hasImage ? ' (with image)' : ''}`,
                             officialChannelId: channel.id,
                             replyMode: 'token_paid',
                             tokenBalanceAfter: tokenBal - 1,
@@ -8952,11 +9035,15 @@
 
         async function sendDM() {
             const inp = $('dm-inp');
-            const text = inp?.value.trim();
-            if (!text || !_activeDMId || !_activeDMUser) return;
+            const text = inp?.value.trim() || '';
+            const imageB64 = _dmImgB64 || null;
+            if ((!text && !imageB64) || !_activeDMId || !_activeDMUser) return;
             if (_activeOfficialChannel) {
                 if (inp) inp.value = '';
-                try { await sendOfficialReply(text); } catch (_) { if (inp) inp.value = text; }
+                try {
+                    await sendOfficialReply(text, imageB64);
+                    clearDMImg();
+                } catch (_) { if (inp) inp.value = text; }
                 return;
             }
             await refreshDMModerationState();
@@ -8975,9 +9062,9 @@
 
             const checkMatch = (arr) => arr.filter(k => new RegExp(`\\b${k}\\b`, 'i').test(text));
 
-            const highMatches = checkMatch(highKeywords);
-            const medMatches = checkMatch(medKeywords);
-            const lowMatches = checkMatch(lowKeywords);
+            const highMatches = text ? checkMatch(highKeywords) : [];
+            const medMatches = text ? checkMatch(medKeywords) : [];
+            const lowMatches = text ? checkMatch(lowKeywords) : [];
 
             if (highMatches.length > 0) { maxSeverity = 'high'; matched = highMatches; }
             else if (medMatches.length > 0) { maxSeverity = 'medium'; matched = medMatches; }
@@ -8991,9 +9078,9 @@
 
             try {
                 const msgRef = db.collection('dms').doc(_activeDMId).collection('msgs').doc();
-                await msgRef.set({ from: u.uid, to: _activeDMUser.id, text, read: false, createdAt: FS().serverTimestamp() });
+                await msgRef.set({ from: u.uid, to: _activeDMUser.id, text, image: imageB64 || null, read: false, createdAt: FS().serverTimestamp() });
 
-                let lastMsgStr = text.substring(0, 60);
+                let lastMsgStr = text ? text.substring(0, 60) : '📷 Image';
 
                 if (isRisky) {
                     let warningText = '⚠️ Warning: This message contains risky terms. Be careful sharing contact info or payment details.';
@@ -9029,6 +9116,7 @@
                     publicNames: { [u.uid]: getPublicDisplayName(u), [_activeDMUser.id]: getPublicDisplayName(_activeDMUser) }
                 }, { merge: true });
                 await loadDMMessages();
+                clearDMImg();
                 // Notify recipient
                 await db.collection('userNotifs').add({ uid: _activeDMUser.id, msg: `💬 ${u.name}: ${lastMsgStr}`, read: false, createdAt: FS().serverTimestamp() });
             } catch (e) { toast('Error: ' + e.message, 'tr'); inp.value = text; }
@@ -11432,15 +11520,17 @@ Message: ${message}`);
             if (!hasAdminAccess('official')) return toast('Admin access required', 'tr');
             const channelId = ($('at-official-channel')?.value || 'official_starlife_main').trim();
             const text = ($('at-official-message')?.value || '').trim();
+            const imageB64 = _officialPostImgB64 || null;
             const channel = OFFICIAL_CHANNELS[channelId];
             if (!channel) return toast('Select valid channel', 'ty');
-            if (!text) return toast('Write a message first', 'ty');
+            if (!text && !imageB64) return toast('Write a message or attach an image', 'ty');
             try {
                 await ensureOfficialChannelSetting(channelId);
                 const usersSnap = await db.collection('users').get();
                 const users = usersSnap.docs.map(d => ({ uid: d.id, ...d.data() })).filter(u => !u.isBanned);
                 const now = FS().serverTimestamp();
                 const poster = window.CU?.uid || 'admin';
+                const previewText = text || '📷 Image';
                 await Promise.all(users.map(async (target) => {
                     const dmId = getDMId(target.uid, channelId);
                     const dmRef = db.collection('dms').doc(dmId);
@@ -11448,6 +11538,7 @@ Message: ${message}`);
                         from: channelId,
                         to: target.uid,
                         text,
+                        image: imageB64 || null,
                         type: 'official_post',
                         officialChannelId: channelId,
                         read: false,
@@ -11455,7 +11546,7 @@ Message: ${message}`);
                     });
                     await dmRef.set({
                         participants: [target.uid, channelId],
-                        lastMsg: text.substring(0, 80),
+                        lastMsg: previewText.substring(0, 80),
                         lastMsgAt: now,
                         lastMsgFrom: channelId,
                         [`unread_${target.uid}`]: firebase.firestore.FieldValue.increment(1),
@@ -11469,11 +11560,13 @@ Message: ${message}`);
                     channelId,
                     channelName: channel.name,
                     text,
+                    image: imageB64 || null,
                     postedBy: poster,
                     recipients: users.length,
                     createdAt: now
                 });
                 if ($('at-official-message')) $('at-official-message').value = '';
+                clearOfficialPostImg();
                 toast(`Posted to ${users.length} users via ${channel.name} ✓`, 'tg');
                 loadAdminOfficialChannels();
             } catch (e) { toast(e.message || 'Broadcast failed', 'tr'); }

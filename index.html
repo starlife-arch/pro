@@ -4431,6 +4431,8 @@
                             <textarea id="dm-inp" rows="1" placeholder="Message…"
                                 style="flex:1;background:var(--s2);border:1px solid var(--bd);border-radius:20px;padding:9px 14px;color:var(--t1);font-size:.85rem;resize:none;outline:none;font-family:inherit;max-height:100px"
                                 onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendDM();}"></textarea>
+                            <button onclick="openGiftPickerFromDM()"
+                                style="width:38px;height:38px;border-radius:50%;background:var(--s2);border:1px solid var(--bd);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:1rem;flex-shrink:0">🎁</button>
                             <button onclick="sendDM()"
                                 style="width:38px;height:38px;border-radius:50%;background:var(--g);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#000;font-size:1rem;flex-shrink:0">➤</button>
                         </div>
@@ -4507,9 +4509,24 @@
                             <button class="btn btn-p" style="flex:1" id="pp-follow-btn"
                                 onclick="toggleFollow()">Follow</button>
                             <button class="btn btn-gh" style="flex:1" onclick="dmFromProfile()">💬 Message</button>
+                            <button class="btn btn-gold" style="flex:1" onclick="openGiftPickerFromProfile()">🎁 Send Gift</button>
                             <button onclick="closeModal('m-pub-profile')"
                                 style="background:none;border:1px solid var(--bd);border-radius:10px;padding:8px 12px;color:var(--t2);cursor:pointer">✕</button>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mover" id="m-gift-picker">
+                <div class="modal" style="max-width:460px">
+                    <div class="modal-title">🎁 Send Gift</div>
+                    <div style="font-size:.78rem;color:var(--t2);margin-bottom:4px">Recipient: <span id="gift-pick-recipient" style="color:var(--gold)">—</span></div>
+                    <div style="font-size:.78rem;color:var(--t2);margin-bottom:10px">Your balance: <span id="gift-pick-balance" style="color:var(--sky)">0</span> coins</div>
+                    <div id="gift-pick-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px"></div>
+                    <div style="font-size:.76rem;color:var(--t3);margin-bottom:10px" id="gift-pick-selected">Select a gift item.</div>
+                    <div class="modal-acts">
+                        <button class="btn btn-p" onclick="confirmGiftPickerSend()">Send Gift</button>
+                        <button class="btn btn-gh" onclick="closeModal('m-gift-picker')">Cancel</button>
                     </div>
                 </div>
             </div>
@@ -8471,6 +8488,20 @@
                             </div>
                         </div>`;
                     }
+                    if (m.type === 'gift') {
+                        const mineGift = m.from === u.uid;
+                        const timeGift = m.createdAt ? new Date(m.createdAt.seconds * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+                        const giftName = m.giftName || 'Gift';
+                        const giftIcon = m.giftIcon || '🎁';
+                        const coins = Number(m.giftCoins || 0);
+                        return `<div style="display:flex;flex-direction:column;align-items:${mineGift ? 'flex-end' : 'flex-start'};margin-bottom:8px">
+        <div style="max-width:78%;background:${mineGift ? 'rgba(0,200,83,.12)' : 'rgba(64,196,255,.10)'};border:1px solid ${mineGift ? 'rgba(0,200,83,.25)' : 'rgba(64,196,255,.25)'};border-radius:12px;padding:9px 12px">
+          <div style="font-size:.88rem;font-weight:700">${giftIcon} ${mineGift ? 'You sent a' : 'You received a'} ${giftName}</div>
+          <div style="font-size:.72rem;color:var(--t3);margin-top:2px">${coins} coins</div>
+        </div>
+        <div style="font-size:.65rem;color:var(--t3);margin:0 6px">${timeGift}</div>
+      </div>`;
+                    }
                     const mine = m.from === u.uid;
                     const time = m.createdAt ? new Date(m.createdAt.seconds * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
                     return `<div style="display:flex;flex-direction:column;align-items:${mine ? 'flex-end' : 'flex-start'};margin-bottom:6px">
@@ -10210,6 +10241,19 @@ Message: ${message}`);
         function userMemberId(uid, data) {
             return (data?.memberId || data?.memberCode || (uid || '').substring(0, 8).toUpperCase() || '—');
         }
+        const GIFT_CATALOG = [
+            { id: 'rose', name: 'Rose', icon: '🌹', coins: 5 },
+            { id: 'heart', name: 'Heart', icon: '❤️', coins: 10 },
+            { id: 'teddy', name: 'Teddy', icon: '🧸', coins: 15 },
+            { id: 'puppy', name: 'Puppy', icon: '🐶', coins: 30 },
+            { id: 'cake', name: 'Cake', icon: '🎂', coins: 50 },
+            { id: 'diamond', name: 'Diamond', icon: '💎', coins: 100 },
+            { id: 'crown', name: 'Crown', icon: '👑', coins: 250 },
+            { id: 'car', name: 'Car', icon: '🚗', coins: 500 }
+        ];
+        let _giftSendContext = null;
+        let _giftSelectedId = null;
+        let _giftSendBusy = false;
 
         async function refreshTokenGiftBalances() {
             const u = window.CU; if (!u) return;
@@ -10296,6 +10340,142 @@ Message: ${message}`);
             } catch (e) { toast(e.message || 'Gift purchase failed', 'tr'); }
         }
 
+        async function openGiftPickerFromDM() {
+            if (!_activeDMUser?.id) return toast('Open a DM first', 'ty');
+            await openGiftPicker({ recipientUid: _activeDMUser.id, entryPoint: 'dm' });
+        }
+
+        async function openGiftPickerFromProfile() {
+            if (!_viewingProfileUid) return toast('Open a profile first', 'ty');
+            await openGiftPicker({ recipientUid: _viewingProfileUid, entryPoint: 'discover' });
+        }
+
+        async function openGiftPicker({ recipientUid, entryPoint }) {
+            const u = window.CU;
+            if (!u) return;
+            if (!recipientUid) return toast('Invalid recipient', 'ty');
+            if (recipientUid === u.uid) return toast('Self gifting is not allowed', 'ty');
+            try {
+                const snap = await db.collection('users').doc(recipientUid).get();
+                if (!snap.exists) return toast('Recipient not found', 'tr');
+                const recipient = { id: snap.id, ...snap.data() };
+                _giftSendContext = { recipientUid: recipient.id, recipientName: recipient.name || 'Member', recipientMemberId: userMemberId(recipient.id, recipient), entryPoint };
+                _giftSelectedId = null;
+                if ($('gift-pick-recipient')) $('gift-pick-recipient').textContent = `${_giftSendContext.recipientName} (${_giftSendContext.recipientMemberId})`;
+                if ($('gift-pick-balance')) $('gift-pick-balance').textContent = window.CU.giftCoinBalance || 0;
+                if ($('gift-pick-selected')) $('gift-pick-selected').textContent = 'Select a gift item.';
+                const grid = $('gift-pick-grid');
+                if (grid) {
+                    grid.innerHTML = GIFT_CATALOG.map(g => `<button class="btn btn-gh btn-sm" id="gift-opt-${g.id}" onclick="selectGiftItem('${g.id}')" style="text-align:left;padding:10px"><div style="font-weight:700">${g.icon} ${g.name}</div><div style="font-size:.72rem;color:var(--t3)">${g.coins} coins</div></button>`).join('');
+                }
+                openModal('m-gift-picker');
+            } catch (e) { toast('Could not open gift picker: ' + e.message, 'tr'); }
+        }
+
+        function selectGiftItem(giftId) {
+            _giftSelectedId = giftId;
+            document.querySelectorAll('#gift-pick-grid .btn').forEach(b => { b.style.borderColor = 'var(--bd)'; b.style.background = 'var(--s1)'; });
+            const el = $('gift-opt-' + giftId);
+            if (el) { el.style.borderColor = 'var(--gold)'; el.style.background = 'rgba(255,213,79,.08)'; }
+            const g = GIFT_CATALOG.find(x => x.id === giftId);
+            if (g && $('gift-pick-selected')) $('gift-pick-selected').textContent = `Selected: ${g.icon} ${g.name} (${g.coins} coins)`;
+        }
+
+        async function confirmGiftPickerSend() {
+            if (_giftSendBusy) return;
+            const ctx = _giftSendContext;
+            if (!ctx?.recipientUid) return toast('Gift target missing', 'ty');
+            const gift = GIFT_CATALOG.find(g => g.id === _giftSelectedId);
+            if (!gift) return toast('Select a gift first', 'ty');
+            _giftSendBusy = true;
+            try {
+                await performGiftTransfer({
+                    recipientUid: ctx.recipientUid,
+                    coins: gift.coins,
+                    giftType: gift.id,
+                    giftName: gift.name,
+                    giftIcon: gift.icon,
+                    entryPoint: ctx.entryPoint || 'dm',
+                    createDMMessage: ctx.entryPoint === 'dm'
+                });
+                closeModal('m-gift-picker');
+                toast(`🎁 Sent ${gift.name} to ${ctx.recipientName}!`, 'tg');
+                await loadGiftLogs();
+                await refreshTokenGiftBalances();
+            } catch (e) {
+                toast(e.message || 'Gift send failed', 'tr');
+            } finally {
+                _giftSendBusy = false;
+            }
+        }
+
+        async function performGiftTransfer({ recipientUid, coins, giftType = 'custom', giftName = 'Gift', giftIcon = '🎁', entryPoint = 'gifts_tab', createDMMessage = false }) {
+            const u = window.CU;
+            if (!u) throw new Error('Not logged in');
+            if (!recipientUid) throw new Error('Invalid recipient');
+            if (!Number.isFinite(Number(coins)) || Number(coins) <= 0) throw new Error('Invalid gift value');
+            if (recipientUid === u.uid) throw new Error('Self gifting is not allowed');
+            const dmId = getDMId(u.uid, recipientUid);
+            const status = 'sent';
+            await db.runTransaction(async (t) => {
+                const fromRef = db.collection('users').doc(u.uid);
+                const toRef = db.collection('users').doc(recipientUid);
+                const [fromSnap, toSnap] = await Promise.all([t.get(fromRef), t.get(toRef)]);
+                if (!fromSnap.exists || !toSnap.exists) throw new Error('Recipient not found');
+                const fromData = fromSnap.data() || {};
+                const toData = toSnap.data() || {};
+                const fromBal = Number(fromData.giftCoinBalance || 0);
+                if (fromBal < coins) throw new Error('Insufficient gift balance');
+                const fromAfter = fromBal - coins;
+                if (fromAfter < 0) throw new Error('Operation would create negative gift balance');
+                const toBefore = Number(toData.giftCoinBalance || 0);
+                const toAfter = toBefore + coins;
+                t.update(fromRef, { giftCoinBalance: fromAfter });
+                t.update(toRef, { giftCoinBalance: toAfter });
+                t.set(db.collection('giftLogs').doc(), {
+                    uid: u.uid, memberId: userMemberId(u.uid, fromData), type: 'send',
+                    giftType, giftName, giftIcon, coins, entryPoint, status,
+                    counterpartyUid: recipientUid, counterpartyMemberId: userMemberId(recipientUid, toData),
+                    senderBalanceBefore: fromBal, senderBalanceAfter: fromAfter,
+                    recipientBalanceBefore: toBefore, recipientBalanceAfter: toAfter,
+                    createdAt: FS().serverTimestamp()
+                });
+                t.set(db.collection('giftLogs').doc(), {
+                    uid: recipientUid, memberId: userMemberId(recipientUid, toData), type: 'receive',
+                    giftType, giftName, giftIcon, coins, entryPoint, status,
+                    counterpartyUid: u.uid, counterpartyMemberId: userMemberId(u.uid, fromData),
+                    senderBalanceBefore: fromBal, senderBalanceAfter: fromAfter,
+                    recipientBalanceBefore: toBefore, recipientBalanceAfter: toAfter,
+                    createdAt: FS().serverTimestamp()
+                });
+                if (createDMMessage) {
+                    t.set(db.collection('dms').doc(dmId).collection('msgs').doc(), {
+                        from: u.uid,
+                        to: recipientUid,
+                        type: 'gift',
+                        giftType, giftName, giftIcon, giftCoins: coins,
+                        text: `${giftIcon} ${giftName}`,
+                        read: false,
+                        createdAt: FS().serverTimestamp()
+                    });
+                    t.set(db.collection('dms').doc(dmId), {
+                        participants: [u.uid, recipientUid],
+                        lastMsg: `🎁 ${giftName}`,
+                        lastMsgAt: FS().serverTimestamp(),
+                        lastMsgFrom: u.uid,
+                        [`unread_${recipientUid}`]: firebase.firestore.FieldValue.increment(1),
+                        names: { [u.uid]: u.name, [recipientUid]: toData.name || 'Member' },
+                        publicNames: { [u.uid]: getPublicDisplayName(u), [recipientUid]: getPublicDisplayName(toData) }
+                    }, { merge: true });
+                }
+            });
+            window.CU.giftCoinBalance = (window.CU.giftCoinBalance || 0) - coins;
+            await db.collection('userNotifs').add({ uid: recipientUid, msg: `🎁 ${u.name} sent you ${giftIcon} ${giftName} (${coins} coins).`, read: false, createdAt: FS().serverTimestamp() });
+            if (createDMMessage && _activeDMId === dmId) {
+                await loadDMMessages();
+            }
+        }
+
         async function sendGiftCoins() {
             const u = window.CU;
             if (!u) return;
@@ -10307,35 +10487,15 @@ Message: ${message}`);
                 const usersSnap = await db.collection('users').get();
                 const recipientDoc = usersSnap.docs.find(d => userMemberId(d.id, d.data()) === memberId);
                 if (!recipientDoc) return toast('Recipient not found', 'tr');
-                if (recipientDoc.id === u.uid) return toast('Cannot send to yourself', 'ty');
-                await db.runTransaction(async (t) => {
-                    const fromRef = db.collection('users').doc(u.uid);
-                    const toRef = db.collection('users').doc(recipientDoc.id);
-                    const fromSnap = await t.get(fromRef);
-                    const toSnap = await t.get(toRef);
-                    if (!fromSnap.exists || !toSnap.exists) throw new Error('User not found');
-                    const fromData = fromSnap.data() || {};
-                    const toData = toSnap.data() || {};
-                    const fromBal = Number(fromData.giftCoinBalance || 0);
-                    if (fromBal < coins) throw new Error('Insufficient gift balance');
-                    const fromAfter = fromBal - coins;
-                    if (fromAfter < 0) throw new Error('Operation would create negative gift balance');
-                    const toAfter = Number(toData.giftCoinBalance || 0) + coins;
-                    t.update(fromRef, { giftCoinBalance: fromAfter });
-                    t.update(toRef, { giftCoinBalance: toAfter });
-                    t.set(db.collection('giftLogs').doc(), {
-                        uid: u.uid, memberId: userMemberId(u.uid, fromData), type: 'send',
-                        coins, counterpartyUid: recipientDoc.id, counterpartyMemberId: userMemberId(recipientDoc.id, toData),
-                        giftBalanceAfter: fromAfter, createdAt: FS().serverTimestamp()
-                    });
-                    t.set(db.collection('giftLogs').doc(), {
-                        uid: recipientDoc.id, memberId: userMemberId(recipientDoc.id, toData), type: 'receive',
-                        coins, counterpartyUid: u.uid, counterpartyMemberId: userMemberId(u.uid, fromData),
-                        giftBalanceAfter: toAfter, createdAt: FS().serverTimestamp()
-                    });
+                await performGiftTransfer({
+                    recipientUid: recipientDoc.id,
+                    coins,
+                    giftType: 'custom',
+                    giftName: 'Gift Coins',
+                    giftIcon: '🎁',
+                    entryPoint: 'gifts_tab',
+                    createDMMessage: false
                 });
-                window.CU.giftCoinBalance = (window.CU.giftCoinBalance || 0) - coins;
-                await db.collection('userNotifs').add({ uid: recipientDoc.id, msg: `🎁 You received ${coins} gift coins from ${u.name}.`, read: false, createdAt: FS().serverTimestamp() });
                 toast(`Sent ${coins} gift coins to ${memberId} ✓`, 'tg');
                 $('gf-send-member').value = '';
                 $('gf-send-amount').value = '';
@@ -10410,7 +10570,7 @@ Message: ${message}`);
                     const title = l.type === 'send' ? 'Sent Gift Coins' : l.type === 'receive' ? 'Received Gift Coins' : l.type === 'redeem' ? 'Redeemed Gift Coins' : 'Gift Purchase';
                     const details = l.type === 'redeem'
                         ? `${l.coins || 0} coins → +$${fmt(l.walletCredited || 0)} wallet (${fmt(l.starlifeShareUsd || 0)} to Starlife)`
-                        : `${l.coins || 0} coins${l.counterpartyMemberId ? ' · Member ID: ' + l.counterpartyMemberId : ''}${l.usd ? ' · $' + fmt(l.usd) : ''}`;
+                        : `${l.giftIcon || '🎁'} ${l.giftName || ''} · ${l.coins || 0} coins${l.counterpartyMemberId ? ' · Member ID: ' + l.counterpartyMemberId : ''}${l.usd ? ' · $' + fmt(l.usd) : ''}${l.entryPoint ? ' · via ' + l.entryPoint : ''}${l.status ? ' · ' + l.status : ''}`;
                     return `<div class="arow"><div class="ar-top"><div><div class="ar-name">${title}</div><div class="ar-sub">${details} · ${fmtDT(l.createdAt)}</div></div></div></div>`;
                 }).join('');
             } catch (_) { el.innerHTML = '<div class="es">Could not load gift logs</div>'; }

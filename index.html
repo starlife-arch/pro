@@ -3343,7 +3343,7 @@
             <!-- WITHDRAW -->
             <div id="t-withdraw" class="itc" style="display:none">
                 <div class="ptitle">Withdraw Funds</div>
-                <div class="psub">Minimum $10 · 10% processing fee applies</div>
+                <div class="psub" id="wd-sub">Minimum $10 · 10% processing fee applies</div>
                 <div id="wd-hold-notice"
                     style="display:none;background:rgba(255,82,82,.08);border:1px solid rgba(255,82,82,.25);border-radius:8px;padding:10px;margin-bottom:12px;font-size:.82rem;color:var(--red)">
                     🔒 <span id="wd-hold-txt"></span></div>
@@ -3358,7 +3358,7 @@
                     <div id="wd-prev"
                         style="display:none;margin-bottom:14px;padding:11px;background:var(--s2);border-radius:var(--rs);border:1px solid var(--bd)">
                         <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span
-                                style="font-size:.8rem;color:var(--t2)">Fee (10%)</span><span
+                                style="font-size:.8rem;color:var(--t2)" id="wd-fee-label">Fee (10%)</span><span
                                 style="color:var(--red);font-family:'JetBrains Mono',monospace;font-size:.88rem"
                                 id="wd-fee">$0.00</span></div>
                         <div style="display:flex;justify-content:space-between"><span
@@ -5304,6 +5304,19 @@
                     <button class="btn btn-gh btn-sm" onclick="loadAdminStakes('pending')">Pending</button>
                     <button class="btn btn-gh btn-sm" onclick="loadAdminStakes('all')">All</button>
                 </div>
+                <div class="card" style="margin-bottom:12px">
+                    <div style="font-weight:700;margin-bottom:8px">Shareholder Manual Controls</div>
+                    <div class="fg"><label class="fl">User UID</label><input class="fi" id="at-sh-uid" placeholder="User UID"></div>
+                    <div class="fg"><label class="fl">Stake Change (USD, negative allowed)</label><input class="fi" id="at-sh-delta" type="number" step="0.01" placeholder="e.g. 100 or -50"></div>
+                    <div class="fg"><label class="fl">Reason</label><input class="fi" id="at-sh-reason" placeholder="e.g. correction"></div>
+                    <button class="btn btn-p btn-full" onclick="adminAdjustShareholderStake()">Apply Stake Adjustment</button>
+                    <div style="height:8px"></div>
+                    <button class="btn btn-gh btn-full" onclick="adminToggleShareholderEarnings()">Toggle Earnings Stop/Restart</button>
+                </div>
+                <div class="card" style="margin-bottom:12px">
+                    <div style="font-weight:700;margin-bottom:8px">Shareholder Overview</div>
+                    <div id="at-shareholders-users"><div class="es">Loading…</div></div>
+                </div>
                 <div id="at-stakes-list"></div>
             </div>
 
@@ -5424,6 +5437,13 @@
                 <div class="chart-wrap">
                     <div style="font-size:.82rem;font-weight:600;margin-bottom:10px">Fee History</div>
                     <div id="at-fees-list"></div>
+                </div>
+                <div class="card" style="margin-top:12px">
+                    <div style="font-weight:700;margin-bottom:8px">Financial Control Settings</div>
+                    <div class="fg"><label class="fl">Minimum Withdrawal (USD)</label><input class="fi" id="fin-wd-min" type="number" min="1" step="0.01"></div>
+                    <div class="fg"><label class="fl">Withdrawal Fee (%)</label><input class="fi" id="fin-wd-fee" type="number" min="0" max="100" step="0.01"></div>
+                    <div class="fg"><label class="fl">Transfer Fee (%)</label><input class="fi" id="fin-tf-fee" type="number" min="0" max="100" step="0.01"></div>
+                    <button class="btn btn-p btn-full" onclick="adminSaveFinancialSettings()">Save Financial Settings</button>
                 </div>
                 <div style="font-size:.72rem;color:var(--t3);margin-top:10px">Aggregated from Withdrawals (10%), Transfers (5%), P2P spreads, and Loan interest.</div>
             </div>
@@ -6495,7 +6515,7 @@
                 'selectVaultPlan', 'calcVault', 'lockInVault', 'loadSavingsVault',
                 'createSavingsGoal', 'loadSavingsGoals', 'addToGoal', 'deleteGoal',
                 'applyPromoCode', 'adminCreatePromoCode', 'loadAdminPromoCodes', 'adminDeletePromoCode',
-                'adminHoldFunds',
+                'adminHoldFunds', 'adminSaveFinancialSettings', 'adminAdjustShareholderStake', 'adminToggleShareholderEarnings', 'adminViewUserFinance',
                 'tab', 'atab', 'lbTab', 'shTab', 'svTab', 'lnTab', 'spTab', 'actTab',
                 'aboutTab', 'cmTab', 'loadMyTickets', 'toggleMore', 'hideMore',
                 'openSurvey', 'openSetPin', 'openSurveyBuilder', 'savePIN', 'confirmPIN'
@@ -6523,6 +6543,45 @@
         const FIREBASE_CONFIG = { apiKey: "AIzaSyCF09qr8P8_BOzWt53wopZlavHFZb7sBnM", authDomain: "starlife-advert-a6587.firebaseapp.com", projectId: "starlife-advert-a6587", storageBucket: "starlife-advert-a6587.firebasestorage.app", messagingSenderId: "946780590831", appId: "1:946780590831:web:dd22e4879ec0786a31011a" };
         const ADMIN_EMAIL = "starlifeadvert@gmail.com";
         const SUPPORT_EMAIL = "support@starlifeadvert.com";
+        const DEFAULT_PLATFORM_SETTINGS = {
+            withdrawMinAmount: 10,
+            withdrawFeeRate: 0.10,
+            transferFeeRate: 0.05
+        };
+        window._platformSettings = { ...DEFAULT_PLATFORM_SETTINGS };
+
+        async function loadPlatformSettings(force = false) {
+            if (!force && window._platformSettingsLoaded) return window._platformSettings;
+            try {
+                const snap = await db.collection('platformSettings').doc('financial').get();
+                if (snap.exists) {
+                    const d = snap.data() || {};
+                    window._platformSettings = {
+                        withdrawMinAmount: Number.isFinite(Number(d.withdrawMinAmount)) ? Number(d.withdrawMinAmount) : DEFAULT_PLATFORM_SETTINGS.withdrawMinAmount,
+                        withdrawFeeRate: Number.isFinite(Number(d.withdrawFeeRate)) ? Number(d.withdrawFeeRate) : DEFAULT_PLATFORM_SETTINGS.withdrawFeeRate,
+                        transferFeeRate: Number.isFinite(Number(d.transferFeeRate)) ? Number(d.transferFeeRate) : DEFAULT_PLATFORM_SETTINGS.transferFeeRate
+                    };
+                } else {
+                    window._platformSettings = { ...DEFAULT_PLATFORM_SETTINGS };
+                }
+            } catch (_) {
+                window._platformSettings = { ...DEFAULT_PLATFORM_SETTINGS };
+            }
+            window._platformSettingsLoaded = true;
+            const wdMin = getFinancialSetting('withdrawMinAmount');
+            const wdFeePct = getFinancialSetting('withdrawFeeRate') * 100;
+            if ($('wd-sub')) $('wd-sub').textContent = `Minimum $${fmt(wdMin)} · ${fmt(wdFeePct)}% processing fee applies`;
+            if ($('wd-fee-label')) $('wd-fee-label').textContent = `Fee (${fmt(wdFeePct)}%)`;
+            if ($('wd-amt')) {
+                $('wd-amt').min = wdMin;
+                $('wd-amt').placeholder = `Min $${fmt(wdMin)}`;
+            }
+            return window._platformSettings;
+        }
+        function getFinancialSetting(key) {
+            const v = window._platformSettings?.[key];
+            return Number.isFinite(Number(v)) ? Number(v) : Number(DEFAULT_PLATFORM_SETTINGS[key]);
+        }
 
         async function tg(msg) {
             if (!msg) return;
@@ -6640,6 +6699,7 @@
             }
             const d = snap.data();
             window.CU = { uid: user.uid, ...d };
+            await loadPlatformSettings(true);
             if (d.isBanned) { go('pg-banned'); return; }
             await warmSecurityContext();
             const blocked = await isCurrentIpBlocked();
@@ -7037,6 +7097,44 @@
                 console.error(e);
                 el.innerHTML = '<div class="es">Error loading fees</div>';
             }
+            await loadAdminFinancialSettings();
+        }
+
+        async function loadAdminFinancialSettings() {
+            await loadPlatformSettings(true);
+            if ($('fin-wd-min')) $('fin-wd-min').value = getFinancialSetting('withdrawMinAmount');
+            if ($('fin-wd-fee')) $('fin-wd-fee').value = parseFloat((getFinancialSetting('withdrawFeeRate') * 100).toFixed(4));
+            if ($('fin-tf-fee')) $('fin-tf-fee').value = parseFloat((getFinancialSetting('transferFeeRate') * 100).toFixed(4));
+        }
+
+        async function adminSaveFinancialSettings() {
+            if (!['superadmin', 'finance'].includes(getAdminRole())) return toast('Finance or Super Admin access required', 'tr');
+            const wdMin = Number($('fin-wd-min')?.value || 0);
+            const wdFeePct = Number($('fin-wd-fee')?.value || 0);
+            const tfFeePct = Number($('fin-tf-fee')?.value || 0);
+            if (!Number.isFinite(wdMin) || wdMin < 1) return toast('Minimum withdrawal must be at least $1', 'ty');
+            if (!Number.isFinite(wdFeePct) || wdFeePct < 0 || wdFeePct > 100) return toast('Withdrawal fee must be between 0% and 100%', 'ty');
+            if (!Number.isFinite(tfFeePct) || tfFeePct < 0 || tfFeePct > 100) return toast('Transfer fee must be between 0% and 100%', 'ty');
+            const payload = {
+                withdrawMinAmount: parseFloat(wdMin.toFixed(4)),
+                withdrawFeeRate: parseFloat((wdFeePct / 100).toFixed(6)),
+                transferFeeRate: parseFloat((tfFeePct / 100).toFixed(6)),
+                updatedAt: FS().serverTimestamp(),
+                updatedBy: window.CU?.uid || null
+            };
+            try {
+                await db.collection('platformSettings').doc('financial').set(payload, { merge: true });
+                await db.collection('adminAuditLogs').add({
+                    type: 'financial_settings_update',
+                    byUid: window.CU?.uid || null,
+                    byEmail: window.CU?.email || null,
+                    payload,
+                    createdAt: FS().serverTimestamp()
+                });
+                window._platformSettingsLoaded = false;
+                await loadPlatformSettings(true);
+                toast('Financial settings updated ✓', 'tg');
+            } catch (e) { toast(e.message || 'Failed to save settings', 'tr'); }
         }
 
         function shTab(el, id) { document.querySelectorAll('#t-shareholder .itab').forEach(t => t.classList.remove('on')); el.classList.add('on');['sh-t-stake', 'sh-t-history', 'sh-t-withdraw'].forEach(i => $(i).style.display = 'none'); $(id).style.display = 'block'; }
@@ -7373,7 +7471,7 @@
             const a = parseFloat($('wd-amt').value);
             if (!a || a <= 0) { $('wd-prev').style.display = 'none'; return; }
             $('wd-prev').style.display = 'block';
-            const fee = a * 0.10;
+            const fee = a * getFinancialSetting('withdrawFeeRate');
             $('wd-fee').textContent = '$' + fmt(fee);
             $('wd-net').textContent = '$' + fmt(a - fee);
         }
@@ -7386,7 +7484,9 @@
             const method = $('wd-method').value;
             const details = $('wd-details').value.trim();
             const u = window.CU;
-            if (!amt || amt < 10) return toast('Minimum withdrawal $10', 'ty');
+            await loadPlatformSettings();
+            const wdMin = getFinancialSetting('withdrawMinAmount');
+            if (!amt || amt < wdMin) return toast(`Minimum withdrawal $${fmt(wdMin)}`, 'ty');
             if (!details) return toast('Enter your payment details', 'ty');
             const availBal = getAvailableBalance(u);
             if (availBal < amt) return toast(`Insufficient available balance. Available: $${fmt(availBal)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' on hold)' : ''}`, 'tr');
@@ -7431,7 +7531,8 @@
             const u = window.CU;
             const ex = await db.collection('withdrawals').where('uid', '==', u.uid).where('status', '==', 'pending').get();
             if (!ex.empty) return toast('You already have a pending withdrawal', 'ty');
-            const fee = amt * 0.10; const net = amt - fee; const txId = genTxId();
+            await loadPlatformSettings();
+            const fee = amt * getFinancialSetting('withdrawFeeRate'); const net = amt - fee; const txId = genTxId();
             const batch = db.batch();
             const wdRef = db.collection('withdrawals').doc();
             batch.set(wdRef, { uid: u.uid, userName: u.name, userEmail: u.email, txId, amount: amt, fee, net, method, details, status: 'pending', createdAt: FS().serverTimestamp() });
@@ -9257,38 +9358,74 @@
         function adminApproveInvById(btn) { const id = btn.dataset.id; const d = window['_inv_' + id]; if (d) adminApproveInv(d.id, d.uid, d.amount); }
         function adminRejectInvById(btn) { const id = btn.dataset.id; const d = window['_inv_' + id]; if (d) adminRejectInv(d.id, d.uid); }
 
+        async function applyReferralBonusesForInvestment(investmentId, uid, amount) {
+            const payout = { triggered: false, alreadyPaid: false, levels: [] };
+            await db.runTransaction(async (t) => {
+                const invRef = db.collection('investments').doc(investmentId);
+                const userRef = db.collection('users').doc(uid);
+                const eventRef = db.collection('referralBonuses').doc(investmentId);
+                const [invSnap, userSnap, eventSnap] = await Promise.all([t.get(invRef), t.get(userRef), t.get(eventRef)]);
+                if (!invSnap.exists || !userSnap.exists) return;
+                const inv = invSnap.data() || {};
+                const user = userSnap.data() || {};
+                if (eventSnap.exists || user.referralBonusPaid) { payout.alreadyPaid = true; return; }
+                if (inv.status !== 'active' || !user.referredBy) return;
+                payout.triggered = true;
+
+                const l1Ref = db.collection('users').doc(user.referredBy);
+                const l1Snap = await t.get(l1Ref);
+                const bonuses = [];
+                if (l1Snap.exists) bonuses.push({ level: 1, uid: user.referredBy, amount: parseFloat((amount * 0.10).toFixed(4)), via: user.name || 'member' });
+                if (l1Snap.exists && l1Snap.data()?.referredBy) {
+                    const l2uid = l1Snap.data().referredBy;
+                    const l2Ref = db.collection('users').doc(l2uid);
+                    const l2Snap = await t.get(l2Ref);
+                    if (l2Snap.exists) bonuses.push({ level: 2, uid: l2uid, amount: parseFloat((amount * 0.05).toFixed(4)), via: l1Snap.data()?.name || 'member' });
+                    if (l2Snap.exists && l2Snap.data()?.referredBy) {
+                        const l3uid = l2Snap.data().referredBy;
+                        const l3Ref = db.collection('users').doc(l3uid);
+                        const l3Snap = await t.get(l3Ref);
+                        if (l3Snap.exists) bonuses.push({ level: 3, uid: l3uid, amount: parseFloat((amount * 0.02).toFixed(4)), via: l2Snap.data()?.name || 'member' });
+                    }
+                }
+                bonuses.forEach(b => {
+                    t.update(db.collection('users').doc(b.uid), {
+                        balance: FS().increment(b.amount),
+                        totalEarned: FS().increment(b.amount),
+                        referralEarned: FS().increment(b.amount)
+                    });
+                });
+                t.update(userRef, {
+                    referralBonusPaid: true,
+                    referralBonusPaidAt: FS().serverTimestamp(),
+                    referralBonusInvestmentId: investmentId
+                });
+                t.set(eventRef, {
+                    investmentId,
+                    invitedUid: uid,
+                    invitedName: user.name || 'Member',
+                    referredBy: user.referredBy || null,
+                    amount,
+                    bonuses,
+                    createdAt: FS().serverTimestamp()
+                });
+                payout.levels = bonuses;
+            });
+            return payout;
+        }
+
         async function adminApproveInv(id, uid, amount) {
             const batch = db.batch();
             batch.update(db.collection('investments').doc(id), { status: 'active', earningEnabled: true, approvedAt: FS().serverTimestamp(), totalPaid: 0 });
             batch.update(db.collection('users').doc(uid), { totalInvested: FS().increment(amount) });
             await batch.commit();
-            // Referral bonus — first investment check
             const userSnap = await db.collection('users').doc(uid).get();
-            const u = userSnap.data();
-            if (!u.referralBonusPaid && u.referredBy) {
-                await db.collection('users').doc(uid).update({ referralBonusPaid: true });
-                // Level 1 — direct referrer gets 10%
-                const bonus = parseFloat((amount * 0.10).toFixed(4));
-                await db.collection('users').doc(u.referredBy).update({ balance: FS().increment(bonus), totalEarned: FS().increment(bonus), referralEarned: FS().increment(bonus) });
-                logAct(u.referredBy, `Level 1 referral bonus from ${u.name} first investment`, bonus, '👥', 'deposit');
-                await db.collection('userNotifs').add({ uid: u.referredBy, msg: `👥 Level 1 referral bonus: +$${fmt(bonus)} from ${u.name} first investment!`, read: false, createdAt: FS().serverTimestamp() });
-                // Level 2 — referrer's referrer gets 5%
-                const l1Snap = await db.collection('users').doc(u.referredBy).get();
-                if (l1Snap.exists && l1Snap.data().referredBy) {
-                    const l2uid = l1Snap.data().referredBy;
-                    const bonus2 = parseFloat((amount * 0.05).toFixed(4));
-                    await db.collection('users').doc(l2uid).update({ balance: FS().increment(bonus2), totalEarned: FS().increment(bonus2), referralEarned: FS().increment(bonus2) });
-                    logAct(l2uid, `Level 2 referral bonus from ${u.name} first investment`, bonus2, '👥', 'deposit');
-                    await db.collection('userNotifs').add({ uid: l2uid, msg: `👥 Level 2 referral bonus: +$${fmt(bonus2)} from ${u.name} (via ${l1Snap.data().name || 'member'})!`, read: false, createdAt: FS().serverTimestamp() });
-                    // Level 3 — 2%
-                    const l2Snap = await db.collection('users').doc(l2uid).get();
-                    if (l2Snap.exists && l2Snap.data().referredBy) {
-                        const l3uid = l2Snap.data().referredBy;
-                        const bonus3 = parseFloat((amount * 0.02).toFixed(4));
-                        await db.collection('users').doc(l3uid).update({ balance: FS().increment(bonus3), totalEarned: FS().increment(bonus3), referralEarned: FS().increment(bonus3) });
-                        logAct(l3uid, `Level 3 referral bonus from ${u.name} first investment`, bonus3, '👥', 'deposit');
-                        await db.collection('userNotifs').add({ uid: l3uid, msg: `👥 Level 3 referral bonus: +$${fmt(bonus3)} from ${u.name}!`, read: false, createdAt: FS().serverTimestamp() });
-                    }
+            const u = userSnap.data() || {};
+            const referralResult = await applyReferralBonusesForInvestment(id, uid, amount);
+            if (referralResult?.triggered) {
+                for (const lv of referralResult.levels || []) {
+                    await logAct(lv.uid, `Level ${lv.level} referral bonus from ${u.name} qualifying investment`, lv.amount, '👥', 'deposit');
+                    await db.collection('userNotifs').add({ uid: lv.uid, msg: `👥 Level ${lv.level} referral bonus: +$${fmt(lv.amount)} from ${u.name} investment!`, read: false, createdAt: FS().serverTimestamp() });
                 }
             }
             // Notify investor
@@ -9366,7 +9503,8 @@
         <div class="ar-name">${u.name || '—'} ${u.isBanned ? '<span class="badge br">BANNED</span>' : ''}</div>
         <div class="ar-sub">${u.email} · ${u.phone || '—'}</div>
         <div class="ar-sub">Balance: <strong style="color:var(--g)">$${fmt(u.balance)}</strong>${(u.heldAmount || 0) > 0 ? ' · <span style="color:var(--red)">🔒 Held: $' + fmt(u.heldAmount || 0) + '</span>' : ''} · Invested: $${fmt(u.totalInvested)} · Stake: $${fmt(u.shareholderStake)}</div>
-        <div class="ar-sub">Ref: ${u.referralCode || '—'} · Joined: ${fmtD(u.createdAt)}</div>
+        <div class="ar-sub">Member ID: ${memberIdFromUid(u.id)} · Points: ${u.surveyPoints || 0} · Savings: $${fmt(u.savingsBalance || 0)}</div>
+        <div class="ar-sub">Ref: ${u.referralCode || '—'} · Referral Earned: $${fmt(u.referralEarned || 0)} · Bonus Paid: ${u.referralBonusPaid ? 'Yes' : 'No'} · Joined: ${fmtD(u.createdAt)}</div>
         <div class="ar-sub">🎂 Birthday: <strong style="color:var(--gold)">${u.birthday || 'Not set'}</strong></div>
       </div></div>
       <div class="ar-acts">
@@ -9381,15 +9519,46 @@
         <button class="btn btn-sky btn-sm" onclick="adminHoldFunds(&quot;${u.id}&quot;,&quot;${(u.name || '').replace(/"/g, '') || 'User'}&quot;,${u.balance || 0},${u.heldAmount || 0})">${(u.heldAmount || 0) > 0 ? '🔓 Held: $' + parseFloat(u.heldAmount || 0).toFixed(2) : '🔒 Hold Funds'}</button>
         ${u.withdrawPin ? '<button class="btn btn-sky btn-sm" onclick="adminResetPin(&quot;' + u.id + '&quot;,&quot;' + (u.name || 'User').replace(/"/g, '') + '&quot;)">🔐 Reset PIN</button>' : ''}
         <button class="btn btn-gold btn-sm" onclick="openInvAdj(&quot;${u.id}&quot;,&quot;${(u.name || '').replace(/"/g, '') || 'User'}&quot;,&quot;${u.email}&quot;,${u.totalInvested || 0})">📈 Investment</button>
+        <button class="btn btn-gh btn-sm" onclick="adminViewUserFinance(&quot;${u.id}&quot;)">📊 Finance View</button>
         <button class="btn btn-gh btn-sm" onclick="openEditUser(&quot;${u.id}&quot;,&quot;${(u.name || '').replace(/"/g, '') || 'User'}&quot;,&quot;${u.email}&quot;,&quot;${(u.phone || '').replace(/"/g, '')}&quot;)">✏️ Edit</button>
         <button class="btn btn-sky btn-sm" onclick="adminEditBirthday(&quot;${u.id}&quot;,&quot;${(u.name || 'User').replace(/"/g, '')}&quot;,&quot;${u.birthday || ''}&quot;)">🎂 Birthday</button>
         ${u.isBanned ? '<button class="btn btn-p btn-sm" onclick="banUser(&quot;' + u.id + '&quot;,false)">Unban</button>' : '<button class="btn btn-d btn-sm" onclick="banUser(&quot;' + u.id + '&quot;,true)">Ban</button>'}
         <button class="btn btn-d btn-sm" onclick="deleteUser(&quot;${u.id}&quot;)">🗑 Delete</button>
       </div>
+      <div id="ufx-${u.id}" style="display:none;margin-top:8px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:10px;font-size:.78rem;color:var(--t2)"></div>
     </div>`).join('');
         }
 
         function searchUsers() { const q = $('user-search').value.toLowerCase(); renderUsers((window.AU || []).filter(u => (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q) || (u.phone || '').toLowerCase().includes(q))); }
+
+        async function adminViewUserFinance(uid) {
+            const box = $('ufx-' + uid);
+            if (!box) return;
+            if (box.style.display === 'block') { box.style.display = 'none'; return; }
+            box.style.display = 'block';
+            box.innerHTML = 'Loading finance/profile systems…';
+            try {
+                const [uSnap, vaultSnap, goalsSnap] = await Promise.all([
+                    db.collection('users').doc(uid).get(),
+                    db.collection('savingsVault').where('uid', '==', uid).get(),
+                    db.collection('savingsGoals').where('uid', '==', uid).get()
+                ]);
+                if (!uSnap.exists) { box.innerHTML = 'User not found'; return; }
+                const u = uSnap.data() || {};
+                const vaultActive = vaultSnap.docs.filter(d => (d.data().status || 'active') === 'active').length;
+                const goalsActive = goalsSnap.docs.filter(d => (d.data().status || 'active') === 'active').length;
+                const goalsTotal = goalsSnap.size;
+                box.innerHTML = `
+                    <div><strong>Member ID:</strong> ${memberIdFromUid(uid)} · <strong>Points:</strong> ${u.surveyPoints || 0}</div>
+                    <div><strong>Savings Wallet:</strong> $${fmt(u.savingsBalance || 0)} · <strong>Savings Earned:</strong> $${fmt(u.savingsEarned || 0)}</div>
+                    <div><strong>Vault Locks:</strong> ${vaultSnap.size} total (${vaultActive} active)</div>
+                    <div><strong>Savings Goals:</strong> ${goalsTotal} total (${goalsActive} active)</div>
+                    <div><strong>Shareholder Stake:</strong> $${fmt(u.shareholderStake || 0)} · <strong>Shareholder Earned:</strong> $${fmt(u.shareholderEarned || 0)} · <strong>Distributed:</strong> $${fmt(u.shareholderDistributed || 0)} · <strong>Earnings:</strong> ${u.shareholderEarningsPaused ? '<span style="color:var(--red)">Stopped</span>' : '<span style="color:var(--g)">Active</span>'}</div>
+                `;
+            } catch (e) {
+                box.innerHTML = 'Could not load finance view';
+            }
+        }
 
         window._adjTarget = null;
         function openAdjust(id, name, bal) {
@@ -9674,6 +9843,7 @@
             const snap = await q.get();
             const list = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
             const el = $('at-stakes-list');
+            await loadAdminShareholderOverview();
             if (!list.length) { el.innerHTML = '<div class="es"><div class="ei">💎</div>No stakes</div>'; return; }
             el.innerHTML = list.map(s => {
                 const b = s.status === 'active' ? '<span class="badge bpur">Active</span>' : s.status === 'pending' ? '<span class="badge bgold">Pending</span>' : '<span class="badge br">Rejected</span>';
@@ -9707,6 +9877,70 @@
             await db.collection('stakes').doc(id).update({ status: 'rejected' });
             await db.collection('userNotifs').add({ uid, msg: 'Your shareholder stake was rejected. Contact support.', read: false, createdAt: FS().serverTimestamp() });
             toast('Stake rejected'); loadAdminAll();
+        }
+
+        async function loadAdminShareholderOverview() {
+            const el = $('at-shareholders-users'); if (!el) return;
+            try {
+                const snap = await db.collection('users').where('shareholderStake', '>', 0).get();
+                const users = snap.docs.map(d => ({ uid: d.id, ...d.data() })).sort((a, b) => Number(b.shareholderStake || 0) - Number(a.shareholderStake || 0));
+                if (!users.length) { el.innerHTML = '<div class="es">No active shareholders</div>'; return; }
+                el.innerHTML = users.map(u => `<div class="arow"><div class="ar-top"><div><div class="ar-name">${u.name || 'User'}</div><div class="ar-sub">UID: ${u.uid} · Stake: $${fmt(u.shareholderStake || 0)} · Earned: $${fmt(u.shareholderEarned || 0)} · Distributed: $${fmt(u.shareholderDistributed || 0)} · ${u.shareholderEarningsPaused ? '<span style="color:var(--red)">Earnings Stopped</span>' : '<span style="color:var(--g)">Earnings Active</span>'}</div></div></div></div>`).join('');
+            } catch (e) { el.innerHTML = '<div class="es">Could not load shareholder overview</div>'; }
+        }
+
+        async function adminAdjustShareholderStake() {
+            const uid = ($('at-sh-uid')?.value || '').trim();
+            const delta = Number($('at-sh-delta')?.value || 0);
+            const reason = ($('at-sh-reason')?.value || '').trim() || 'manual_shareholder_adjustment';
+            if (!uid) return toast('Enter user UID', 'ty');
+            if (!Number.isFinite(delta) || delta === 0) return toast('Enter non-zero stake change', 'ty');
+            try {
+                await db.runTransaction(async (t) => {
+                    const ref = db.collection('users').doc(uid);
+                    const snap = await t.get(ref);
+                    if (!snap.exists) throw new Error('User not found');
+                    const d = snap.data() || {};
+                    const nextStake = Number(d.shareholderStake || 0) + delta;
+                    if (nextStake < 0) throw new Error('Shareholder stake cannot go negative');
+                    t.update(ref, { shareholderStake: nextStake });
+                    t.set(db.collection('shareholderAdminLogs').doc(), {
+                        uid,
+                        type: 'stake_adjust',
+                        delta,
+                        stakeAfter: nextStake,
+                        reason,
+                        adminUid: window.CU?.uid || null,
+                        createdAt: FS().serverTimestamp()
+                    });
+                });
+                await logAct(uid, `Admin shareholder stake adjustment (${reason})`, delta, '💎', 'other');
+                toast('Shareholder stake adjusted ✓', 'tg');
+                loadAdminStakes('all');
+            } catch (e) { toast(e.message || 'Adjustment failed', 'tr'); }
+        }
+
+        async function adminToggleShareholderEarnings() {
+            const uid = ($('at-sh-uid')?.value || '').trim();
+            if (!uid) return toast('Enter user UID', 'ty');
+            try {
+                const ref = db.collection('users').doc(uid);
+                const snap = await ref.get();
+                if (!snap.exists) return toast('User not found', 'tr');
+                const d = snap.data() || {};
+                const next = !d.shareholderEarningsPaused;
+                await ref.update({ shareholderEarningsPaused: next, shareholderEarningsPausedAt: FS().serverTimestamp(), shareholderEarningsPausedBy: window.CU?.uid || null });
+                await db.collection('shareholderAdminLogs').add({
+                    uid,
+                    type: 'earnings_toggle',
+                    paused: next,
+                    adminUid: window.CU?.uid || null,
+                    createdAt: FS().serverTimestamp()
+                });
+                await logAct(uid, `Admin ${next ? 'stopped' : 'restarted'} shareholder earnings`, 0, '💎', 'other');
+                toast(`Shareholder earnings ${next ? 'stopped' : 'restarted'} ✓`, 'tg');
+                loadAdminStakes('all');
+            } catch (e) { toast(e.message || 'Update failed', 'tr'); }
         }
 
         // ════════════════════════════════════════════════════════
@@ -10482,8 +10716,9 @@ Message: ${message}`);
             const { uid: toUid, name: toName, memberId } = _tfRecipient;
             // Build typeLabel BEFORE try block so it's always defined
             const isCash = _tfType === 'cash';
-            const TRANSFER_FEE_RATE = 0.05;
-            const fee = isCash ? parseFloat((amt * TRANSFER_FEE_RATE).toFixed(2)) : 0;
+            await loadPlatformSettings();
+            const transferFeeRate = getFinancialSetting('transferFeeRate');
+            const fee = isCash ? parseFloat((amt * transferFeeRate).toFixed(2)) : 0;
             const received = isCash ? parseFloat((amt - fee).toFixed(2)) : amt;
             const typeLabel = isCash ? '$' + fmt(amt) : amt + ' pts';
             const icon = isCash ? '💸' : '⭐';
@@ -10510,7 +10745,7 @@ Message: ${message}`);
                 });
                 // Only runs if transaction succeeded
                 await logAct(u.uid, `Gift sent to ${toName}: ${typeLabel}${msg ? ' — "' + msg + '"' : ''}`, -amt, icon, 'transfer');
-                await logAct(toUid, `Gift received from ${u.name}: ${isCash ? '$' + fmt(received) + ' (5% fee $' + fmt(fee) + ' deducted)' : amt + ' pts'}${msg ? ' — "' + msg + '"' : ''}`, received, icon, 'transfer');
+                await logAct(toUid, `Gift received from ${u.name}: ${isCash ? '$' + fmt(received) + ' (' + fmt(transferFeeRate * 100) + '% fee $' + fmt(fee) + ' deducted)' : amt + ' pts'}${msg ? ' — "' + msg + '"' : ''}`, received, icon, 'transfer');
                 await db.collection('userNotifs').add({ uid: toUid, msg: `🎁 ${u.name} sent you ${typeLabel}!${msg ? ' Message: "' + msg + '"' : ''}`, read: false, createdAt: FS().serverTimestamp() });
                 if (isCash) { window.CU.balance = (u.balance || 0) - amt; }
                 else { window.CU.surveyPoints = (u.surveyPoints || 0) - amt; }
@@ -12962,6 +13197,7 @@ You will receive $${fmt(receive)} (+${_vaultPlan.rate}%) on ${unlock.toLocaleDat
                     for (const doc of shSnap.docs) {
                         const u = doc.data();
                         if (!u || u.isBanned) continue;
+                        if (u.shareholderEarningsPaused) continue;
                         if (!shouldRunProfitForUid(doc.id, opts)) continue;
                         if (u.shLastProfitDate === today) continue; // prevent double run
                         const stake = u.shareholderStake || 0;

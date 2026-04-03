@@ -10741,7 +10741,6 @@ Message: ${message}`);
             logsEl.innerHTML = '<div class="es">Loading…</div>';
             try {
                 const [uSnap, lSnap] = await Promise.all([db.collection('users').get(), db.collection('giftLogs').get()]);
-<<<<<<< codex/perform-inspection-only-review-of-starlife-changes-c0i1ul
                 const users = uSnap.docs.map(d => ({ uid: d.id, ...d.data() })).sort((a, b) => {
                     const bHasSplit = (b.purchasedGiftCoinBalance !== undefined) || (b.receivedGiftCoinBalance !== undefined);
                     const aHasSplit = (a.purchasedGiftCoinBalance !== undefined) || (a.receivedGiftCoinBalance !== undefined);

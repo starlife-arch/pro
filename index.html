@@ -1056,6 +1056,27 @@
             align-self: flex-start
         }
 
+        .dm-list-item.official {
+            border-color: rgba(255, 213, 79, .45);
+            background: linear-gradient(135deg, rgba(255, 213, 79, .08), rgba(64, 196, 255, .06));
+        }
+
+        .official-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: .62rem;
+            font-weight: 800;
+            color: #0b1020;
+            background: linear-gradient(135deg, #ffd54f, #40c4ff);
+            border: 1px solid rgba(255, 255, 255, .35);
+            border-radius: 999px;
+            padding: 2px 8px;
+            margin-left: 6px;
+            box-shadow: 0 2px 8px rgba(64, 196, 255, .22);
+            vertical-align: middle;
+        }
+
         /* ── BADGES & VIP ── */
         .vip-crown {
             font-size: .9rem;
@@ -1093,6 +1114,24 @@
             margin-left: 4px;
             vertical-align: middle;
             box-shadow: 0 1px 4px rgba(255, 165, 0, .5);
+            flex-shrink: 0
+        }
+
+        .badge-official {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 22px;
+            height: 18px;
+            padding: 0 6px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #ffd54f, #40c4ff);
+            color: #07121f;
+            font-size: .62rem;
+            font-weight: 900;
+            margin-left: 4px;
+            vertical-align: middle;
+            box-shadow: 0 1px 5px rgba(64, 196, 255, .35);
             flex-shrink: 0
         }
 
@@ -4379,7 +4418,7 @@
             <!-- MESSAGES / DM TAB -->
             <div id="t-messages" class="itc" style="display:none">
                 <div class="ptitle">💬 Messages</div>
-                <div class="psub">Private conversations with other members</div>
+                <div class="psub">Private conversations with members + official Starlife channels</div>
                 <!-- New DM button -->
                 <div style="display:flex;gap:8px;margin-bottom:14px">
                     <input class="fi" id="dm-search-id" placeholder="Enter Member ID to message…"
@@ -4410,7 +4449,7 @@
                             <button onclick="dmViewProfile()"
                                 style="background:none;border:none;color:var(--sky);cursor:pointer;font-size:.75rem">View
                                 Profile</button>
-                            <button onclick="openDMReportModal()"
+                            <button id="dm-report-btn" onclick="openDMReportModal()"
                                 style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:.75rem">Report</button>
                             <button id="dm-block-btn" onclick="toggleDMBlock()"
                                 style="background:none;border:none;color:var(--red);cursor:pointer;font-size:.75rem">Block</button>
@@ -4431,7 +4470,7 @@
                             <textarea id="dm-inp" rows="1" placeholder="Message…"
                                 style="flex:1;background:var(--s2);border:1px solid var(--bd);border-radius:20px;padding:9px 14px;color:var(--t1);font-size:.85rem;resize:none;outline:none;font-family:inherit;max-height:100px"
                                 onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendDM();}"></textarea>
-                            <button onclick="openGiftPickerFromDM()"
+                            <button id="dm-gift-btn" onclick="openGiftPickerFromDM()"
                                 style="width:38px;height:38px;border-radius:50%;background:var(--s2);border:1px solid var(--bd);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:1rem;flex-shrink:0">🎁</button>
                             <button onclick="sendDM()"
                                 style="width:38px;height:38px;border-radius:50%;background:var(--g);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#000;font-size:1rem;flex-shrink:0">➤</button>
@@ -5424,6 +5463,34 @@
                 <div id="at-gifts-logs"><div class="es">Loading…</div></div>
             </div>
 
+            <div id="at-official" class="atab">
+                <h3 style="margin-bottom:12px">📣 Official Channels (Admin)</h3>
+                <div class="card" style="margin-bottom:12px">
+                    <div style="font-weight:700;margin-bottom:8px">Post Broadcast</div>
+                    <div class="fg"><label class="fl">Channel</label>
+                        <select class="fi" id="at-official-channel">
+                            <option value="official_starlife_main">Starlife Official</option>
+                            <option value="official_starlife_updates">Starlife Updates</option>
+                        </select>
+                    </div>
+                    <div class="fg"><label class="fl">Message</label><textarea class="fi" id="at-official-message" rows="4" placeholder="Write the official broadcast message..."></textarea></div>
+                    <button class="btn btn-p btn-full" onclick="adminSendOfficialPost()">Send to all users</button>
+                </div>
+                <div class="card" style="margin-bottom:12px">
+                    <div style="font-weight:700;margin-bottom:8px">Reply Controls</div>
+                    <div class="fg"><label class="fl">Channel</label>
+                        <select class="fi" id="at-official-reply-channel" onchange="loadAdminOfficialChannels()">
+                            <option value="official_starlife_main">Starlife Official</option>
+                            <option value="official_starlife_updates">Starlife Updates</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-gh btn-full" onclick="adminToggleOfficialReplies()">Toggle Replies Open/Closed</button>
+                    <div style="font-size:.75rem;color:var(--t3);margin-top:6px" id="at-official-reply-status">Loading status…</div>
+                </div>
+                <div class="sh"><h3>Official Replies</h3></div>
+                <div id="at-official-replies"><div class="es">Loading…</div></div>
+            </div>
+
             <div id="at-kyc" class="atab">
                 <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
                     <button class="btn btn-gh btn-sm" onclick="loadAdminKYC('pending')">⏳ Pending</button>
@@ -6411,6 +6478,7 @@
                 'selTerm', 'selTicketType', 'addSurveyQuestion', 'copyText',
                 'openBdayEdit', 'closeBdayEdit', 'openModal', 'closeModal',
                 'viewPublicProfile', 'toggleFollow', 'dmFromProfile', 'startNewDM', 'openDMChat', 'sendDM', 'loadDMList',
+                'adminSendOfficialPost', 'adminToggleOfficialReplies', 'loadAdminOfficialChannels',
                 'applyVerification', 'adminToggleVerified', 'adminToggleAgent', 'adminSetVIP', 'adminFakeFollowers',
                 'showFollowers', 'showFollowing', 'updateProfileBadges',
                 'viewPublicProfile', 'followUser', 'unfollowUser', 'toggleFollowFromProfile', 'startDM', 'sendDM',
@@ -8087,11 +8155,13 @@
             let html = '';
             if (u.isVerified) html += '<span class="vbadge vbadge-blue" title="Verified">✓</span>';
             if (u.isAgent) html += '<span class="vbadge vbadge-gold" title="Agent">★</span>';
+            if (isOfficialChannelUid(u.id || u.uid || u.officialChannelId)) html += '<span class="badge-official" title="Starlife Official">★SL</span>';
             return html;
         }
 
         function getTagsHTML(u) {
             let tags = '';
+            if (isOfficialChannelUid(u.id || u.uid || u.officialChannelId)) tags += '<span class="user-tag" style="background:linear-gradient(135deg,#ffd54f,#40c4ff);color:#06121f;font-weight:800">🛡️ Starlife Official</span>';
             if (u.isAgent) tags += '<span class="user-tag tag-agent">⭐ Agent</span>';
             if (u.vipLevel === 'Platinum') tags += '<span class="user-tag tag-vip-platinum">👑 Platinum</span>';
             else if (u.vipLevel === 'Gold') tags += '<span class="user-tag tag-vip-gold">🥇 Gold</span>';
@@ -8263,13 +8333,27 @@
         async function viewPublicProfile(uid) {
             if (!uid) return;
             _viewingProfileUid = uid;
-            const snap = await db.collection('users').doc(uid).get();
-            if (!snap.exists) return toast('User not found', 'ty');
-            const u = { id: uid, ...snap.data() };
+            let u = null;
+            if (isOfficialChannelUid(uid)) {
+                const profile = getOfficialChannelProfile(uid);
+                u = {
+                    ...profile,
+                    followersCount: 0,
+                    followingCount: 0,
+                    p2pRatingCount: 0,
+                    createdAt: null,
+                    rank: 'Official'
+                };
+            } else {
+                const snap = await db.collection('users').doc(uid).get();
+                if (!snap.exists) return toast('User not found', 'ty');
+                u = { id: uid, ...snap.data() };
+            }
             const me = window.CU;
             // Populate modal
             if ($('pp-av')) {
                 if (u.avatarBase64) $('pp-av').innerHTML = `<img src="${u.avatarBase64}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+                else if (u.isOfficialProfile) $('pp-av').textContent = u.officialIcon || '🛡️';
                 else $('pp-av').textContent = (getPublicDisplayName(u) || 'U')[0].toUpperCase();
             }
             if ($('pp-name')) $('pp-name').textContent = getPublicDisplayName(u);
@@ -8292,6 +8376,25 @@
 
             if ($('pp-joined')) $('pp-joined').textContent = fmtD(u.createdAt);
             if ($('pp-rank')) $('pp-rank').textContent = u.rank || 'Starter';
+            if (u.isOfficialProfile) {
+                if ($('pp-bio-wrap')) {
+                    $('pp-bio-wrap').style.display = 'block';
+                    $('pp-bio-text').textContent = u.officialDescription || 'Official Starlife-owned communication channel.';
+                }
+                if ($('pp-joined')) $('pp-joined').textContent = 'Platform Channel';
+                if ($('pp-rank')) $('pp-rank').textContent = 'Official';
+                const actions = $('pp-actions');
+                if (actions) {
+                    const followBtn = $('pp-follow-btn');
+                    if (followBtn) followBtn.style.display = 'none';
+                    const btns = actions.querySelectorAll('button');
+                    btns.forEach((btn) => {
+                        if ((btn.textContent || '').includes('🎁')) btn.style.display = 'none';
+                    });
+                }
+                openModal('m-pub-profile');
+                return;
+            }
             // Check if already following
             const followSnap = await db.collection('follows').doc(me.uid + '_' + uid).get();
             const isFollowing = followSnap.exists;
@@ -8302,6 +8405,10 @@
                 followBtn.style.color = isFollowing ? 'var(--t1)' : '#000';
                 if (uid === me.uid) followBtn.style.display = 'none';
                 else followBtn.style.display = 'block';
+            }
+            const actions = $('pp-actions');
+            if (actions) {
+                actions.querySelectorAll('button').forEach((btn) => { btn.style.display = 'inline-flex'; });
             }
             openModal('m-pub-profile');
         }
@@ -8385,9 +8492,46 @@
         // ════════════════════════════════════════════════════════
         // DIRECT MESSAGES (DM)
         // ════════════════════════════════════════════════════════
+        const OFFICIAL_CHANNELS = {
+            official_starlife_main: {
+                id: 'official_starlife_main',
+                name: 'Starlife Official',
+                icon: '🛡️',
+                description: 'Security alerts, emergency notices, and critical announcements',
+                defaultRepliesOpen: false
+            },
+            official_starlife_updates: {
+                id: 'official_starlife_updates',
+                name: 'Starlife Updates',
+                icon: '📣',
+                description: 'Promotions, features, and platform news',
+                defaultRepliesOpen: true
+            }
+        };
+
+        function isOfficialChannelUid(uid) {
+            return !!OFFICIAL_CHANNELS[uid];
+        }
+        function getOfficialChannelProfile(uid) {
+            const c = OFFICIAL_CHANNELS[uid];
+            if (!c) return null;
+            return {
+                id: c.id,
+                uid: c.id,
+                name: c.name,
+                publicName: c.name,
+                isOfficialProfile: true,
+                isOfficial: true,
+                officialChannelId: c.id,
+                officialIcon: c.icon,
+                officialDescription: c.description
+            };
+        }
+
         let _activeDMUser = null;
         let _activeDMId = null;
         let _dmBlockState = { iBlocked: false, blockedMe: false, muted: false };
+        let _activeOfficialChannel = null;
         window._activeDMUser = null;
 
         function getDMId(uid1, uid2) {
@@ -8404,6 +8548,12 @@
             const u = window.CU, peer = _activeDMUser?.id || _activeDMUser?.uid;
             if (!u || !peer) return;
             const blockBtn = $('dm-block-btn'), inp = $('dm-inp');
+            if (isOfficialChannelUid(peer)) {
+                _dmBlockState = { iBlocked: false, blockedMe: false, muted: false };
+                if (blockBtn) blockBtn.style.display = 'none';
+                if (inp) inp.disabled = false;
+                return;
+            }
             try {
                 const [mine, other, freshMe] = await Promise.all([
                     db.collection('dmBlocks').doc(`${u.uid}_${peer}`).get(),
@@ -8416,6 +8566,7 @@
                 const strikeUntil = promoTsToDate(meData.dmStrikeUntil);
                 _dmBlockState.muted = !!meData.dmMuted || (!!strikeUntil && strikeUntil > new Date());
                 if (blockBtn) blockBtn.textContent = _dmBlockState.iBlocked ? 'Unblock' : 'Block';
+                if (blockBtn) blockBtn.style.display = 'inline-block';
                 const statusEl = $('dm-chat-status');
                 if (statusEl && _dmBlockState.blockedMe) statusEl.innerHTML = (getTagsHTML(_activeDMUser) || 'Member') + ' · <span style="color:var(--red)">Blocked you</span>';
                 if (inp) {
@@ -8441,6 +8592,9 @@
         async function openDMChat(uid, userData, rowEl) {
             const u = window.CU;
             if (!uid || uid === 'undefined') return toast('Invalid user', 'ty');
+            if (isOfficialChannelUid(uid)) {
+                userData = getOfficialChannelProfile(uid);
+            }
             if (!userData || typeof userData === 'string') {
                 try {
                     const snap = await db.collection('users').doc(uid).get();
@@ -8451,6 +8605,7 @@
             _activeDMUser = userData;
             window._activeDMUser = userData;
             _activeDMId = getDMId(u.uid, uid);
+            _activeOfficialChannel = isOfficialChannelUid(uid) ? OFFICIAL_CHANNELS[uid] : null;
             if (rowEl) {
                 const b = rowEl.querySelector('[data-unread-badge]');
                 if (b) b.remove();
@@ -8459,11 +8614,28 @@
             const av = $('dm-chat-av'), nameEl = $('dm-chat-name'), statusEl = $('dm-chat-status');
             if (av) {
                 if (userData.avatarBase64) av.innerHTML = `<img src="${userData.avatarBase64}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+                else if (userData.isOfficialProfile) av.textContent = userData.officialIcon || '🛡️';
                 else av.textContent = (userData.name || 'U')[0].toUpperCase();
             }
             if (nameEl) nameEl.innerHTML = getNameWithBadges(userData, true);
-            if (statusEl) statusEl.innerHTML = getTagsHTML(userData) || 'Member';
+            if (statusEl) statusEl.innerHTML = userData.isOfficialProfile ? '<span class="official-badge">🛡️ VERIFIED OFFICIAL</span>' : (getTagsHTML(userData) || 'Member');
+            if ($('dm-block-btn')) $('dm-block-btn').style.display = userData.isOfficialProfile ? 'none' : 'inline-block';
+            if ($('dm-report-btn')) $('dm-report-btn').style.display = userData.isOfficialProfile ? 'none' : 'inline-block';
+            if ($('dm-gift-btn')) $('dm-gift-btn').style.display = userData.isOfficialProfile ? 'none' : 'flex';
             await refreshDMModerationState();
+            if (userData.isOfficialProfile) {
+                const eligibility = await getOfficialReplyEligibility();
+                const inp = $('dm-inp');
+                if (inp) {
+                    if (!eligibility.repliesOpen) {
+                        inp.disabled = true;
+                        inp.placeholder = 'Replies are currently closed for this official channel';
+                    } else {
+                        inp.disabled = false;
+                        inp.placeholder = eligibility.isFree ? 'Reply to official channel (Free)' : 'Reply to official channel (Costs 1 token)';
+                    }
+                }
+            }
             // Load messages
             await loadDMMessages();
             openModal('m-dm-chat');
@@ -8508,10 +8680,23 @@
         <div style="font-size:.65rem;color:var(--t3);margin:0 6px">${timeGift}</div>
       </div>`;
                     }
+                    if (m.type === 'official_post') {
+                        const when = m.createdAt ? new Date(m.createdAt.seconds * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+                        const ch = OFFICIAL_CHANNELS[m.officialChannelId] || _activeOfficialChannel || { name: 'Starlife Official', icon: '🛡️' };
+                        return `<div style="display:flex;justify-content:flex-start;margin:8px 0">
+        <div style="max-width:86%;background:linear-gradient(135deg,rgba(255,213,79,.12),rgba(64,196,255,.10));border:1px solid rgba(255,213,79,.4);border-radius:12px;padding:10px 12px">
+          <div style="font-size:.72rem;font-weight:800;color:var(--gold)">${ch.icon || '🛡️'} ${ch.name} <span class="official-badge">Verified Official</span></div>
+          <div style="font-size:.84rem;line-height:1.45;margin-top:4px;color:var(--t1)">${m.text || ''}</div>
+          <div style="font-size:.65rem;color:var(--t3);margin-top:4px">${when}</div>
+        </div>
+      </div>`;
+                    }
                     const mine = m.from === u.uid;
                     const time = m.createdAt ? new Date(m.createdAt.seconds * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+                    const modeNote = m.type === 'official_reply' ? (m.replyMode === 'token_paid' ? ' · 1 token' : ' · free') : '';
                     return `<div style="display:flex;flex-direction:column;align-items:${mine ? 'flex-end' : 'flex-start'};margin-bottom:6px">
         <div class="dm-bubble ${mine ? 'mine' : 'theirs'}">${m.text}</div>
+        ${m.type === 'official_reply' ? `<div style="font-size:.64rem;color:var(--t3);margin-top:1px">${mine ? 'Official reply sent' : 'Member reply'}${modeNote}</div>` : ''}
         <div style="font-size:.65rem;color:var(--t3);margin:0 6px">${time}${mine && m.read ? ' · ✓✓' : ''}</div>
       </div>`;
                 }).join('');
@@ -8519,10 +8704,105 @@
             } catch (e) { el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--red)">Error loading</div>'; }
         }
 
+        async function getOfficialReplyEligibility() {
+            const u = window.CU;
+            const channel = _activeOfficialChannel;
+            if (!u || !channel) return { repliesOpen: false, isFree: false, tokenCost: 1 };
+            try {
+                const s = await db.collection('officialChannelSettings').doc(channel.id).get();
+                const cfg = s.exists ? s.data() : {};
+                const repliesOpen = cfg.repliesOpen !== undefined ? !!cfg.repliesOpen : !!channel.defaultRepliesOpen;
+                const isFree = Number(u.totalInvested || 0) >= 50;
+                return { repliesOpen, isFree, tokenCost: isFree ? 0 : 1 };
+            } catch (_) {
+                const isFree = Number(u.totalInvested || 0) >= 50;
+                return { repliesOpen: !!channel.defaultRepliesOpen, isFree, tokenCost: isFree ? 0 : 1 };
+            }
+        }
+
+        async function sendOfficialReply(text) {
+            const u = window.CU;
+            const channel = _activeOfficialChannel;
+            if (!u || !channel) return;
+            const eligibility = await getOfficialReplyEligibility();
+            if (!eligibility.repliesOpen) return toast('Replies are currently closed for this official channel', 'ty');
+            try {
+                await db.runTransaction(async (t) => {
+                    const userRef = db.collection('users').doc(u.uid);
+                    const dmRef = db.collection('dms').doc(_activeDMId);
+                    const msgRef = dmRef.collection('msgs').doc();
+                    const userSnap = await t.get(userRef);
+                    if (!userSnap.exists) throw new Error('Account not found');
+                    const userData = userSnap.data() || {};
+                    const tokenBal = Number(userData.tokenBalance || 0);
+                    const paid = !eligibility.isFree;
+                    if (paid && tokenBal < 1) throw new Error('You need at least 1 token to reply in this channel');
+                    if (paid) t.update(userRef, { tokenBalance: tokenBal - 1 });
+                    t.set(msgRef, {
+                        from: u.uid, to: channel.id, text, read: false,
+                        type: 'official_reply',
+                        officialChannelId: channel.id,
+                        replyMode: paid ? 'token_paid' : 'free',
+                        tokenCost: paid ? 1 : 0,
+                        createdAt: FS().serverTimestamp()
+                    });
+                    t.set(dmRef, {
+                        participants: [u.uid, channel.id],
+                        lastMsg: text.substring(0, 80),
+                        lastMsgAt: FS().serverTimestamp(),
+                        lastMsgFrom: u.uid,
+                        [`unread_${u.uid}`]: 0,
+                        names: { [u.uid]: u.name, [channel.id]: channel.name },
+                        publicNames: { [u.uid]: getPublicDisplayName(u), [channel.id]: channel.name },
+                        officialChannelId: channel.id,
+                        official: true
+                    }, { merge: true });
+                    t.set(db.collection('officialReplies').doc(), {
+                        channelId: channel.id,
+                        channelName: channel.name,
+                        uid: u.uid,
+                        memberId: memberIdFromUid(u.uid),
+                        text,
+                        replyMode: paid ? 'token_paid' : 'free',
+                        tokenCost: paid ? 1 : 0,
+                        createdAt: FS().serverTimestamp()
+                    });
+                    if (paid) {
+                        t.set(db.collection('tokenLogs').doc(), {
+                            uid: u.uid,
+                            memberId: memberIdFromUid(u.uid),
+                            type: 'official_reply',
+                            tokens: -1,
+                            usd: 0,
+                            note: `Reply to ${channel.name}`,
+                            officialChannelId: channel.id,
+                            replyMode: 'token_paid',
+                            tokenBalanceAfter: tokenBal - 1,
+                            createdAt: FS().serverTimestamp()
+                        });
+                    }
+                });
+                if (!eligibility.isFree) {
+                    window.CU.tokenBalance = Math.max(0, Number(window.CU.tokenBalance || 0) - 1);
+                }
+                await loadDMMessages();
+                await loadDMList();
+                toast(eligibility.isFree ? 'Reply sent ✓' : 'Reply sent (1 token used) ✓', 'tg');
+            } catch (e) {
+                toast(e.message || 'Could not send reply', 'tr');
+                throw e;
+            }
+        }
+
         async function sendDM() {
             const inp = $('dm-inp');
             const text = inp?.value.trim();
             if (!text || !_activeDMId || !_activeDMUser) return;
+            if (_activeOfficialChannel) {
+                if (inp) inp.value = '';
+                try { await sendOfficialReply(text); } catch (_) { if (inp) inp.value = text; }
+                return;
+            }
             await refreshDMModerationState();
             if (_dmBlockState.muted) return toast('You are muted from sending DMs', 'tr');
             if (_dmBlockState.blockedMe) return toast('This user has blocked you', 'ty');
@@ -8651,8 +8931,23 @@
             const u = window.CU;
             try {
                 const snap = await db.collection('dms').where('participants', 'array-contains', u.uid).get();
-                const convs = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.lastMsgAt?.seconds || 0) - (a.lastMsgAt?.seconds || 0));
-                if (!convs.length) { el.innerHTML = '<div class="es">No messages yet.<br><span style="font-size:.78rem;color:var(--t3)">Enter a Member ID above to start chatting</span></div>'; return; }
+                const convs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                const officialConvs = Object.values(OFFICIAL_CHANNELS).map(ch => {
+                    const dmId = getDMId(u.uid, ch.id);
+                    const found = convs.find(c => c.id === dmId);
+                    return found || {
+                        id: dmId,
+                        participants: [u.uid, ch.id],
+                        lastMsg: ch.description,
+                        lastMsgAt: null,
+                        lastMsgFrom: ch.id,
+                        official: true,
+                        officialChannelId: ch.id
+                    };
+                });
+                const nonOfficialConvs = convs.filter(c => !isOfficialChannelUid((c.participants || []).find(p => p !== u.uid)));
+                const allConvs = [...officialConvs, ...nonOfficialConvs].sort((a, b) => (b.lastMsgAt?.seconds || 0) - (a.lastMsgAt?.seconds || 0));
+                if (!allConvs.length) { el.innerHTML = '<div class="es">No messages yet.<br><span style="font-size:.78rem;color:var(--t3)">Enter a Member ID above to start chatting</span></div>'; return; }
                 const others = [...new Set(convs.map(c => (c.participants || []).find(p => p !== u.uid)).filter(Boolean))];
                 const otherDocs = await Promise.all(others.map(uid => db.collection('users').doc(uid).get()));
                 const publicNameMap = {};
@@ -8667,14 +8962,20 @@
                         if (data.avatarBase64) avatarMap[s.id] = data.avatarBase64;
                     }
                 });
-                el.innerHTML = convs.map(c => {
+                el.innerHTML = allConvs.map(c => {
                     const otherUid = c.participants.find(p => p !== u.uid);
+                    const official = isOfficialChannelUid(otherUid);
+                    const offProfile = official ? getOfficialChannelProfile(otherUid) : null;
                     const uObj = userObjMap[otherUid];
-                    const otherName = publicNameMap[otherUid] || c.publicNames?.[otherUid] || getPublicDisplayName({ name: c.names?.[otherUid] || 'Member' });
-                    const nameHTML = uObj ? getNameWithBadges(uObj, true) : `<span style="font-weight:600;font-size:.88rem">${otherName}</span>`;
+                    const otherName = official ? offProfile.name : (publicNameMap[otherUid] || c.publicNames?.[otherUid] || getPublicDisplayName({ name: c.names?.[otherUid] || 'Member' }));
+                    const nameHTML = official
+                        ? `<span style="font-weight:700;font-size:.88rem">${offProfile.officialIcon || '🛡️'} ${offProfile.name}</span><span class="official-badge">Official</span>`
+                        : (uObj ? getNameWithBadges(uObj, true) : `<span style="font-weight:600;font-size:.88rem">${otherName}</span>`);
                     const unread = c[`unread_${u.uid}`] || 0;
-                    const avHTML = avatarMap[otherUid] ? `<img class="dm-av" src="${avatarMap[otherUid]}" style="width:42px;height:42px;border-radius:50%;object-fit:cover;padding:0;border:none;flex-shrink:0;">` : `<div class="dm-av" style="width:42px;height:42px;font-size:.95rem">${(otherName || 'M')[0].toUpperCase()}</div>`;
-                    return `<div class="dm-list-item" onclick="openDMChat('${otherUid}',null,this)">
+                    const avHTML = official
+                        ? `<div class="dm-av" style="width:42px;height:42px;font-size:1.05rem;background:linear-gradient(135deg,#ffd54f,#40c4ff);color:#06121f">${offProfile.officialIcon || '🛡️'}</div>`
+                        : (avatarMap[otherUid] ? `<img class="dm-av" src="${avatarMap[otherUid]}" style="width:42px;height:42px;border-radius:50%;object-fit:cover;padding:0;border:none;flex-shrink:0;">` : `<div class="dm-av" style="width:42px;height:42px;font-size:.95rem">${(otherName || 'M')[0].toUpperCase()}</div>`);
+                    return `<div class="dm-list-item ${official ? 'official' : ''}" onclick="openDMChat('${otherUid}',null,this)">
         ${avHTML}
         <div style="flex:1;min-width:0">
           <div style="display:flex;justify-content:space-between;align-items:center">
@@ -8697,7 +8998,7 @@
         const ADMIN_ROLES = {
             superadmin: {
                 label: '⭐ Super Admin', color: 'var(--gold)',
-                tabs: ['investments', 'deposits', 'withdrawals', 'users', 'kyc', 'leaderboard', 'community', 'stakes', 'loans', 'tickets', 'surveys', 'redemptions', 'activity', 'revenue', 'analytics', 'security', 'maintenance', 'testi', 'prizecodes', 'luckydraw', 'contest', 'p2p', 'broadcast', 'ads', 'admins', 'promocodes', 'fees', 'tokens', 'gifts']
+                tabs: ['investments', 'deposits', 'withdrawals', 'users', 'kyc', 'leaderboard', 'community', 'stakes', 'loans', 'tickets', 'surveys', 'redemptions', 'activity', 'revenue', 'analytics', 'security', 'maintenance', 'testi', 'prizecodes', 'luckydraw', 'contest', 'p2p', 'broadcast', 'ads', 'admins', 'promocodes', 'fees', 'tokens', 'gifts', 'official']
             },
             finance: {
                 label: '💰 Finance', color: 'var(--g)',
@@ -8709,7 +9010,7 @@
             },
             moderator: {
                 label: '🌐 Moderator', color: '#a78bfa',
-                tabs: ['community', 'testi', 'broadcast', 'ads', 'activity']
+                tabs: ['community', 'testi', 'broadcast', 'ads', 'activity', 'official']
             },
             operations: {
                 label: '⚙️ Operations', color: 'var(--gold)',
@@ -8748,6 +9049,7 @@
             fees: () => loadAdminFees(),
             tokens: () => loadAdminTokens(),
             gifts: () => loadAdminGifts(),
+            official: () => loadAdminOfficialChannels(),
         };
 
         const ALL_ADMIN_TABS = [
@@ -8780,6 +9082,7 @@
             { id: 'fees', label: '💵 Fees' },
             { id: 'tokens', label: '🪙 Tokens' },
             { id: 'gifts', label: '🎁 Gifts' },
+            { id: 'official', label: '📣 Official' },
         ];
 
         function getAdminRole() {
@@ -10434,6 +10737,7 @@ Message: ${message}`);
 
         async function openGiftPickerFromDM() {
             if (!_activeDMUser?.id) return toast('Open a DM first', 'ty');
+            if (isOfficialChannelUid(_activeDMUser.id)) return toast('Gifts are not supported in official channels', 'ty');
             await openGiftPicker({ recipientUid: _activeDMUser.id, entryPoint: 'dm' });
         }
 
@@ -10528,13 +10832,16 @@ Message: ${message}`);
                 if (fromPurchasedAfter < 0) throw new Error('Operation would create negative purchased balance');
                 const fromTotalAfter = fromPurchasedAfter + fromReceivedBefore;
 
-      const toPurchasedBefore = Number(toData.purchasedGiftCoinBalance ?? toData.giftCoinBalance ?? 0);
+                const toHasSplit = (toData.purchasedGiftCoinBalance !== undefined) || (toData.receivedGiftCoinBalance !== undefined);
+                const toPurchasedBefore = toHasSplit ? Number(toData.purchasedGiftCoinBalance || 0) : Number(toData.giftCoinBalance || 0);
                 const toReceivedBefore = Number(toData.receivedGiftCoinBalance || 0);
                 const toReceivedAfter = toReceivedBefore + coins;
                 const toTotalAfter = toPurchasedBefore + toReceivedAfter;
                 t.update(fromRef, { purchasedGiftCoinBalance: fromPurchasedAfter, giftCoinBalance: fromTotalAfter });
- 
-                t.update(toRef, { receivedGiftCoinBalance: toReceivedAfter, giftCoinBalance: toTotalAfter });
+                t.update(toRef, {
+                    receivedGiftCoinBalance: FS().increment(coins),
+                    giftCoinBalance: FS().increment(coins)
+                });
                 t.set(db.collection('giftLogs').doc(), {
                     uid: u.uid, memberId: userMemberId(u.uid, fromData), type: 'send',
                     giftType, giftName, giftIcon, coins, entryPoint, status,
@@ -10741,12 +11048,20 @@ Message: ${message}`);
             logsEl.innerHTML = '<div class="es">Loading…</div>';
             try {
                 const [uSnap, lSnap] = await Promise.all([db.collection('users').get(), db.collection('giftLogs').get()]);
-                
-                const users = uSnap.docs.map(d => ({ uid: d.id, ...d.data() })).sort((a, b) => ((Number(b.purchasedGiftCoinBalance ?? b.giftCoinBalance ?? 0) + Number(b.receivedGiftCoinBalance || 0))) - ((Number(a.purchasedGiftCoinBalance ?? a.giftCoinBalance ?? 0) + Number(a.receivedGiftCoinBalance || 0))));
+                const users = uSnap.docs.map(d => ({ uid: d.id, ...d.data() })).sort((a, b) => {
+                    const bHasSplit = (b.purchasedGiftCoinBalance !== undefined) || (b.receivedGiftCoinBalance !== undefined);
+                    const aHasSplit = (a.purchasedGiftCoinBalance !== undefined) || (a.receivedGiftCoinBalance !== undefined);
+                    const bPurchased = bHasSplit ? Number(b.purchasedGiftCoinBalance || 0) : Number(b.giftCoinBalance || 0);
+                    const aPurchased = aHasSplit ? Number(a.purchasedGiftCoinBalance || 0) : Number(a.giftCoinBalance || 0);
+                    const bTotal = bHasSplit ? (bPurchased + Number(b.receivedGiftCoinBalance || 0)) : Number(b.giftCoinBalance || 0);
+                    const aTotal = aHasSplit ? (aPurchased + Number(a.receivedGiftCoinBalance || 0)) : Number(a.giftCoinBalance || 0);
+                    return bTotal - aTotal;
+                });
                 usersEl.innerHTML = users.map(u => {
-                    const purchased = Number(u.purchasedGiftCoinBalance ?? u.giftCoinBalance ?? 0);
+                    const hasSplit = (u.purchasedGiftCoinBalance !== undefined) || (u.receivedGiftCoinBalance !== undefined);
+                    const purchased = hasSplit ? Number(u.purchasedGiftCoinBalance || 0) : Number(u.giftCoinBalance || 0);
                     const received = Number(u.receivedGiftCoinBalance || 0);
-                    const total = purchased + received;
+                    const total = hasSplit ? (purchased + received) : Number(u.giftCoinBalance || 0);
                     return `<div class="arow"><div class="ar-top"><div><div class="ar-name">${u.name || 'User'}</div><div class="ar-sub">UID: ${u.uid} · Member ID: ${userMemberId(u.uid, u)} · Purchased: ${purchased} · Received: ${received}</div></div><div class="badge bg">${total} total</div></div></div>`;
                 }).join('') || '<div class="es">No users</div>';
                 const logs = lSnap.docs.map(d => d.data()).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).slice(0, 80);
@@ -10754,6 +11069,116 @@ Message: ${message}`);
             } catch (e) {
                 usersEl.innerHTML = '<div class="es">Error loading gift users</div>';
                 logsEl.innerHTML = '<div class="es">Error loading gift logs</div>';
+            }
+        }
+
+        async function ensureOfficialChannelSetting(channelId) {
+            const ch = OFFICIAL_CHANNELS[channelId];
+            if (!ch) throw new Error('Invalid official channel');
+            const ref = db.collection('officialChannelSettings').doc(channelId);
+            const snap = await ref.get();
+            if (!snap.exists) {
+                await ref.set({
+                    channelId,
+                    channelName: ch.name,
+                    repliesOpen: !!ch.defaultRepliesOpen,
+                    updatedAt: FS().serverTimestamp(),
+                    updatedBy: window.CU?.uid || null
+                });
+            }
+            return ref;
+        }
+
+        async function adminSendOfficialPost() {
+            if (!hasAdminAccess('official')) return toast('Admin access required', 'tr');
+            const channelId = ($('at-official-channel')?.value || 'official_starlife_main').trim();
+            const text = ($('at-official-message')?.value || '').trim();
+            const channel = OFFICIAL_CHANNELS[channelId];
+            if (!channel) return toast('Select valid channel', 'ty');
+            if (!text) return toast('Write a message first', 'ty');
+            try {
+                await ensureOfficialChannelSetting(channelId);
+                const usersSnap = await db.collection('users').get();
+                const users = usersSnap.docs.map(d => ({ uid: d.id, ...d.data() })).filter(u => !u.isBanned);
+                const now = FS().serverTimestamp();
+                const poster = window.CU?.uid || 'admin';
+                await Promise.all(users.map(async (target) => {
+                    const dmId = getDMId(target.uid, channelId);
+                    const dmRef = db.collection('dms').doc(dmId);
+                    await dmRef.collection('msgs').add({
+                        from: channelId,
+                        to: target.uid,
+                        text,
+                        type: 'official_post',
+                        officialChannelId: channelId,
+                        read: false,
+                        createdAt: now
+                    });
+                    await dmRef.set({
+                        participants: [target.uid, channelId],
+                        lastMsg: text.substring(0, 80),
+                        lastMsgAt: now,
+                        lastMsgFrom: channelId,
+                        [`unread_${target.uid}`]: firebase.firestore.FieldValue.increment(1),
+                        names: { [target.uid]: target.name || 'Member', [channelId]: channel.name },
+                        publicNames: { [target.uid]: getPublicDisplayName(target), [channelId]: channel.name },
+                        official: true,
+                        officialChannelId: channelId
+                    }, { merge: true });
+                }));
+                await db.collection('officialChannelPosts').add({
+                    channelId,
+                    channelName: channel.name,
+                    text,
+                    postedBy: poster,
+                    recipients: users.length,
+                    createdAt: now
+                });
+                if ($('at-official-message')) $('at-official-message').value = '';
+                toast(`Posted to ${users.length} users via ${channel.name} ✓`, 'tg');
+                loadAdminOfficialChannels();
+            } catch (e) { toast(e.message || 'Broadcast failed', 'tr'); }
+        }
+
+        async function adminToggleOfficialReplies() {
+            if (!hasAdminAccess('official')) return toast('Admin access required', 'tr');
+            const channelId = ($('at-official-reply-channel')?.value || 'official_starlife_main').trim();
+            const channel = OFFICIAL_CHANNELS[channelId];
+            if (!channel) return toast('Invalid channel', 'ty');
+            try {
+                const ref = await ensureOfficialChannelSetting(channelId);
+                const snap = await ref.get();
+                const current = snap.data()?.repliesOpen !== undefined ? !!snap.data()?.repliesOpen : !!channel.defaultRepliesOpen;
+                await ref.set({
+                    repliesOpen: !current,
+                    updatedAt: FS().serverTimestamp(),
+                    updatedBy: window.CU?.uid || null
+                }, { merge: true });
+                toast(`${channel.name} replies ${!current ? 'opened' : 'closed'} ✓`, 'tg');
+                loadAdminOfficialChannels();
+            } catch (e) { toast(e.message || 'Update failed', 'tr'); }
+        }
+
+        async function loadAdminOfficialChannels() {
+            const statusEl = $('at-official-reply-status');
+            const repliesEl = $('at-official-replies');
+            if (statusEl) statusEl.textContent = 'Loading status…';
+            if (repliesEl) repliesEl.innerHTML = '<div class="es">Loading…</div>';
+            try {
+                const channelId = ($('at-official-reply-channel')?.value || 'official_starlife_main').trim();
+                const channel = OFFICIAL_CHANNELS[channelId];
+                const ref = await ensureOfficialChannelSetting(channelId);
+                const snap = await ref.get();
+                const cfg = snap.data() || {};
+                if (statusEl) statusEl.innerHTML = `${channel?.name || 'Channel'} replies: <strong style="color:${cfg.repliesOpen ? 'var(--g)' : 'var(--red)'}">${cfg.repliesOpen ? 'OPEN' : 'CLOSED'}</strong>`;
+                const repSnap = await db.collection('officialReplies').get();
+                const replies = repSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                if (!repliesEl) return;
+                if (!replies.length) { repliesEl.innerHTML = '<div class="es">No replies yet</div>'; return; }
+                repliesEl.innerHTML = replies.slice(0, 120).map(r => `<div class="arow"><div class="ar-top"><div><div class="ar-name">${OFFICIAL_CHANNELS[r.channelId]?.name || r.channelName || 'Official'} · ${r.replyMode === 'token_paid' ? '🪙 Paid' : '✅ Free'}</div><div class="ar-sub">UID: ${r.uid || '—'} · Member ID: ${r.memberId || '—'} · ${fmtDT(r.createdAt)}${r.tokenCost ? ' · token -' + r.tokenCost : ''}</div></div></div><div style="margin-top:6px;font-size:.82rem;color:var(--t2)">${(r.text || '').replace(/</g, '&lt;')}</div></div>`).join('');
+            } catch (e) {
+                if (statusEl) statusEl.textContent = 'Could not load status';
+                if (repliesEl) repliesEl.innerHTML = '<div class="es">Could not load replies</div>';
             }
         }
 
@@ -11407,6 +11832,9 @@ Message: ${message}`);
 
         function getBadgeHTML(u, compact = false) {
             let html = '';
+            if (isOfficialChannelUid(u.id || u.uid || u.officialChannelId)) {
+                html += `<span class="badge-official" title="Official Starlife-owned profile">★SL</span>`;
+            }
             if (u.isVerified) {
                 html += `<span class="badge-verified" title="Verified Member">✓</span>`;
             }

@@ -10741,20 +10741,7 @@ Message: ${message}`);
             logsEl.innerHTML = '<div class="es">Loading…</div>';
             try {
                 const [uSnap, lSnap] = await Promise.all([db.collection('users').get(), db.collection('giftLogs').get()]);
-                const users = uSnap.docs.map(d => ({ uid: d.id, ...d.data() })).sort((a, b) => {
-                    const bHasSplit = (b.purchasedGiftCoinBalance !== undefined) || (b.receivedGiftCoinBalance !== undefined);
-                    const aHasSplit = (a.purchasedGiftCoinBalance !== undefined) || (a.receivedGiftCoinBalance !== undefined);
-                    const bPurchased = bHasSplit ? Number(b.purchasedGiftCoinBalance || 0) : Number(b.giftCoinBalance || 0);
-                    const aPurchased = aHasSplit ? Number(a.purchasedGiftCoinBalance || 0) : Number(a.giftCoinBalance || 0);
-                    const bTotal = bHasSplit ? (bPurchased + Number(b.receivedGiftCoinBalance || 0)) : Number(b.giftCoinBalance || 0);
-                    const aTotal = aHasSplit ? (aPurchased + Number(a.receivedGiftCoinBalance || 0)) : Number(a.giftCoinBalance || 0);
-                    return bTotal - aTotal;
-                });
-                usersEl.innerHTML = users.map(u => {
-                    const hasSplit = (u.purchasedGiftCoinBalance !== undefined) || (u.receivedGiftCoinBalance !== undefined);
-                    const purchased = hasSplit ? Number(u.purchasedGiftCoinBalance || 0) : Number(u.giftCoinBalance || 0);
-                    const received = Number(u.receivedGiftCoinBalance || 0);
-                    const total = hasSplit ? (purchased + received) : Number(u.giftCoinBalance || 0);
+                
                 const users = uSnap.docs.map(d => ({ uid: d.id, ...d.data() })).sort((a, b) => ((Number(b.purchasedGiftCoinBalance ?? b.giftCoinBalance ?? 0) + Number(b.receivedGiftCoinBalance || 0))) - ((Number(a.purchasedGiftCoinBalance ?? a.giftCoinBalance ?? 0) + Number(a.receivedGiftCoinBalance || 0))));
                 usersEl.innerHTML = users.map(u => {
                     const purchased = Number(u.purchasedGiftCoinBalance ?? u.giftCoinBalance ?? 0);

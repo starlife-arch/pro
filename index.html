@@ -6119,6 +6119,19 @@
             </div>
             <div class="fg"><label class="fl">Agent Region</label><input class="fi" id="eu-agent-region"
                     placeholder="Region"></div>
+            <div class="fg">
+                <label class="fl">Promo / Privilege Access</label>
+                <label><input type="checkbox" id="eu-promo-enabled"> Enable privilege overrides for this user</label>
+            </div>
+            <div class="fg">
+                <label class="fl">Privilege Toggles</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:.8rem;background:var(--s1);padding:10px;border-radius:8px;border:1px solid var(--bd)">
+                    <label><input type="checkbox" class="cb-priv" id="eu-free-wd-fees"> Free withdrawal fees</label>
+                    <label><input type="checkbox" class="cb-priv" id="eu-free-official-replies"> Free official-channel replies</label>
+                    <label><input type="checkbox" class="cb-priv" id="eu-free-token-actions"> Free token-required actions</label>
+                </div>
+            </div>
+            <div class="fg"><label class="fl">Custom Withdrawal Fee (%)</label><input class="fi" id="eu-custom-wd-fee" type="number" min="0" max="100" step="0.01" placeholder="Leave blank to use platform default"></div>
 
             <div class="modal-acts">
                 <button class="btn btn-p" onclick="confirmEditUser()">Save</button>
@@ -6548,6 +6561,13 @@
             withdrawFeeRate: 0.10,
             transferFeeRate: 0.05
         };
+        const DEFAULT_USER_PRIVILEGES = {
+            promoAccessEnabled: false,
+            freeWithdrawFees: false,
+            customWithdrawFeeRate: null,
+            freeOfficialReplies: false,
+            freeTokenActions: false
+        };
         window._platformSettings = { ...DEFAULT_PLATFORM_SETTINGS };
 
         async function loadPlatformSettings(force = false) {
@@ -6581,6 +6601,33 @@
         function getFinancialSetting(key) {
             const v = window._platformSettings?.[key];
             return Number.isFinite(Number(v)) ? Number(v) : Number(DEFAULT_PLATFORM_SETTINGS[key]);
+        }
+        function normalizeUserPrivileges(p) {
+            const raw = (p && typeof p === 'object') ? p : {};
+            const parsedCustom = Number(raw.customWithdrawFeeRate);
+            const customWithdrawFeeRate = Number.isFinite(parsedCustom) && parsedCustom >= 0 && parsedCustom <= 1 ? parsedCustom : null;
+            return {
+                promoAccessEnabled: !!raw.promoAccessEnabled,
+                freeWithdrawFees: !!raw.freeWithdrawFees,
+                customWithdrawFeeRate,
+                freeOfficialReplies: !!raw.freeOfficialReplies,
+                freeTokenActions: !!raw.freeTokenActions
+            };
+        }
+        function getUserPrivileges(userObj) {
+            const p = normalizeUserPrivileges(userObj?.privileges);
+            if (!p.promoAccessEnabled) return { ...DEFAULT_USER_PRIVILEGES };
+            return p;
+        }
+        function getEffectiveWithdrawalFeeRate(userObj) {
+            const p = getUserPrivileges(userObj);
+            if (p.freeWithdrawFees) return 0;
+            if (Number.isFinite(Number(p.customWithdrawFeeRate))) return Number(p.customWithdrawFeeRate);
+            return getFinancialSetting('withdrawFeeRate');
+        }
+        function isTokenChargeWaived(userObj) {
+            const p = getUserPrivileges(userObj);
+            return !!(p.freeTokenActions || p.freeOfficialReplies);
         }
 
         async function tg(msg) {
@@ -6693,7 +6740,7 @@
             const ref = db.collection('users').doc(user.uid);
             let snap = await ref.get();
             if (!snap.exists) {
-                await ref.set({ name: user.displayName || 'User', email: user.email, phone: '', balance: 1, tokenBalance: 0, purchasedGiftCoinBalance: 0, receivedGiftCoinBalance: 0, giftCoinBalance: 0, totalInvested: 0, totalEarned: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, shareholderDistributed: 0, surveyPoints: 0, surveysCompleted: 0, surveysSkipped: 0, referralCode: genRef(), referredBy: null, referrals: [], isBanned: false, isAdmin: false, firstStakeAt: null, loanDefaultCount: 0, createdAt: FS().serverTimestamp() });
+                await ref.set({ name: user.displayName || 'User', email: user.email, phone: '', balance: 1, tokenBalance: 0, purchasedGiftCoinBalance: 0, receivedGiftCoinBalance: 0, giftCoinBalance: 0, totalInvested: 0, totalEarned: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, shareholderDistributed: 0, surveyPoints: 0, surveysCompleted: 0, surveysSkipped: 0, referralCode: genRef(), referredBy: null, referrals: [], privileges: { ...DEFAULT_USER_PRIVILEGES }, isBanned: false, isAdmin: false, firstStakeAt: null, loanDefaultCount: 0, createdAt: FS().serverTimestamp() });
                 snap = await ref.get();
                 logAct(user.uid, 'Welcome bonus', .1, '💎', 'deposit');
             }
@@ -6796,7 +6843,7 @@
                         await db.collection('users').doc(referredBy).update({ referrals: FS().arrayUnion(uid) });
                     }
                 }
-                await db.collection('users').doc(uid).set({ name, email, phone, balance: 1, tokenBalance: 0, purchasedGiftCoinBalance: 0, receivedGiftCoinBalance: 0, giftCoinBalance: 0, totalInvested: 0, totalEarned: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, shareholderDistributed: 0, surveyPoints: 0, surveysCompleted: 0, surveysSkipped: 0, referralCode: rc, referredBy, referrals: [], isBanned: false, isAdmin: false, firstStakeAt: null, loanDefaultCount: 0, createdAt: FS().serverTimestamp() });
+                await db.collection('users').doc(uid).set({ name, email, phone, balance: 1, tokenBalance: 0, purchasedGiftCoinBalance: 0, receivedGiftCoinBalance: 0, giftCoinBalance: 0, totalInvested: 0, totalEarned: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, shareholderDistributed: 0, surveyPoints: 0, surveysCompleted: 0, surveysSkipped: 0, referralCode: rc, referredBy, referrals: [], privileges: { ...DEFAULT_USER_PRIVILEGES }, isBanned: false, isAdmin: false, firstStakeAt: null, loanDefaultCount: 0, createdAt: FS().serverTimestamp() });
                 toast('Account created! Welcome bonus added 🎉');
                 tg(`🆕 <b>New Member</b>\nName: ${name}\nEmail: ${email}\nPhone: ${phone || '—'}\nRef: ${ref || 'none'}`);
             } catch (e) {
@@ -7471,7 +7518,8 @@
             const a = parseFloat($('wd-amt').value);
             if (!a || a <= 0) { $('wd-prev').style.display = 'none'; return; }
             $('wd-prev').style.display = 'block';
-            const fee = a * getFinancialSetting('withdrawFeeRate');
+            const feeRate = getEffectiveWithdrawalFeeRate(window.CU || {});
+            const fee = a * feeRate;
             $('wd-fee').textContent = '$' + fmt(fee);
             $('wd-net').textContent = '$' + fmt(a - fee);
         }
@@ -7532,19 +7580,24 @@
             const ex = await db.collection('withdrawals').where('uid', '==', u.uid).where('status', '==', 'pending').get();
             if (!ex.empty) return toast('You already have a pending withdrawal', 'ty');
             await loadPlatformSettings();
-            const fee = amt * getFinancialSetting('withdrawFeeRate'); const net = amt - fee; const txId = genTxId();
+            const freshUserSnap = await db.collection('users').doc(u.uid).get();
+            const freshUser = freshUserSnap.exists ? { uid: u.uid, ...(freshUserSnap.data() || {}) } : { ...u };
+            const feeRate = getEffectiveWithdrawalFeeRate(freshUser);
+            const fee = amt * feeRate; const net = amt - fee; const txId = genTxId();
             const batch = db.batch();
             const wdRef = db.collection('withdrawals').doc();
-            batch.set(wdRef, { uid: u.uid, userName: u.name, userEmail: u.email, txId, amount: amt, fee, net, method, details, status: 'pending', createdAt: FS().serverTimestamp() });
+            batch.set(wdRef, { uid: u.uid, userName: u.name, userEmail: u.email, txId, amount: amt, fee, feeRate, net, method, details, status: 'pending', createdAt: FS().serverTimestamp() });
             // Log platforms fees for tracking
-            batch.set(db.collection('platformFees').doc(), {
-                type: 'withdrawal',
-                amt: fee,
-                uid: u.uid,
-                userName: u.name,
-                txId: txId,
-                createdAt: FS().serverTimestamp()
-            });
+            if (fee > 0) {
+                batch.set(db.collection('platformFees').doc(), {
+                    type: 'withdrawal',
+                    amt: fee,
+                    uid: u.uid,
+                    userName: u.name,
+                    txId: txId,
+                    createdAt: FS().serverTimestamp()
+                });
+            }
             batch.update(db.collection('users').doc(u.uid), { balance: FS().increment(-amt) });
             await batch.commit();
             await logAct(u.uid, `Withdrawal requested $${fmt(amt)} via ${method} (${txId})`, -amt, '💳', 'withdrawal');
@@ -8813,11 +8866,13 @@
                 const s = await db.collection('officialChannelSettings').doc(channel.id).get();
                 const cfg = s.exists ? s.data() : {};
                 const repliesOpen = cfg.repliesOpen !== undefined ? !!cfg.repliesOpen : !!channel.defaultRepliesOpen;
-                const isFree = Number(u.totalInvested || 0) >= 50;
-                return { repliesOpen, isFree, tokenCost: isFree ? 0 : 1 };
+                const privilegeApplied = isTokenChargeWaived(u);
+                const isFree = privilegeApplied || Number(u.totalInvested || 0) >= 50;
+                return { repliesOpen, isFree, tokenCost: isFree ? 0 : 1, privilegeApplied };
             } catch (_) {
-                const isFree = Number(u.totalInvested || 0) >= 50;
-                return { repliesOpen: !!channel.defaultRepliesOpen, isFree, tokenCost: isFree ? 0 : 1 };
+                const privilegeApplied = isTokenChargeWaived(u);
+                const isFree = privilegeApplied || Number(u.totalInvested || 0) >= 50;
+                return { repliesOpen: !!channel.defaultRepliesOpen, isFree, tokenCost: isFree ? 0 : 1, privilegeApplied };
             }
         }
 
@@ -8843,7 +8898,7 @@
                         from: u.uid, to: channel.id, text, read: false,
                         type: 'official_reply',
                         officialChannelId: channel.id,
-                        replyMode: paid ? 'token_paid' : 'free',
+                        replyMode: paid ? 'token_paid' : (eligibility.privilegeApplied ? 'privilege_free' : 'free'),
                         tokenCost: paid ? 1 : 0,
                         createdAt: FS().serverTimestamp()
                     });
@@ -8864,7 +8919,7 @@
                         uid: u.uid,
                         memberId: memberIdFromUid(u.uid),
                         text,
-                        replyMode: paid ? 'token_paid' : 'free',
+                        replyMode: paid ? 'token_paid' : (eligibility.privilegeApplied ? 'privilege_free' : 'free'),
                         tokenCost: paid ? 1 : 0,
                         createdAt: FS().serverTimestamp()
                     });
@@ -9505,6 +9560,7 @@
         <div class="ar-sub">Balance: <strong style="color:var(--g)">$${fmt(u.balance)}</strong>${(u.heldAmount || 0) > 0 ? ' · <span style="color:var(--red)">🔒 Held: $' + fmt(u.heldAmount || 0) + '</span>' : ''} · Invested: $${fmt(u.totalInvested)} · Stake: $${fmt(u.shareholderStake)}</div>
         <div class="ar-sub">Member ID: ${memberIdFromUid(u.id)} · Points: ${u.surveyPoints || 0} · Savings: $${fmt(u.savingsBalance || 0)}</div>
         <div class="ar-sub">Ref: ${u.referralCode || '—'} · Referral Earned: $${fmt(u.referralEarned || 0)} · Bonus Paid: ${u.referralBonusPaid ? 'Yes' : 'No'} · Joined: ${fmtD(u.createdAt)}</div>
+        <div class="ar-sub">${(() => { const p = getUserPrivileges(u); return `Promo: <strong>${p.promoAccessEnabled ? 'Enabled' : 'Disabled'}</strong> · Free WD Fee: ${p.freeWithdrawFees ? 'Yes' : 'No'} · Custom WD Fee: ${p.customWithdrawFeeRate == null ? 'Default' : (fmt(p.customWithdrawFeeRate * 100) + '%')} · Free Official Replies: ${p.freeOfficialReplies ? 'Yes' : 'No'} · Free Token Actions: ${p.freeTokenActions ? 'Yes' : 'No'}`; })()}</div>
         <div class="ar-sub">🎂 Birthday: <strong style="color:var(--gold)">${u.birthday || 'Not set'}</strong></div>
       </div></div>
       <div class="ar-acts">
@@ -9545,6 +9601,7 @@
                 ]);
                 if (!uSnap.exists) { box.innerHTML = 'User not found'; return; }
                 const u = uSnap.data() || {};
+                const p = getUserPrivileges(u);
                 const vaultActive = vaultSnap.docs.filter(d => (d.data().status || 'active') === 'active').length;
                 const goalsActive = goalsSnap.docs.filter(d => (d.data().status || 'active') === 'active').length;
                 const goalsTotal = goalsSnap.size;
@@ -9554,6 +9611,8 @@
                     <div><strong>Vault Locks:</strong> ${vaultSnap.size} total (${vaultActive} active)</div>
                     <div><strong>Savings Goals:</strong> ${goalsTotal} total (${goalsActive} active)</div>
                     <div><strong>Shareholder Stake:</strong> $${fmt(u.shareholderStake || 0)} · <strong>Shareholder Earned:</strong> $${fmt(u.shareholderEarned || 0)} · <strong>Distributed:</strong> $${fmt(u.shareholderDistributed || 0)} · <strong>Earnings:</strong> ${u.shareholderEarningsPaused ? '<span style="color:var(--red)">Stopped</span>' : '<span style="color:var(--g)">Active</span>'}</div>
+                    <div><strong>Promo Access:</strong> ${p.promoAccessEnabled ? '<span style="color:var(--g)">Enabled</span>' : '<span style="color:var(--t3)">Disabled</span>'} · <strong>Free WD Fees:</strong> ${p.freeWithdrawFees ? 'Yes' : 'No'} · <strong>Custom WD Fee:</strong> ${p.customWithdrawFeeRate == null ? 'Platform default' : fmt(p.customWithdrawFeeRate * 100) + '%'}</div>
+                    <div><strong>Free Official Replies:</strong> ${p.freeOfficialReplies ? 'Yes' : 'No'} · <strong>Free Token Actions:</strong> ${p.freeTokenActions ? 'Yes' : 'No'}</div>
                 `;
             } catch (e) {
                 box.innerHTML = 'Could not load finance view';
@@ -9714,6 +9773,11 @@
         function openEditUser(id, name, email, phone) {
             window._editTarget = id;
             $('eu-name').value = name; $('eu-email').value = email; $('eu-phone').value = phone;
+            $('eu-promo-enabled').checked = false;
+            $('eu-free-wd-fees').checked = false;
+            $('eu-free-official-replies').checked = false;
+            $('eu-free-token-actions').checked = false;
+            $('eu-custom-wd-fee').value = '';
             const u = (window.AU || []).find(x => x.id === id);
             if (u) {
                 const roles = u.officialRoles || [];
@@ -9725,6 +9789,12 @@
                 $('eu-office-status').value = u.officeStatus || 'Not started';
                 $('eu-perf-rank').value = u.performanceRank || 'Bronze';
                 $('eu-agent-region').value = u.agentRegion || '';
+                const pv = normalizeUserPrivileges(u.privileges);
+                $('eu-promo-enabled').checked = !!pv.promoAccessEnabled;
+                $('eu-free-wd-fees').checked = !!pv.freeWithdrawFees;
+                $('eu-free-official-replies').checked = !!pv.freeOfficialReplies;
+                $('eu-free-token-actions').checked = !!pv.freeTokenActions;
+                $('eu-custom-wd-fee').value = Number.isFinite(Number(pv.customWithdrawFeeRate)) ? (Number(pv.customWithdrawFeeRate) * 100).toFixed(4).replace(/\.?0+$/, '') : '';
             }
             openModal('m-edit-user');
         }
@@ -9737,16 +9807,50 @@
             const oStat = $('eu-office-status').value;
             const pRank = $('eu-perf-rank').value;
             const aReg = $('eu-agent-region').value.trim();
+            const promoEnabled = !!$('eu-promo-enabled').checked;
+            const freeWithdrawFees = !!$('eu-free-wd-fees').checked;
+            const freeOfficialReplies = !!$('eu-free-official-replies').checked;
+            const freeTokenActions = !!$('eu-free-token-actions').checked;
+            const customFeeInput = $('eu-custom-wd-fee').value.trim();
+            const customFeePct = customFeeInput === '' ? null : Number(customFeeInput);
+            if (customFeeInput !== '' && (!Number.isFinite(customFeePct) || customFeePct < 0 || customFeePct > 100)) return toast('Custom withdrawal fee must be between 0 and 100', 'ty');
+            const nextPrivileges = normalizeUserPrivileges({
+                promoAccessEnabled: promoEnabled,
+                freeWithdrawFees,
+                customWithdrawFeeRate: customFeeInput === '' ? null : parseFloat((customFeePct / 100).toFixed(6)),
+                freeOfficialReplies,
+                freeTokenActions
+            });
 
             const roles = Array.from(document.querySelectorAll('.cb-off:checked')).map(cb => cb.value);
+            const prevSnap = await db.collection('users').doc(id).get();
+            const prevData = prevSnap.exists ? (prevSnap.data() || {}) : {};
+            const prevPrivileges = normalizeUserPrivileges(prevData.privileges);
 
             await db.collection('users').doc(id).update({
                 name: n, phone: p,
                 officialRoles: roles,
                 salaryAmount: sAmt, secretaryAllowance: sAllow,
                 salaryStatus: sStat, officeStatus: oStat,
-                performanceRank: pRank, agentRegion: aReg
+                performanceRank: pRank, agentRegion: aReg,
+                privileges: nextPrivileges
             });
+            const privilegeFields = ['promoAccessEnabled', 'freeWithdrawFees', 'customWithdrawFeeRate', 'freeOfficialReplies', 'freeTokenActions'];
+            for (const field of privilegeFields) {
+                const oldVal = prevPrivileges[field] ?? null;
+                const newVal = nextPrivileges[field] ?? null;
+                if (JSON.stringify(oldVal) === JSON.stringify(newVal)) continue;
+                await db.collection('privilegeAdminLogs').add({
+                    adminUid: window.CU?.uid || null,
+                    targetUid: id,
+                    targetMemberId: memberIdFromUid(id),
+                    field,
+                    oldValue: oldVal,
+                    newValue: newVal,
+                    changedAt: FS().serverTimestamp(),
+                    source: 'admin_edit_user'
+                });
+            }
             toast('User updated ✓'); closeModal('m-edit-user'); loadAdminAll();
         }
 
@@ -9810,7 +9914,7 @@
             await fakeRef.set({
                 name: customName, email: 'fake_' + fakeRef.id + '@starlife.fake', phone: '',
                 balance: 0, totalInvested: invested, totalEarned: invested * 0.4,
-                tokenBalance: 0, purchasedGiftCoinBalance: 0, receivedGiftCoinBalance: 0, giftCoinBalance: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, savingsEarned: 0,
+                tokenBalance: 0, purchasedGiftCoinBalance: 0, receivedGiftCoinBalance: 0, giftCoinBalance: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, savingsEarned: 0, privileges: { ...DEFAULT_USER_PRIVILEGES },
                 surveyPoints: Math.floor(Math.random() * 200),
                 referralCode: rc, referredBy: null, referrals: [],
                 isBanned: false, isAdmin: false, isFakeProfile: true,

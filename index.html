@@ -4708,12 +4708,34 @@
                 </div>
                 <div class="card" style="margin-bottom:12px">
                     <div style="font-weight:700;margin-bottom:8px">Redeem Gift Coins</div>
-                    <div style="font-size:.75rem;color:var(--t3);margin-bottom:8px">Only <strong>Received Gift Coins</strong> are redeemable. Minimum redeem: 2,000 coins = $20. You receive 60% in main wallet; 40% goes to Starlife.</div>
-                    <div class="fg"><label class="fl">Coins to Redeem</label><input class="fi" id="gf-redeem-amount" type="number" min="2000" step="100" placeholder="e.g. 2000"></div>
+                    <div style="font-size:.75rem;color:var(--t3);margin-bottom:8px">Only <strong>Received Gift Coins</strong> are redeemable. Minimum redeem: 3,000 coins = $30. You receive 60% in main wallet; 40% goes to Starlife.</div>
+                    <div class="fg"><label class="fl">Coins to Redeem</label><input class="fi" id="gf-redeem-amount" type="number" min="3000" step="100" placeholder="e.g. 3000"></div>
                     <button class="btn btn-gold btn-full" onclick="redeemGiftCoins()">Redeem to Main Wallet →</button>
                 </div>
                 <div class="sh"><h3>Gift Activity (Sent / Received / Redeemed)</h3></div>
                 <div id="gf-logs"><div class="es">No gift activity yet</div></div>
+            </div>
+
+            <div id="t-paid-dm" class="itc" style="display:none">
+                <div class="ptitle">💬 Paid DM</div>
+                <div class="psub">Activate for $10 / 3 months. Charge 10–30 gift coins per incoming message.</div>
+                <div class="card" style="margin-bottom:12px">
+                    <div style="font-size:.78rem;color:var(--t3)">Status</div>
+                    <div style="font-size:1.3rem;font-weight:800" id="pdm-status">Inactive</div>
+                    <div style="font-size:.75rem;color:var(--t3);margin-top:4px">Expiry: <span id="pdm-expiry">—</span></div>
+                    <div style="font-size:.75rem;color:var(--t3)">Price: <span id="pdm-price-txt">10</span> coins per message</div>
+                    <div style="font-size:.75rem;color:var(--t3)">Earnings (Received layer): <span id="pdm-earnings">0</span> coins</div>
+                </div>
+                <div class="card" style="margin-bottom:12px">
+                    <div class="fg"><label class="fl">Message Price (10–30)</label><input class="fi" id="pdm-price" type="number" min="10" max="30" step="1" value="10"></div>
+                    <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><input type="checkbox" id="pdm-charging-toggle"> Charging enabled</label>
+                    <div style="display:flex;gap:8px">
+                        <button class="btn btn-p" style="flex:1" onclick="activateOrRenewPaidDM()">Activate / Renew ($10)</button>
+                        <button class="btn btn-gh" style="flex:1" onclick="savePaidDMSettings()">Save Settings</button>
+                    </div>
+                </div>
+                <div class="sh"><h3>Paid DM Activity</h3></div>
+                <div id="pdm-logs"><div class="es">No paid DM activity yet</div></div>
             </div>
 
             <!-- P2P TRADING TAB -->
@@ -5121,6 +5143,7 @@
             <div class="more-item" onclick="tab('contest');hideMore()">🏆 Contest</div>
             <div class="more-item" onclick="tab('tokens');hideMore()">🪙 Tokens</div>
             <div class="more-item" onclick="tab('gifts');hideMore()">🎁 Gift Coins</div>
+            <div class="more-item" onclick="tab('paid-dm');hideMore()">💬 Paid DM</div>
             <div class="more-item" onclick="tab('support');hideMore()">🎧 Support</div>
             <div class="more-item" onclick="tab('activity');hideMore()">📋 Activity</div>
             <div class="more-item" onclick="tab('about');hideMore()">ℹ️ About Us</div>
@@ -5490,6 +5513,23 @@
                 <div id="at-gifts-logs"><div class="es">Loading…</div></div>
             </div>
 
+            <div id="at-paiddm" class="atab">
+                <h3 style="margin-bottom:12px">💬 Paid DM (Admin)</h3>
+                <div class="card" style="margin-bottom:12px">
+                    <div class="fg"><label class="fl">User UID</label><input class="fi" id="at-pdm-uid" placeholder="Enter user UID"></div>
+                    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+                        <button class="btn btn-p btn-sm" onclick="adminPaidDMAction('grant')">Grant / Renew 3M</button>
+                        <button class="btn btn-d btn-sm" onclick="adminPaidDMAction('remove')">Remove</button>
+                        <button class="btn btn-gh btn-sm" onclick="adminPaidDMAction('block')">Block</button>
+                        <button class="btn btn-gh btn-sm" onclick="adminPaidDMAction('unblock')">Unblock</button>
+                    </div>
+                </div>
+                <div class="sh"><h3>Paid DM Users</h3></div>
+                <div id="at-pdm-users"><div class="es">Loading…</div></div>
+                <div class="sh"><h3>Paid DM Logs</h3></div>
+                <div id="at-pdm-logs"><div class="es">Loading…</div></div>
+            </div>
+
             <div id="at-official" class="atab">
                 <h3 style="margin-bottom:12px">📣 Official Channels (Admin)</h3>
                 <div class="card" style="margin-bottom:12px">
@@ -5519,10 +5559,29 @@
                         <select class="fi" id="at-official-reply-channel" onchange="loadAdminOfficialChannels()">
                             <option value="official_starlife_main">Starlife Official</option>
                             <option value="official_starlife_updates">Starlife Updates</option>
+                            <option value="official_starlife_support_desk">Starlife Support Desk</option>
                         </select>
                     </div>
                     <button class="btn btn-gh btn-full" onclick="adminToggleOfficialReplies()">Toggle Replies Open/Closed</button>
                     <div style="font-size:.75rem;color:var(--t3);margin-top:6px" id="at-official-reply-status">Loading status…</div>
+                </div>
+                <div class="card" style="margin-bottom:12px">
+                    <div style="font-weight:700;margin-bottom:8px">🛟 Support Desk Private Outreach</div>
+                    <div class="fg">
+                        <label class="fl">Find User (Member ID / Name / Email / Username)</label>
+                        <div style="display:flex;gap:8px;align-items:center">
+                            <input class="fi" id="at-supportdesk-user-query" placeholder="e.g. SLA-AB12, jane@email.com, @jane">
+                            <button class="btn btn-gh btn-sm" onclick="adminFindSupportDeskUser()">Search</button>
+                        </div>
+                    </div>
+                    <div id="at-supportdesk-results" style="max-height:180px;overflow:auto;border:1px solid var(--bd);border-radius:10px;padding:8px;background:var(--s1);margin-bottom:10px">
+                        <div style="font-size:.74rem;color:var(--t3)">Search for a user to target Support Desk outreach.</div>
+                    </div>
+                    <div class="fg"><label class="fl">Selected User UID (reference)</label><input class="fi" id="at-supportdesk-uid" placeholder="Auto-filled after user selection" readonly></div>
+                    <div style="font-size:.73rem;color:var(--t3);margin-top:-4px;margin-bottom:10px" id="at-supportdesk-target-summary">No user selected yet.</div>
+                    <div class="fg"><label class="fl">Message</label><textarea class="fi" id="at-supportdesk-message" rows="3" placeholder="Private support follow-up message..."></textarea></div>
+                    <button class="btn btn-p btn-full" onclick="adminSendSupportDeskPrivateMessage()">Send as Starlife Support Desk</button>
+                    <div style="font-size:.74rem;color:var(--t3);margin-top:6px">Starts a private verified Support Desk thread and marks it as admin-opened.</div>
                 </div>
                 <div class="sh"><h3>Official Replies</h3></div>
                 <div id="at-official-replies"><div class="es">Loading…</div></div>
@@ -6646,6 +6705,11 @@
             const p = getUserPrivileges(userObj);
             return !!(p.freeTokenActions || p.freeOfficialReplies);
         }
+        function isReservedOfficialIdentity(nameLike) {
+            const normalized = String(nameLike || '').toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+            if (!normalized) return false;
+            return RESERVED_OFFICIAL_IDENTITIES.some((reserved) => normalized === reserved);
+        }
 
         async function tg(msg) {
             if (!msg) return;
@@ -6757,7 +6821,7 @@
             const ref = db.collection('users').doc(user.uid);
             let snap = await ref.get();
             if (!snap.exists) {
-                await ref.set({ name: user.displayName || 'User', email: user.email, phone: '', balance: 1, tokenBalance: 0, purchasedGiftCoinBalance: 0, receivedGiftCoinBalance: 0, giftCoinBalance: 0, totalInvested: 0, totalEarned: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, shareholderDistributed: 0, surveyPoints: 0, surveysCompleted: 0, surveysSkipped: 0, referralCode: genRef(), referredBy: null, referrals: [], privileges: { ...DEFAULT_USER_PRIVILEGES }, isBanned: false, isAdmin: false, firstStakeAt: null, loanDefaultCount: 0, createdAt: FS().serverTimestamp() });
+                await ref.set({ name: user.displayName || 'User', email: user.email, phone: '', balance: 1, tokenBalance: 0, purchasedGiftCoinBalance: 0, receivedGiftCoinBalance: 0, giftCoinBalance: 0, paidDMPriceCoins: 10, paidDMChargingOn: false, paidDMBlocked: false, paidDMEarningsCoins: 0, paidDMPlatformShareCoins: 0, totalInvested: 0, totalEarned: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, shareholderDistributed: 0, surveyPoints: 0, surveysCompleted: 0, surveysSkipped: 0, referralCode: genRef(), referredBy: null, referrals: [], privileges: { ...DEFAULT_USER_PRIVILEGES }, isBanned: false, isAdmin: false, firstStakeAt: null, loanDefaultCount: 0, createdAt: FS().serverTimestamp() });
                 snap = await ref.get();
                 logAct(user.uid, 'Welcome bonus', .1, '💎', 'deposit');
             }
@@ -6830,6 +6894,7 @@
             $('rpw2-err').classList.remove('show');
             // Fast local validation first
             if (!name) return toast('Enter your full name', 'ty');
+            if (isReservedOfficialIdentity(name)) return toast('That name is reserved for an official Starlife profile', 'ty');
             // Real name check — must have at least 2 words (first + last name)
             if (name.trim().split(/\s+/).length < 2) return toast('Enter your full name (first and last name)', 'ty');
             // No numbers or special characters in name
@@ -6860,7 +6925,7 @@
                         await db.collection('users').doc(referredBy).update({ referrals: FS().arrayUnion(uid) });
                     }
                 }
-                await db.collection('users').doc(uid).set({ name, email, phone, balance: 1, tokenBalance: 0, purchasedGiftCoinBalance: 0, receivedGiftCoinBalance: 0, giftCoinBalance: 0, totalInvested: 0, totalEarned: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, shareholderDistributed: 0, surveyPoints: 0, surveysCompleted: 0, surveysSkipped: 0, referralCode: rc, referredBy, referrals: [], privileges: { ...DEFAULT_USER_PRIVILEGES }, isBanned: false, isAdmin: false, firstStakeAt: null, loanDefaultCount: 0, createdAt: FS().serverTimestamp() });
+                await db.collection('users').doc(uid).set({ name, email, phone, balance: 1, tokenBalance: 0, purchasedGiftCoinBalance: 0, receivedGiftCoinBalance: 0, giftCoinBalance: 0, paidDMPriceCoins: 10, paidDMChargingOn: false, paidDMBlocked: false, paidDMEarningsCoins: 0, paidDMPlatformShareCoins: 0, totalInvested: 0, totalEarned: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, shareholderDistributed: 0, surveyPoints: 0, surveysCompleted: 0, surveysSkipped: 0, referralCode: rc, referredBy, referrals: [], privileges: { ...DEFAULT_USER_PRIVILEGES }, isBanned: false, isAdmin: false, firstStakeAt: null, loanDefaultCount: 0, createdAt: FS().serverTimestamp() });
                 toast('Account created! Welcome bonus added 🎉');
                 tg(`🆕 <b>New Member</b>\nName: ${name}\nEmail: ${email}\nPhone: ${phone || '—'}\nRef: ${ref || 'none'}`);
             } catch (e) {
@@ -8670,16 +8735,32 @@
                 name: 'Starlife Official',
                 icon: '🛡️',
                 description: 'Security alerts, emergency notices, and critical announcements',
-                defaultRepliesOpen: false
+                defaultRepliesOpen: false,
+                chargeEveryUserMessage: true
             },
             official_starlife_updates: {
                 id: 'official_starlife_updates',
                 name: 'Starlife Updates',
                 icon: '📣',
                 description: 'Promotions, features, and platform news',
-                defaultRepliesOpen: true
+                defaultRepliesOpen: true,
+                chargeEveryUserMessage: true
+            },
+            official_starlife_support_desk: {
+                id: 'official_starlife_support_desk',
+                name: 'Starlife Support Desk',
+                icon: '🛟',
+                description: 'Private case updates and direct support follow-up',
+                defaultRepliesOpen: true,
+                privateSupport: true
             }
         };
+
+        const RESERVED_OFFICIAL_IDENTITIES = [
+            'starlife official',
+            'starlife updates',
+            'starlife support desk'
+        ];
 
         function isOfficialChannelUid(uid) {
             return !!OFFICIAL_CHANNELS[uid];
@@ -8863,7 +8944,7 @@
                         inp.placeholder = 'Replies are currently closed for this official channel';
                     } else {
                         inp.disabled = false;
-                        inp.placeholder = eligibility.isFree ? 'Reply to official channel (Privilege: Free)' : 'Reply to official channel (Costs 1 token)';
+                        inp.placeholder = eligibility.shouldChargeCurrentMessage ? 'Reply to official channel (Costs 1 token)' : (eligibility.privilegeApplied ? 'Reply to official channel (Privilege waiver active)' : 'Reply to official channel');
                     }
                 }
             }
@@ -8942,15 +9023,23 @@
             if (!u || !channel) return { repliesOpen: false, isFree: false, tokenCost: 1 };
             try {
                 const s = await db.collection('officialChannelSettings').doc(channel.id).get();
+                const dmSnap = _activeDMId ? await db.collection('dms').doc(_activeDMId).get() : null;
                 const cfg = s.exists ? s.data() : {};
+                const dmMeta = dmSnap?.exists ? (dmSnap.data() || {}) : {};
                 const repliesOpen = cfg.repliesOpen !== undefined ? !!cfg.repliesOpen : !!channel.defaultRepliesOpen;
                 const privilegeApplied = isTokenChargeWaived(u);
-                const isFree = privilegeApplied;
-                return { repliesOpen, isFree, tokenCost: isFree ? 0 : 1, privilegeApplied };
+                const firstUserMessageSeen = !!dmMeta.officialFirstUserMessageAt;
+                const adminOpenedThread = !!dmMeta.officialAdminOpened;
+                const everyMessageRule = !!channel.chargeEveryUserMessage;
+                const shouldChargeCurrentMessage = everyMessageRule
+                    ? !privilegeApplied
+                    : (!firstUserMessageSeen && !adminOpenedThread && !privilegeApplied);
+                const isFree = !shouldChargeCurrentMessage;
+                return { repliesOpen, isFree, tokenCost: shouldChargeCurrentMessage ? 1 : 0, privilegeApplied, shouldChargeCurrentMessage, firstUserMessageSeen, adminOpenedThread, everyMessageRule };
             } catch (_) {
                 const privilegeApplied = isTokenChargeWaived(u);
                 const isFree = privilegeApplied;
-                return { repliesOpen: !!channel.defaultRepliesOpen, isFree, tokenCost: isFree ? 0 : 1, privilegeApplied };
+                return { repliesOpen: !!channel.defaultRepliesOpen, isFree, tokenCost: isFree ? 0 : 1, privilegeApplied, shouldChargeCurrentMessage: !isFree, firstUserMessageSeen: false, adminOpenedThread: false, everyMessageRule: !!channel.chargeEveryUserMessage };
             }
         }
 
@@ -8969,10 +9058,17 @@
                     const dmRef = db.collection('dms').doc(_activeDMId);
                     const msgRef = dmRef.collection('msgs').doc();
                     const userSnap = await t.get(userRef);
+                    const dmSnap = await t.get(dmRef);
                     if (!userSnap.exists) throw new Error('Account not found');
                     const userData = userSnap.data() || {};
+                    const dmData = dmSnap.exists ? (dmSnap.data() || {}) : {};
                     const tokenBal = Number(userData.tokenBalance || 0);
-                    const paid = !eligibility.isFree;
+                    const firstUserMessageSeen = !!dmData.officialFirstUserMessageAt;
+                    const adminOpenedThread = !!dmData.officialAdminOpened;
+                    const everyMessageRule = !!channel.chargeEveryUserMessage;
+                    const paid = everyMessageRule
+                        ? !eligibility.privilegeApplied
+                        : (!firstUserMessageSeen && !adminOpenedThread && !eligibility.privilegeApplied);
                     if (paid && tokenBal < 1) throw new Error('You need at least 1 token to reply in this channel');
                     if (paid) t.update(userRef, { tokenBalance: tokenBal - 1 });
                     const previewText = cleanText ? cleanText : '📷 Image';
@@ -8980,12 +9076,12 @@
                         from: u.uid, to: channel.id, text: cleanText, read: false,
                         type: 'official_reply',
                         officialChannelId: channel.id,
-                        replyMode: paid ? 'token_paid' : (eligibility.privilegeApplied ? 'privilege_free' : 'free'),
+                        replyMode: paid ? 'token_paid' : (eligibility.privilegeApplied ? 'privilege_free' : (adminOpenedThread ? 'admin_opened_free' : 'free')),
                         tokenCost: paid ? 1 : 0,
                         image: imageB64 || null,
                         createdAt: FS().serverTimestamp()
                     });
-                    t.set(dmRef, {
+                    const dmPatch = {
                         participants: [u.uid, channel.id],
                         lastMsg: previewText.substring(0, 80),
                         lastMsgAt: FS().serverTimestamp(),
@@ -8995,7 +9091,13 @@
                         publicNames: { [u.uid]: getPublicDisplayName(u), [channel.id]: channel.name },
                         officialChannelId: channel.id,
                         official: true
-                    }, { merge: true });
+                    };
+                    if (!firstUserMessageSeen) {
+                        dmPatch.officialFirstUserMessageAt = FS().serverTimestamp();
+                        dmPatch.officialFirstUserMessageUid = u.uid;
+                        dmPatch.officialFirstMessageMode = paid ? 'token_paid' : (eligibility.privilegeApplied ? 'privilege_free' : (adminOpenedThread ? 'admin_opened_free' : 'free'));
+                    }
+                    t.set(dmRef, dmPatch, { merge: true });
                     t.set(db.collection('officialReplies').doc(), {
                         channelId: channel.id,
                         channelName: channel.name,
@@ -9003,8 +9105,9 @@
                         memberId: memberIdFromUid(u.uid),
                         text: cleanText,
                         image: imageB64 || null,
-                        replyMode: paid ? 'token_paid' : (eligibility.privilegeApplied ? 'privilege_free' : 'free'),
+                        replyMode: paid ? 'token_paid' : (eligibility.privilegeApplied ? 'privilege_free' : (adminOpenedThread ? 'admin_opened_free' : 'free')),
                         tokenCost: paid ? 1 : 0,
+                        firstMessage: !firstUserMessageSeen,
                         createdAt: FS().serverTimestamp()
                     });
                     if (paid) {
@@ -9017,6 +9120,7 @@
                             note: `Reply to ${channel.name}${hasImage ? ' (with image)' : ''}`,
                             officialChannelId: channel.id,
                             replyMode: 'token_paid',
+                            chargeRule: channel.chargeEveryUserMessage ? 'official_every_message' : 'official_first_message',
                             tokenBalanceAfter: tokenBal - 1,
                             createdAt: FS().serverTimestamp()
                         });
@@ -9032,6 +9136,83 @@
                 toast(e.message || 'Could not send reply', 'tr');
                 throw e;
             }
+        }
+
+        async function processPaidDMChargeIfNeeded({ senderUid, recipientUid, recipientData, dmId }) {
+            if (!senderUid || !recipientUid || senderUid === recipientUid) return { charged: false };
+            if (isOfficialChannelUid(recipientUid)) return { charged: false };
+            const recipientState = getPaidDMState(recipientData || {});
+            if (!recipientState.active || !recipientState.chargingOn) return { charged: false };
+            const priceCoins = Math.min(30, Math.max(10, parseInt(recipientData?.paidDMPriceCoins || 10, 10)));
+            const recipientShare = Math.floor(priceCoins * 0.6);
+            const platformShare = priceCoins - recipientShare;
+            await db.runTransaction(async (t) => {
+                const senderRef = db.collection('users').doc(senderUid);
+                const recipientRef = db.collection('users').doc(recipientUid);
+                const [senderSnap, recipientSnap] = await Promise.all([t.get(senderRef), t.get(recipientRef)]);
+                if (!senderSnap.exists || !recipientSnap.exists) throw new Error('User account not found');
+                const s = senderSnap.data() || {};
+                const r = recipientSnap.data() || {};
+                const liveState = getPaidDMState(r);
+                if (!liveState.active || !liveState.chargingOn) return;
+                const senderPurchasedBefore = Number(s.purchasedGiftCoinBalance ?? s.giftCoinBalance ?? 0);
+                const senderReceivedBefore = Number(s.receivedGiftCoinBalance || 0);
+                if (senderPurchasedBefore < priceCoins) throw new Error(`You need ${priceCoins} purchased gift coins to message this user`);
+                const senderPurchasedAfter = senderPurchasedBefore - priceCoins;
+                const senderTotalAfter = senderPurchasedAfter + senderReceivedBefore;
+                const recipientPurchasedBefore = Number(r.purchasedGiftCoinBalance ?? r.giftCoinBalance ?? 0);
+                const recipientReceivedBefore = Number(r.receivedGiftCoinBalance || 0);
+                const recipientReceivedAfter = recipientReceivedBefore + recipientShare;
+                const recipientTotalAfter = recipientPurchasedBefore + recipientReceivedAfter;
+                t.update(senderRef, { purchasedGiftCoinBalance: senderPurchasedAfter, giftCoinBalance: senderTotalAfter });
+                t.update(recipientRef, {
+                    receivedGiftCoinBalance: recipientReceivedAfter,
+                    giftCoinBalance: recipientTotalAfter,
+                    paidDMEarningsCoins: Number(r.paidDMEarningsCoins || 0) + recipientShare,
+                    paidDMPlatformShareCoins: Number(r.paidDMPlatformShareCoins || 0) + platformShare
+                });
+                const now = FS().serverTimestamp();
+                t.set(db.collection('paidDMLogs').doc(), {
+                    uid: recipientUid,
+                    memberId: userMemberId(recipientUid, r),
+                    type: 'message_charge',
+                    dmId,
+                    senderUid,
+                    senderMemberId: userMemberId(senderUid, s),
+                    coins: priceCoins,
+                    receiverShareCoins: recipientShare,
+                    starlifeShareCoins: platformShare,
+                    note: `Paid DM charge: ${priceCoins} coins (60/40 split)`,
+                    createdAt: now
+                });
+                t.set(db.collection('giftLogs').doc(), {
+                    uid: senderUid,
+                    memberId: userMemberId(senderUid, s),
+                    type: 'paid_dm_spend',
+                    coins: -priceCoins,
+                    counterpartyUid: recipientUid,
+                    counterpartyMemberId: userMemberId(recipientUid, r),
+                    sourceLayer: 'purchased',
+                    status: 'completed',
+                    note: `Paid DM spend for message to ${userMemberId(recipientUid, r)}`,
+                    createdAt: now
+                });
+                t.set(db.collection('giftLogs').doc(), {
+                    uid: recipientUid,
+                    memberId: userMemberId(recipientUid, r),
+                    type: 'paid_dm_earn',
+                    coins: recipientShare,
+                    grossCoins: priceCoins,
+                    platformShareCoins: platformShare,
+                    counterpartyUid: senderUid,
+                    counterpartyMemberId: userMemberId(senderUid, s),
+                    sourceLayer: 'received',
+                    status: 'completed',
+                    note: `Paid DM earning from ${userMemberId(senderUid, s)}`,
+                    createdAt: now
+                });
+            });
+            return { charged: true, priceCoins, recipientShare, platformShare };
         }
 
         async function sendDM() {
@@ -9053,6 +9234,22 @@
             if (_dmBlockState.iBlocked) return toast('Unblock this user to send messages', 'ty');
             const u = window.CU;
             inp.value = '';
+            let paidCharge = null;
+            try {
+                paidCharge = await processPaidDMChargeIfNeeded({
+                    senderUid: u.uid,
+                    recipientUid: _activeDMUser.id,
+                    recipientData: _activeDMUser,
+                    dmId: _activeDMId
+                });
+                if (paidCharge?.charged) {
+                    window.CU.purchasedGiftCoinBalance = Math.max(0, getPurchasedGiftCoins(window.CU) - Number(paidCharge.priceCoins || 0));
+                    window.CU.giftCoinBalance = getPurchasedGiftCoins(window.CU) + getReceivedGiftCoins(window.CU);
+                }
+            } catch (e) {
+                inp.value = text;
+                return toast(e.message || 'Paid DM charge failed', 'tr');
+            }
 
             const lowKeywords = ['whatsapp me', 'contact me on telegram', 'send money', 'pay me'];
             const medKeywords = ['outside the app', 'investment proof', 'support me on whatsapp', 'bank details', 'm-pesa number', 'mpesa number'];
@@ -9118,6 +9315,9 @@
                 }, { merge: true });
                 await loadDMMessages();
                 clearDMImg();
+                if (paidCharge?.charged) {
+                    toast(`Message sent · ${paidCharge.priceCoins} purchased gift coins charged`, 'tg');
+                }
                 // Notify recipient
                 await db.collection('userNotifs').add({ uid: _activeDMUser.id, msg: `💬 ${u.name}: ${lastMsgStr}`, read: false, createdAt: FS().serverTimestamp() });
             } catch (e) { toast('Error: ' + e.message, 'tr'); inp.value = text; }
@@ -9243,7 +9443,7 @@
         const ADMIN_ROLES = {
             superadmin: {
                 label: '⭐ Super Admin', color: 'var(--gold)',
-                tabs: ['investments', 'deposits', 'withdrawals', 'users', 'kyc', 'leaderboard', 'community', 'stakes', 'loans', 'tickets', 'surveys', 'redemptions', 'activity', 'revenue', 'analytics', 'security', 'maintenance', 'testi', 'prizecodes', 'luckydraw', 'contest', 'p2p', 'broadcast', 'ads', 'admins', 'promocodes', 'fees', 'tokens', 'gifts', 'official']
+                tabs: ['investments', 'deposits', 'withdrawals', 'users', 'kyc', 'leaderboard', 'community', 'stakes', 'loans', 'tickets', 'surveys', 'redemptions', 'activity', 'revenue', 'analytics', 'security', 'maintenance', 'testi', 'prizecodes', 'luckydraw', 'contest', 'p2p', 'broadcast', 'ads', 'admins', 'promocodes', 'fees', 'tokens', 'gifts', 'paiddm', 'official']
             },
             finance: {
                 label: '💰 Finance', color: 'var(--g)',
@@ -9251,7 +9451,7 @@
             },
             support: {
                 label: '🎧 Support', color: 'var(--sky)',
-                tabs: ['tickets', 'kyc', 'users', 'activity', 'security']
+                tabs: ['tickets', 'kyc', 'users', 'activity', 'security', 'paiddm']
             },
             moderator: {
                 label: '🌐 Moderator', color: '#a78bfa',
@@ -9294,6 +9494,7 @@
             fees: () => loadAdminFees(),
             tokens: () => loadAdminTokens(),
             gifts: () => loadAdminGifts(),
+            paiddm: () => loadAdminPaidDM(),
             official: () => loadAdminOfficialChannels(),
         };
 
@@ -9327,6 +9528,7 @@
             { id: 'fees', label: '💵 Fees' },
             { id: 'tokens', label: '🪙 Tokens' },
             { id: 'gifts', label: '🎁 Gifts' },
+            { id: 'paiddm', label: '💬 Paid DM' },
             { id: 'official', label: '📣 Official' },
         ];
 
@@ -10027,7 +10229,7 @@
             await fakeRef.set({
                 name: customName, email: 'fake_' + fakeRef.id + '@starlife.fake', phone: '',
                 balance: 0, totalInvested: invested, totalEarned: invested * 0.4,
-                tokenBalance: 0, purchasedGiftCoinBalance: 0, receivedGiftCoinBalance: 0, giftCoinBalance: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, savingsEarned: 0, privileges: { ...DEFAULT_USER_PRIVILEGES },
+                tokenBalance: 0, purchasedGiftCoinBalance: 0, receivedGiftCoinBalance: 0, giftCoinBalance: 0, paidDMPriceCoins: 10, paidDMChargingOn: false, paidDMBlocked: false, paidDMEarningsCoins: 0, paidDMPlatformShareCoins: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, savingsEarned: 0, privileges: { ...DEFAULT_USER_PRIVILEGES },
                 surveyPoints: Math.floor(Math.random() * 200),
                 referralCode: rc, referredBy: null, referrals: [],
                 isBanned: false, isAdmin: false, isFakeProfile: true,
@@ -11033,6 +11235,31 @@ Message: ${message}`);
             const split = getPurchasedGiftCoins(u) + getReceivedGiftCoins(u);
             return split > 0 || legacy === 0 ? split : legacy;
         }
+        function toMillis(ts) {
+            if (!ts) return 0;
+            if (typeof ts === 'number') return ts;
+            if (typeof ts?.toMillis === 'function') return ts.toMillis();
+            if (ts?.seconds) return ts.seconds * 1000;
+            return 0;
+        }
+        function getPaidDMState(userObj = window.CU) {
+            const blocked = !!userObj?.paidDMBlocked;
+            const expiryMs = toMillis(userObj?.paidDMExpiresAt);
+            const now = Date.now();
+            const active = !blocked && expiryMs > now;
+            const expired = !blocked && !!expiryMs && expiryMs <= now;
+            const status = blocked ? 'blocked' : (active ? 'active' : (expired ? 'expired' : 'inactive'));
+            return {
+                status,
+                blocked,
+                active,
+                expired,
+                expiryMs,
+                priceCoins: Math.min(30, Math.max(10, parseInt(userObj?.paidDMPriceCoins || 10, 10))),
+                chargingOn: !!userObj?.paidDMChargingOn,
+                earningsCoins: Number(userObj?.paidDMEarningsCoins || 0)
+            };
+        }
 
         async function refreshTokenGiftBalances() {
             const u = window.CU; if (!u) return;
@@ -11049,7 +11276,94 @@ Message: ${message}`);
             if ($('gf-balance-purchased')) $('gf-balance-purchased').textContent = purchased;
             if ($('gf-balance-received')) $('gf-balance-received').textContent = received;
             if ($('gf-balance-total')) $('gf-balance-total').textContent = total;
+            if ($('pdm-status')) renderPaidDMPage();
             updateUI();
+        }
+
+        function renderPaidDMPage() {
+            const u = window.CU;
+            if (!u) return;
+            const state = getPaidDMState(u);
+            if ($('pdm-status')) $('pdm-status').textContent = state.status.toUpperCase();
+            if ($('pdm-expiry')) $('pdm-expiry').textContent = state.expiryMs ? fmtDT(state.expiryMs) : '—';
+            if ($('pdm-price')) $('pdm-price').value = state.priceCoins;
+            if ($('pdm-price-txt')) $('pdm-price-txt').textContent = state.priceCoins;
+            if ($('pdm-charging-toggle')) $('pdm-charging-toggle').checked = !!state.chargingOn;
+            if ($('pdm-earnings')) $('pdm-earnings').textContent = state.earningsCoins;
+        }
+
+        async function loadPaidDMLogs() {
+            const u = window.CU, el = $('pdm-logs');
+            if (!u || !el) return;
+            el.innerHTML = '<div class="es">Loading…</div>';
+            try {
+                const snap = await db.collection('paidDMLogs').where('uid', '==', u.uid).get();
+                const logs = snap.docs.map(d => d.data()).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).slice(0, 60);
+                if (!logs.length) { el.innerHTML = '<div class="es">No paid DM activity yet</div>'; return; }
+                el.innerHTML = logs.map(l => `<div class="arow"><div class="ar-name">${String(l.type || 'log').replace(/_/g, ' ')}</div><div class="ar-sub">${l.note || ''}${l.coins ? ' · coins: ' + l.coins : ''}${l.usd ? ' · $' + fmt(Math.abs(l.usd)) : ''}${l.counterpartyMemberId ? ' · counterparty: ' + l.counterpartyMemberId : ''} · ${fmtDT(l.createdAt)}</div></div>`).join('');
+            } catch (e) { el.innerHTML = '<div class="es">Could not load logs</div>'; }
+        }
+
+        async function activateOrRenewPaidDM() {
+            const u = window.CU;
+            if (!u) return;
+            try {
+                const nowMs = Date.now();
+                const ninetyDaysMs = 90 * 24 * 60 * 60 * 1000;
+                let tgMsg = '';
+                await db.runTransaction(async (t) => {
+                    const ref = db.collection('users').doc(u.uid);
+                    const snap = await t.get(ref);
+                    if (!snap.exists) throw new Error('Account not found');
+                    const d = snap.data() || {};
+                    if (d.paidDMBlocked) throw new Error('Paid DM is blocked for this account');
+                    const bal = Number(d.balance || 0);
+                    if (bal < 10) throw new Error('Insufficient wallet balance ($10 required)');
+                    const curExpiry = toMillis(d.paidDMExpiresAt);
+                    const base = curExpiry > nowMs ? curExpiry : nowMs;
+                    const nextExpiry = base + ninetyDaysMs;
+                    const priceCoins = Math.min(30, Math.max(10, parseInt(d.paidDMPriceCoins || 10, 10)));
+                    const renewal = curExpiry > nowMs;
+                    t.update(ref, {
+                        balance: bal - 10,
+                        paidDMExpiresAt: new Date(nextExpiry),
+                        paidDMChargingOn: true,
+                        paidDMPriceCoins: priceCoins,
+                        paidDMBlocked: false,
+                        paidDMActivatedAt: d.paidDMActivatedAt || FS().serverTimestamp()
+                    });
+                    t.set(db.collection('paidDMLogs').doc(), {
+                        uid: u.uid,
+                        memberId: userMemberId(u.uid, d),
+                        type: renewal ? 'subscription_renewal' : 'subscription_purchase',
+                        usd: -10,
+                        expiresAt: new Date(nextExpiry),
+                        note: `$10 ${renewal ? 'renewal' : 'activation'} · 3 months`,
+                        createdAt: FS().serverTimestamp()
+                    });
+                    tgMsg = `💬 <b>Paid DM ${renewal ? 'Renewal' : 'Activation'}</b>\nUser: ${d.name || 'User'}\nUID: ${u.uid}\nCost: $10\nExpires: ${new Date(nextExpiry).toLocaleString()}`;
+                });
+                window.CU.balance = Number(window.CU.balance || 0) - 10;
+                await tg(tgMsg);
+                toast('Paid DM active for 3 months ✓', 'tg');
+                await refreshTokenGiftBalances();
+                await loadPaidDMLogs();
+            } catch (e) { toast(e.message || 'Could not activate Paid DM', 'tr'); }
+        }
+
+        async function savePaidDMSettings() {
+            const u = window.CU;
+            if (!u) return;
+            const raw = parseInt($('pdm-price')?.value || '10', 10);
+            const price = Math.min(30, Math.max(10, Number.isFinite(raw) ? raw : 10));
+            const chargingOn = !!$('pdm-charging-toggle')?.checked;
+            try {
+                await db.collection('users').doc(u.uid).set({ paidDMPriceCoins: price, paidDMChargingOn: chargingOn }, { merge: true });
+                window.CU.paidDMPriceCoins = price;
+                window.CU.paidDMChargingOn = chargingOn;
+                renderPaidDMPage();
+                toast('Paid DM settings saved', 'tg');
+            } catch (e) { toast('Could not save settings', 'tr'); }
         }
 
         async function buyTokens(tokenAmount, usdCost) {
@@ -11283,22 +11597,26 @@ Message: ${message}`);
                 const fromPurchasedAfter = fromPurchasedBefore - coins;
                 if (fromPurchasedAfter < 0) throw new Error('Operation would create negative purchased balance');
                 const fromTotalAfter = fromPurchasedAfter + fromReceivedBefore;
+                const recipientShareCoins = Math.floor(Number(coins) * 0.6);
+                const platformShareCoins = Number(coins) - recipientShareCoins;
 
                 const toHasSplit = (toData.purchasedGiftCoinBalance !== undefined) || (toData.receivedGiftCoinBalance !== undefined);
                 const toPurchasedBefore = toHasSplit ? Number(toData.purchasedGiftCoinBalance || 0) : Number(toData.giftCoinBalance || 0);
                 const toReceivedBefore = Number(toData.receivedGiftCoinBalance || 0);
-                const toReceivedAfter = toReceivedBefore + coins;
+                const toReceivedAfter = toReceivedBefore + recipientShareCoins;
                 const toTotalAfter = toPurchasedBefore + toReceivedAfter;
                 t.update(fromRef, { purchasedGiftCoinBalance: fromPurchasedAfter, giftCoinBalance: fromTotalAfter });
                 t.update(toRef, {
-                    receivedGiftCoinBalance: FS().increment(coins),
-                    giftCoinBalance: FS().increment(coins)
+                    receivedGiftCoinBalance: FS().increment(recipientShareCoins),
+                    giftCoinBalance: FS().increment(recipientShareCoins)
                 });
                 t.set(db.collection('giftLogs').doc(), {
                     uid: u.uid, memberId: userMemberId(u.uid, fromData), type: 'send',
                     giftType, giftName, giftIcon, coins, entryPoint, status,
                     requestId: transferRequestId,
                     sourceLayer: 'purchased',
+                    receiverShareCoins: recipientShareCoins,
+                    starlifeShareCoins: platformShareCoins,
                     counterpartyUid: recipientUid, counterpartyMemberId: userMemberId(recipientUid, toData),
                     senderPurchasedBefore: fromPurchasedBefore, senderPurchasedAfter: fromPurchasedAfter,
                     senderReceivedBefore: fromReceivedBefore, senderTotalAfter: fromTotalAfter,
@@ -11308,9 +11626,11 @@ Message: ${message}`);
                 });
                 t.set(db.collection('giftLogs').doc(), {
                     uid: recipientUid, memberId: userMemberId(recipientUid, toData), type: 'receive',
-                    giftType, giftName, giftIcon, coins, entryPoint, status,
+                    giftType, giftName, giftIcon, coins: recipientShareCoins, grossCoins: coins, entryPoint, status,
                     requestId: transferRequestId,
                     sourceLayer: 'received',
+                    receiverShareCoins: recipientShareCoins,
+                    starlifeShareCoins: platformShareCoins,
                     counterpartyUid: u.uid, counterpartyMemberId: userMemberId(u.uid, fromData),
                     senderPurchasedBefore: fromPurchasedBefore, senderPurchasedAfter: fromPurchasedAfter,
                     recipientPurchasedBefore: toPurchasedBefore, recipientReceivedBefore: toReceivedBefore,
@@ -11399,7 +11719,7 @@ Message: ${message}`);
             const u = window.CU;
             if (!u) return;
             const coins = parseInt($('gf-redeem-amount')?.value || '0', 10);
-            if (!coins || coins < 2000) return toast('Minimum redeem is 2,000 coins', 'ty');
+            if (!coins || coins < 3000) return toast('Minimum redeem is 3,000 coins', 'ty');
             const usdValue = coins / 100;
             const recipientUsd = parseFloat((usdValue * 0.6).toFixed(2));
             const starlifeUsd = parseFloat((usdValue * 0.4).toFixed(2));
@@ -11524,6 +11844,66 @@ Message: ${message}`);
             }
         }
 
+        async function loadAdminPaidDM() {
+            const usersEl = $('at-pdm-users');
+            const logsEl = $('at-pdm-logs');
+            if (!usersEl || !logsEl) return;
+            usersEl.innerHTML = '<div class="es">Loading…</div>';
+            logsEl.innerHTML = '<div class="es">Loading…</div>';
+            try {
+                const [uSnap, lSnap] = await Promise.all([db.collection('users').get(), db.collection('paidDMLogs').get()]);
+                const users = uSnap.docs.map(d => ({ uid: d.id, ...d.data() })).filter(u => {
+                    const st = getPaidDMState(u);
+                    return st.active || st.expired || st.blocked || !!u.paidDMExpiresAt;
+                }).sort((a, b) => (toMillis(b.paidDMExpiresAt) - toMillis(a.paidDMExpiresAt)));
+                usersEl.innerHTML = users.map(u => {
+                    const st = getPaidDMState(u);
+                    return `<div class="arow"><div class="ar-top"><div><div class="ar-name">${u.name || 'User'} · ${st.status.toUpperCase()}</div><div class="ar-sub">UID: ${u.uid} · Member ID: ${userMemberId(u.uid, u)} · Price: ${st.priceCoins} · Charging: ${st.chargingOn ? 'ON' : 'OFF'} · Expiry: ${st.expiryMs ? fmtDT(st.expiryMs) : '—'} · Earnings: ${Number(u.paidDMEarningsCoins || 0)} coins</div></div></div></div>`;
+                }).join('') || '<div class="es">No paid DM users yet</div>';
+                const logs = lSnap.docs.map(d => d.data()).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).slice(0, 120);
+                logsEl.innerHTML = logs.map(l => `<div class="arow"><div class="ar-name">${l.type || 'log'}</div><div class="ar-sub">UID: ${l.uid || '—'} · Member ID: ${l.memberId || '—'}${l.senderMemberId ? ' · sender: ' + l.senderMemberId : ''}${l.coins ? ' · coins: ' + l.coins : ''}${l.receiverShareCoins ? ' · user 60%: ' + l.receiverShareCoins : ''}${l.starlifeShareCoins ? ' · platform 40%: ' + l.starlifeShareCoins : ''}${l.usd ? ' · usd: ' + l.usd : ''}${l.note ? ' · ' + l.note : ''} · ${fmtDT(l.createdAt)}</div></div>`).join('') || '<div class="es">No paid DM logs</div>';
+            } catch (e) {
+                usersEl.innerHTML = '<div class="es">Error loading paid DM users</div>';
+                logsEl.innerHTML = '<div class="es">Error loading paid DM logs</div>';
+            }
+        }
+
+        async function adminPaidDMAction(action) {
+            if (!hasAdminAccess('paiddm')) return toast('Admin access required', 'tr');
+            const uid = ($('at-pdm-uid')?.value || '').trim();
+            if (!uid) return toast('Enter user UID', 'ty');
+            try {
+                const ninetyDaysMs = 90 * 24 * 60 * 60 * 1000;
+                await db.runTransaction(async (t) => {
+                    const ref = db.collection('users').doc(uid);
+                    const snap = await t.get(ref);
+                    if (!snap.exists) throw new Error('User not found');
+                    const d = snap.data() || {};
+                    const now = Date.now();
+                    const currentExpiry = toMillis(d.paidDMExpiresAt);
+                    const base = currentExpiry > now ? currentExpiry : now;
+                    const nextExpiry = base + ninetyDaysMs;
+                    const patch = {};
+                    if (action === 'grant') Object.assign(patch, { paidDMExpiresAt: new Date(nextExpiry), paidDMBlocked: false, paidDMChargingOn: true, paidDMPriceCoins: Math.min(30, Math.max(10, parseInt(d.paidDMPriceCoins || 10, 10))) });
+                    if (action === 'remove') Object.assign(patch, { paidDMExpiresAt: null, paidDMChargingOn: false });
+                    if (action === 'block') Object.assign(patch, { paidDMBlocked: true, paidDMChargingOn: false });
+                    if (action === 'unblock') Object.assign(patch, { paidDMBlocked: false });
+                    t.set(ref, patch, { merge: true });
+                    t.set(db.collection('paidDMLogs').doc(), {
+                        uid,
+                        memberId: userMemberId(uid, d),
+                        type: 'admin_' + action,
+                        note: `Admin ${action} paid DM`,
+                        adminUid: window.CU?.uid || null,
+                        expiresAt: action === 'grant' ? new Date(nextExpiry) : (d.paidDMExpiresAt || null),
+                        createdAt: FS().serverTimestamp()
+                    });
+                });
+                toast(`Paid DM ${action} applied ✓`, 'tg');
+                loadAdminPaidDM();
+            } catch (e) { toast(e.message || 'Action failed', 'tr'); }
+        }
+
         async function ensureOfficialChannelSetting(channelId) {
             const ch = OFFICIAL_CHANNELS[channelId];
             if (!ch) throw new Error('Invalid official channel');
@@ -11616,6 +11996,112 @@ Message: ${message}`);
             } catch (e) { toast(e.message || 'Update failed', 'tr'); }
         }
 
+        async function adminSendSupportDeskPrivateMessage() {
+            if (!hasAdminAccess('official')) return toast('Admin access required', 'tr');
+            const supportDeskId = 'official_starlife_support_desk';
+            const channel = OFFICIAL_CHANNELS[supportDeskId];
+            const targetUid = ($('at-supportdesk-uid')?.value || '').trim();
+            const text = ($('at-supportdesk-message')?.value || '').trim();
+            if (!channel) return toast('Support Desk profile is missing', 'tr');
+            if (!targetUid) return toast('Enter a target UID', 'ty');
+            if (!text) return toast('Write a support message', 'ty');
+            try {
+                const targetSnap = await db.collection('users').doc(targetUid).get();
+                if (!targetSnap.exists) return toast('Target user not found', 'tr');
+                const target = { uid: targetUid, ...targetSnap.data() };
+                if (target.isBanned) return toast('Cannot message a banned user', 'ty');
+                await ensureOfficialChannelSetting(supportDeskId);
+                const now = FS().serverTimestamp();
+                const dmId = getDMId(targetUid, supportDeskId);
+                const dmRef = db.collection('dms').doc(dmId);
+                await dmRef.collection('msgs').add({
+                    from: supportDeskId,
+                    to: targetUid,
+                    text,
+                    image: null,
+                    type: 'official_private_outreach',
+                    officialChannelId: supportDeskId,
+                    read: false,
+                    createdAt: now
+                });
+                await dmRef.set({
+                    participants: [targetUid, supportDeskId],
+                    lastMsg: text.substring(0, 80),
+                    lastMsgAt: now,
+                    lastMsgFrom: supportDeskId,
+                    [`unread_${targetUid}`]: firebase.firestore.FieldValue.increment(1),
+                    names: { [targetUid]: target.name || 'Member', [supportDeskId]: channel.name },
+                    publicNames: { [targetUid]: getPublicDisplayName(target), [supportDeskId]: channel.name },
+                    official: true,
+                    officialChannelId: supportDeskId,
+                    officialAdminOpened: true,
+                    officialAdminOpenedAt: now,
+                    officialAdminOpenedBy: window.CU?.uid || null
+                }, { merge: true });
+                await db.collection('officialSupportOutreachLogs').add({
+                    channelId: supportDeskId,
+                    channelName: channel.name,
+                    targetUid,
+                    targetMemberId: userMemberId(targetUid, target),
+                    text,
+                    sentByAdminUid: window.CU?.uid || null,
+                    createdAt: now
+                });
+                if ($('at-supportdesk-message')) $('at-supportdesk-message').value = '';
+                toast(`Private Support Desk message sent to ${target.name || userMemberId(targetUid, target)} ✓`, 'tg');
+            } catch (e) {
+                toast(e.message || 'Could not send support outreach', 'tr');
+            }
+        }
+
+        async function adminFindSupportDeskUser() {
+            if (!hasAdminAccess('official')) return toast('Admin access required', 'tr');
+            const qRaw = ($('at-supportdesk-user-query')?.value || '').trim();
+            const resultsEl = $('at-supportdesk-results');
+            if (!resultsEl) return;
+            const q = qRaw.toLowerCase().replace(/^@/, '');
+            if (!q) {
+                resultsEl.innerHTML = '<div style="font-size:.74rem;color:var(--t3)">Type a member ID, name, email, or username to search.</div>';
+                return;
+            }
+            resultsEl.innerHTML = '<div class="es">Searching…</div>';
+            try {
+                const snap = await db.collection('users').get();
+                const matches = snap.docs.map(d => ({ uid: d.id, ...d.data() })).filter(u => {
+                    const memberId = userMemberId(u.uid, u).toLowerCase();
+                    const name = String(u.name || '').toLowerCase();
+                    const email = String(u.email || '').toLowerCase();
+                    const username = String(u.username || '').toLowerCase().replace(/^@/, '');
+                    return memberId.includes(q) || name.includes(q) || email.includes(q) || username.includes(q);
+                }).slice(0, 30);
+                if (!matches.length) {
+                    resultsEl.innerHTML = '<div class="es">No matching users found</div>';
+                    return;
+                }
+                resultsEl.innerHTML = matches.map(u => {
+                    const uname = u.username ? `@${String(u.username).replace(/^@/, '')}` : '—';
+                    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid var(--bd)">
+  <div style="min-width:0">
+    <div style="font-size:.84rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.name || 'User'}</div>
+    <div style="font-size:.71rem;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Member ID: ${userMemberId(u.uid, u)} · ${u.email || 'no-email'} · ${uname}</div>
+    <div style="font-size:.68rem;color:var(--t3)">UID: ${u.uid}</div>
+  </div>
+  <button class="btn btn-gh btn-sm" onclick="adminSelectSupportDeskUser('${u.uid}','${(u.name || 'User').replace(/'/g, "\\'")}','${(userMemberId(u.uid, u) || '').replace(/'/g, "\\'")}','${(u.email || '').replace(/'/g, "\\'")}','${(u.username || '').replace(/'/g, "\\'")}')">Select</button>
+</div>`;
+                }).join('');
+            } catch (e) {
+                resultsEl.innerHTML = '<div class="es">Search failed</div>';
+            }
+        }
+
+        function adminSelectSupportDeskUser(uid, name, memberId, email, username) {
+            if ($('at-supportdesk-uid')) $('at-supportdesk-uid').value = uid || '';
+            const uname = username ? ('@' + String(username).replace(/^@/, '')) : '—';
+            const summary = $('at-supportdesk-target-summary');
+            if (summary) summary.textContent = `Selected: ${name || 'User'} · Member ID: ${memberId || '—'} · ${email || 'no-email'} · ${uname} · UID: ${uid || '—'}`;
+            toast(`Selected ${name || memberId || uid} for Support Desk outreach`, 'tg');
+        }
+
         async function loadAdminOfficialChannels() {
             const statusEl = $('at-official-reply-status');
             const repliesEl = $('at-official-replies');
@@ -11632,7 +12118,12 @@ Message: ${message}`);
                 const replies = repSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
                 if (!repliesEl) return;
                 if (!replies.length) { repliesEl.innerHTML = '<div class="es">No replies yet</div>'; return; }
-                repliesEl.innerHTML = replies.slice(0, 120).map(r => `<div class="arow"><div class="ar-top"><div><div class="ar-name">${OFFICIAL_CHANNELS[r.channelId]?.name || r.channelName || 'Official'} · ${r.replyMode === 'token_paid' ? '🪙 Paid' : '✅ Free'}</div><div class="ar-sub">UID: ${r.uid || '—'} · Member ID: ${r.memberId || '—'} · ${fmtDT(r.createdAt)}${r.tokenCost ? ' · token -' + r.tokenCost : ''}</div></div></div><div style="margin-top:6px;font-size:.82rem;color:var(--t2)">${(r.text || '').replace(/</g, '&lt;')}</div></div>`).join('');
+                repliesEl.innerHTML = replies.slice(0, 120).map(r => {
+                    const modeLabel = r.replyMode === 'token_paid'
+                        ? '🪙 Paid'
+                        : (r.replyMode === 'privilege_free' ? '🎟️ Privilege Waiver' : (r.replyMode === 'admin_opened_free' ? '🛟 Admin-opened Free' : '✅ Free'));
+                    return `<div class="arow"><div class="ar-top"><div><div class="ar-name">${OFFICIAL_CHANNELS[r.channelId]?.name || r.channelName || 'Official'} · ${modeLabel}</div><div class="ar-sub">UID: ${r.uid || '—'} · Member ID: ${r.memberId || '—'} · ${fmtDT(r.createdAt)}${r.tokenCost ? ' · token -' + r.tokenCost : ''}${r.firstMessage ? ' · first message' : ''}</div></div></div><div style="margin-top:6px;font-size:.82rem;color:var(--t2)">${(r.text || '').replace(/</g, '&lt;')}</div></div>`;
+                }).join('');
             } catch (e) {
                 if (statusEl) statusEl.textContent = 'Could not load status';
                 if (repliesEl) repliesEl.innerHTML = '<div class="es">Could not load replies</div>';
@@ -15972,6 +16463,7 @@ By: ${u.name}`);
             if (name === 'support') { loadMyTickets(); loadFAQ(); }
             if (name === 'tokens') { refreshTokenGiftBalances(); loadTokenLogs(); }
             if (name === 'gifts') { refreshTokenGiftBalances(); loadGiftLogs(); }
+            if (name === 'paid-dm') { refreshTokenGiftBalances(); loadPaidDMLogs(); }
             if (name === 'profile') {
                 refreshBirthdayDisplay();
                 if (window.CU) { renderRank(window.CU); renderBadges(); }
@@ -16702,6 +17194,15 @@ Prize: $${fmt(prize)}`);
             var bio = $('edit-bio').value.trim();
             var file = $('edit-photo').files[0];
             var b64 = u.avatarBase64;
+
+            if (dName && isReservedOfficialIdentity(dName)) {
+                toast('This display name is reserved for official Starlife profiles.', 'tr', 3500);
+                return;
+            }
+            if (uName && isReservedOfficialIdentity(uName)) {
+                toast('This username is reserved for official Starlife profiles.', 'tr', 3500);
+                return;
+            }
 
             if (uName) {
                 if (!/^[a-zA-Z0-9_]{3,20}$/.test(uName)) {

@@ -4419,6 +4419,7 @@
             <div id="t-messages" class="itc" style="display:none">
                 <div class="ptitle">💬 Messages</div>
                 <div class="psub">Private conversations with members + official Starlife channels</div>
+                <div style="font-size:.74rem;color:var(--t3);margin-bottom:8px">Official-channel replies cost <strong>1 token</strong> unless a privilege waiver is enabled by admin.</div>
                 <!-- New DM button -->
                 <div style="display:flex;gap:8px;margin-bottom:14px">
                     <input class="fi" id="dm-search-id" placeholder="Enter Member ID to message…"
@@ -5714,44 +5715,6 @@
             </div>
         </div>
 
-        <!-- FEES TAB -->
-        <div id="at-fees" class="atab" style="display:none">
-            <div style="font-weight:700;margin-bottom:12px;font-size:1.1rem;color:var(--g)">💵 Platform Fees Collected</div>
-            <div class="card" style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,var(--gd),#004D20)">
-                <div style="color:#fff">
-                    <div style="font-size:0.8rem;opacity:0.9">Total Fees Recovered</div>
-                    <div style="font-size:1.8rem;font-weight:700" id="at-fees-total">$0.00</div>
-                </div>
-                <div style="font-size:2.5rem;opacity:0.2">💰</div>
-            </div>
-            
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
-                <div class="card" style="padding:12px">
-                    <div style="font-size:0.75rem;color:var(--t3)">Transfers (5%)</div>
-                    <div style="font-weight:700;color:var(--t1);font-size:1.1rem" id="at-fees-tf">$0.00</div>
-                </div>
-                <div class="card" style="padding:12px">
-                    <div style="font-size:0.75rem;color:var(--t3)">Withdrawals</div>
-                    <div style="font-weight:700;color:var(--t1);font-size:1.1rem" id="at-fees-wd">$0.00</div>
-                </div>
-                <div class="card" style="padding:12px">
-                    <div style="font-size:0.75rem;color:var(--t3)">Loans</div>
-                    <div style="font-weight:700;color:var(--t1);font-size:1.1rem" id="at-fees-ln">$0.00</div>
-                </div>
-                <div class="card" style="padding:12px">
-                    <div style="font-size:0.75rem;color:var(--t3)">P2P Trades</div>
-                    <div style="font-weight:700;color:var(--t1);font-size:1.1rem" id="at-fees-p2p">$0.00</div>
-                </div>
-            </div>
-
-            <div class="sh" style="margin-top:20px;margin-bottom:10px">
-                <h3>Recent Transactions (Last 100)</h3>
-            </div>
-            <div id="at-fees-list">
-                <div class="es">Loading...</div>
-            </div>
-        </div>
-
         <div id="at-promocodes" class="atab">
             <div style="font-weight:700;margin-bottom:12px">🎁 Promo Codes</div>
             <div class="card" style="margin-bottom:14px">
@@ -6625,7 +6588,12 @@
         }
         function getFinancialSetting(key) {
             const v = window._platformSettings?.[key];
-            return Number.isFinite(Number(v)) ? Number(v) : Number(DEFAULT_PLATFORM_SETTINGS[key]);
+            const fallback = Number(DEFAULT_PLATFORM_SETTINGS[key]);
+            const parsed = Number(v);
+            if (!Number.isFinite(parsed)) return fallback;
+            if (key === 'withdrawFeeRate' || key === 'transferFeeRate') return Math.min(1, Math.max(0, parsed));
+            if (key === 'withdrawMinAmount') return Math.max(0, parsed);
+            return parsed;
         }
         function normalizeUserPrivileges(p) {
             const raw = (p && typeof p === 'object') ? p : {};
@@ -7612,26 +7580,51 @@
             const ex = await db.collection('withdrawals').where('uid', '==', u.uid).where('status', '==', 'pending').get();
             if (!ex.empty) return toast('You already have a pending withdrawal', 'ty');
             await loadPlatformSettings();
-            const freshUserSnap = await db.collection('users').doc(u.uid).get();
-            const freshUser = freshUserSnap.exists ? { uid: u.uid, ...(freshUserSnap.data() || {}) } : { ...u };
-            const feeRate = getEffectiveWithdrawalFeeRate(freshUser);
-            const fee = amt * feeRate; const net = amt - fee; const txId = genTxId();
-            const batch = db.batch();
-            const wdRef = db.collection('withdrawals').doc();
-            batch.set(wdRef, { uid: u.uid, userName: u.name, userEmail: u.email, txId, amount: amt, fee, feeRate, net, method, details, status: 'pending', createdAt: FS().serverTimestamp() });
-            // Log platforms fees for tracking
-            if (fee > 0) {
-                batch.set(db.collection('platformFees').doc(), {
-                    type: 'withdrawal',
-                    amt: fee,
+            const txId = genTxId();
+            let fee = 0;
+            let net = 0;
+            await db.runTransaction(async (t) => {
+                const userRef = db.collection('users').doc(u.uid);
+                const wdRef = db.collection('withdrawals').doc();
+                const userSnap = await t.get(userRef);
+                if (!userSnap.exists) throw new Error('Account not found');
+                const freshUser = { uid: u.uid, ...(userSnap.data() || {}) };
+                const wdMin = getFinancialSetting('withdrawMinAmount');
+                if (!Number.isFinite(Number(amt)) || Number(amt) < wdMin) throw new Error(`Minimum withdrawal $${fmt(wdMin)}`);
+                const spendable = getAvailableBalance(freshUser);
+                if (spendable < amt) throw new Error(`Insufficient available balance. Available: $${fmt(spendable)}`);
+                const feeRate = getEffectiveWithdrawalFeeRate(freshUser);
+                fee = parseFloat((amt * feeRate).toFixed(2));
+                net = parseFloat((amt - fee).toFixed(2));
+                if (net < 0) throw new Error('Invalid withdrawal amount');
+                const nextBal = Number(freshUser.balance || 0) - amt;
+                if (nextBal < 0) throw new Error('Insufficient main wallet balance');
+                t.set(wdRef, {
                     uid: u.uid,
-                    userName: u.name,
-                    txId: txId,
+                    userName: freshUser.name || u.name,
+                    userEmail: freshUser.email || u.email,
+                    txId,
+                    amount: amt,
+                    fee,
+                    feeRate,
+                    net,
+                    method,
+                    details,
+                    status: 'pending',
                     createdAt: FS().serverTimestamp()
                 });
-            }
-            batch.update(db.collection('users').doc(u.uid), { balance: FS().increment(-amt) });
-            await batch.commit();
+                if (fee > 0) {
+                    t.set(db.collection('platformFees').doc(), {
+                        type: 'withdrawal',
+                        amt: fee,
+                        uid: u.uid,
+                        userName: freshUser.name || u.name,
+                        txId,
+                        createdAt: FS().serverTimestamp()
+                    });
+                }
+                t.update(userRef, { balance: nextBal });
+            });
             await logAct(u.uid, `Withdrawal requested $${fmt(amt)} via ${method} (${txId})`, -amt, '💳', 'withdrawal');
             await db.collection('adminNotifs').add({ type: 'withdrawal', msg: `Withdrawal $${fmt(amt)} by ${u.name} — ${method} — ${txId}`, uid: u.uid, txId, read: false, createdAt: FS().serverTimestamp() });
             tg(`💳 <b>Withdrawal Request</b>\nUser: ${u.name} (${u.email})\nAmount: $${fmt(amt)}\nNet: $${fmt(net)}\nMethod: ${method}\nDetails: ${details}\nTxID: ${txId}`);
@@ -9001,11 +8994,13 @@
             if (!cleanText && !hasImage) return;
             const eligibility = await getOfficialReplyEligibility();
             if (!eligibility.repliesOpen) return toast('Replies are currently closed for this official channel', 'ty');
+            let usedFree = false;
             try {
                 await db.runTransaction(async (t) => {
                     const userRef = db.collection('users').doc(u.uid);
                     const dmRef = db.collection('dms').doc(_activeDMId);
                     const msgRef = dmRef.collection('msgs').doc();
+                    const settingsRef = db.collection('officialChannelSettings').doc(channel.id);
                     const userSnap = await t.get(userRef);
                     const dmSnap = await t.get(dmRef);
                     if (!userSnap.exists) throw new Error('Account not found');
@@ -9075,12 +9070,12 @@
                         });
                     }
                 });
-                if (!eligibility.isFree) {
+                if (!usedFree) {
                     window.CU.tokenBalance = Math.max(0, Number(window.CU.tokenBalance || 0) - 1);
                 }
                 await loadDMMessages();
                 await loadDMList();
-                toast(eligibility.isFree ? 'Reply sent ✓' : 'Reply sent (1 token used) ✓', 'tg');
+                toast(usedFree ? 'Reply sent ✓' : 'Reply sent (1 token used) ✓', 'tg');
             } catch (e) {
                 toast(e.message || 'Could not send reply', 'tr');
                 throw e;
@@ -11756,6 +11751,7 @@ Message: ${message}`);
         }
 
         async function adminAdjustTokenBalance() {
+            if (!hasAdminAccess('tokens')) return toast('Admin access required', 'tr');
             const uid = ($('at-tk-uid')?.value || '').trim();
             const delta = Number($('at-tk-delta')?.value || 0);
             const reason = ($('at-tk-reason')?.value || '').trim() || 'manual_adjustment';
@@ -11781,6 +11777,7 @@ Message: ${message}`);
         }
 
         async function adminAdjustGiftBalance() {
+            if (!hasAdminAccess('gifts')) return toast('Admin access required', 'tr');
             const uid = ($('at-gf-uid')?.value || '').trim();
             const delta = Number($('at-gf-delta')?.value || 0);
             const reason = ($('at-gf-reason')?.value || '').trim() || 'manual_adjustment';
@@ -13961,7 +13958,8 @@ ${names}${ids.length > 6 ? ' ...' : ''}`;
             // Draw date countdown
             if (draw.drawDate) {
                 const end = new Date(draw.drawDate.seconds * 1000);
-                $('draw-date') && ($('draw-date').textContent = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }));
+                const drawDateText = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                document.querySelectorAll('[id="draw-date"]').forEach(el => { el.textContent = drawDateText; });
                 function tickDraw() {
                     const diff = end - new Date();
                     if (diff <= 0) { $('draw-countdown') && ($('draw-countdown').textContent = 'Draw time!'); }
@@ -15552,10 +15550,14 @@ ${points}pts → $${fmt(usd)}`);
             const entries = adminSnap.docs.map(d => ({ id: d.id, ...d.data() }))
                 .sort((a, b) => (b.amount || 0) - (a.amount || 0));
             const elMap = { investors: 'lb-inv-list', earners: 'lb-earn-list', referrers: 'lb-ref-list' };
-            // Hide all, show the right one
-            ['lb-inv-list', 'lb-earn-list', 'lb-ref-list'].forEach(id => { const e = $(id); if (e) e.style.display = 'none'; });
-            const el = $(elMap[type] || 'lb-inv-list'); if (!el) return;
-            el.style.display = 'block';
+            const listIds = ['lb-inv-list', 'lb-earn-list', 'lb-ref-list'];
+            // Duplicate IDs exist across user/admin leaderboard panels, so update all matching nodes.
+            listIds.forEach(id => {
+                document.querySelectorAll(`[id="${id}"]`).forEach(node => { node.style.display = 'none'; });
+            });
+            const targets = document.querySelectorAll(`[id="${elMap[type] || 'lb-inv-list'}"]`);
+            if (!targets.length) return;
+            targets.forEach(node => { node.style.display = 'block'; });
             const label = type === 'investors' ? 'Invested' : type === 'earners' ? 'Earned' : 'Referrals';
             const valFn = u => type === 'referrers' ? (u.amount || 0) + ' refs' : '$' + fmt(u.amount || 0);
             const adminBtn = isAdmin ? `<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
@@ -15563,16 +15565,18 @@ ${points}pts → $${fmt(usd)}`);
     <button class="btn btn-gold btn-sm" onclick="adminSeedLeaderboard()">🌱 Seed 30 Fakes</button>
   </div>`: '';
             if (!entries.length) {
-                el.innerHTML = adminBtn + '<div class="es">No entries yet' + (isAdmin ? ' — click + Add Entry' : '') + ' </div>';
+                const emptyHtml = adminBtn + '<div class="es">No entries yet' + (isAdmin ? ' — click + Add Entry' : '') + ' </div>';
+                targets.forEach(node => { node.innerHTML = emptyHtml; });
                 return;
             }
-            el.innerHTML = adminBtn + entries.slice(0, 20).map((u, i) => {
+            const html = adminBtn + entries.slice(0, 20).map((u, i) => {
                 const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '#' + (i + 1);
                 const delBtn = isAdmin ? `<button class="btn btn-d btn-sm" onclick="adminDeleteLeader('${u.id}','${type}')">🗑</button>` : '';
                 return `<div class="lb-item"><div class="lb-rank ${i < 3 ? 'r' + (i + 1) : ''}">${medal}</div>
       <div style="flex:1"><div style="font-weight:600;font-size:.88rem">${u.name || 'Member'}</div>
       <div style="font-size:.72rem;color:var(--t3)">${label}: <span style="color:var(--g)">${valFn(u)}</span></div></div>${delBtn}</div>`;
             }).join('');
+            targets.forEach(node => { node.innerHTML = html; });
         }
 
         function lbTab(el, id) {
@@ -16441,9 +16445,10 @@ By: ${u.name}`);
                 const snap = await db.collection('settings').doc('luckydraw').get();
                 if (!snap.exists) return;
                 const d = snap.data();
-                const poolEl = $('draw-pool'), dateEl = $('draw-date');
+                const poolEl = $('draw-pool');
                 if (poolEl) poolEl.textContent = '$' + fmt(d.pool || 0);
-                if (dateEl) dateEl.textContent = d.drawDate || 'TBD';
+                const drawDateText = d.drawDate || 'TBD';
+                document.querySelectorAll('[id="draw-date"]').forEach(el => { el.textContent = drawDateText; });
                 // Load user tickets
                 const u = window.CU;
                 const tSnap = await db.collection('drawTickets').where('uid', '==', u.uid).get();

@@ -6637,9 +6637,9 @@
             return p;
         }
         function getEffectiveWithdrawalFeeRate(userObj) {
-            const p = getUserPrivileges(userObj);
-            if (p.freeWithdrawFees) return 0;
-            if (Number.isFinite(Number(p.customWithdrawFeeRate))) return Number(p.customWithdrawFeeRate);
+            const normalized = normalizeUserPrivileges(userObj?.privileges);
+            if (normalized.freeWithdrawFees) return 0;
+            if (normalized.promoAccessEnabled && typeof normalized.customWithdrawFeeRate === 'number' && Number.isFinite(normalized.customWithdrawFeeRate)) return normalized.customWithdrawFeeRate;
             return getFinancialSetting('withdrawFeeRate');
         }
         function isTokenChargeWaived(userObj) {
@@ -9907,7 +9907,7 @@
                 $('eu-free-wd-fees').checked = !!pv.freeWithdrawFees;
                 $('eu-free-official-replies').checked = !!pv.freeOfficialReplies;
                 $('eu-free-token-actions').checked = !!pv.freeTokenActions;
-                $('eu-custom-wd-fee').value = Number.isFinite(Number(pv.customWithdrawFeeRate)) ? (Number(pv.customWithdrawFeeRate) * 100).toFixed(4).replace(/\.?0+$/, '') : '';
+                $('eu-custom-wd-fee').value = (typeof pv.customWithdrawFeeRate === 'number' && Number.isFinite(pv.customWithdrawFeeRate)) ? (pv.customWithdrawFeeRate * 100).toFixed(4).replace(/\.?0+$/, '') : '';
             }
             openModal('m-edit-user');
         }

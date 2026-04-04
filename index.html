@@ -7492,6 +7492,7 @@
                 batch.set(invRef, { uid: u.uid, userName: u.name, userEmail: u.email, amount: amt, method: 'Main Balance', txid: 'BAL-' + genTxId(), status: 'active', earningEnabled: true, dailyProfit: amt * 0.02, totalPaid: 0, createdAt: FS().serverTimestamp() });
                 batch.update(db.collection('users').doc(u.uid), { balance: FS().increment(-amt), totalInvested: FS().increment(amt) });
                 await batch.commit();
+                await executeReferralPayoutForInvestment(invRef.id, u.uid, amt, 'doInvest');
                 await db.collection('adminNotifs').add({ type: 'investment', msg: `New investment $${fmt(amt)} from ${u.name}`, uid: u.uid, read: false, createdAt: FS().serverTimestamp() });
                 tg(`📈 <b>New Investment</b>\nUser: ${u.name} (${u.email})\nAmount: $${fmt(amt)}\nFrom: Main Balance`);
                 logAct(u.uid, `Investment active: $${fmt(amt)} from balance`, -amt, '📈', 'deposit');
@@ -9501,24 +9502,34 @@
         function adminApproveInvById(btn) { const id = btn.dataset.id; const d = window['_inv_' + id]; if (d) adminApproveInv(d.id, d.uid, d.amount); }
         function adminRejectInvById(btn) { const id = btn.dataset.id; const d = window['_inv_' + id]; if (d) adminRejectInv(d.id, d.uid); }
 
+        async function logReferralDebug(stage, payload = {}) {
+            try {
+                const entry = { stage, ...payload, createdAt: FS().serverTimestamp() };
+                console.log('[REFERRAL_DEBUG]', entry);
+                await db.collection('referralDebugLogs').add(entry);
+            } catch (_) { }
+        }
+
         async function applyReferralBonusesForInvestment(investmentId, uid, amount) {
-            const payout = { triggered: false, alreadyPaid: false, levels: [] };
+            const payout = { triggered: false, alreadyPaid: false, levels: [], reason: null };
             await db.runTransaction(async (t) => {
                 const invRef = db.collection('investments').doc(investmentId);
                 const userRef = db.collection('users').doc(uid);
                 const eventRef = db.collection('referralBonuses').doc(investmentId);
                 const [invSnap, userSnap, eventSnap] = await Promise.all([t.get(invRef), t.get(userRef), t.get(eventRef)]);
-                if (!invSnap.exists || !userSnap.exists) return;
+               if (!invSnap.exists || !userSnap.exists) { payout.reason = 'missing_records'; return; }
                 const inv = invSnap.data() || {};
                 const user = userSnap.data() || {};
-                if (eventSnap.exists || user.referralBonusPaid) { payout.alreadyPaid = true; return; }
-                if (inv.status !== 'active' || !user.referredBy) return;
+                if (eventSnap.exists) { payout.alreadyPaid = true; payout.reason = 'duplicate_event'; return; }
+                const referrerUid = typeof user.referredBy === 'string' ? user.referredBy.trim() : '';
+                if (inv.status !== 'active') { payout.reason = 'investment_not_active'; return; }
+                if (!referrerUid) { payout.reason = 'no_referrer'; return; }
                 payout.triggered = true;
 
-                const l1Ref = db.collection('users').doc(user.referredBy);
+                const l1Ref = db.collection('users').doc(referrerUid);
                 const l1Snap = await t.get(l1Ref);
                 const bonuses = [];
-                if (l1Snap.exists) bonuses.push({ level: 1, uid: user.referredBy, amount: parseFloat((amount * 0.10).toFixed(4)), via: user.name || 'member' });
+                if (l1Snap.exists) bonuses.push({ level: 1, uid: referrerUid, amount: parseFloat((amount * 0.10).toFixed(4)), via: user.name || 'member' });
                 if (l1Snap.exists && l1Snap.data()?.referredBy) {
                     const l2uid = l1Snap.data().referredBy;
                     const l2Ref = db.collection('users').doc(l2uid);
@@ -9547,7 +9558,7 @@
                     investmentId,
                     invitedUid: uid,
                     invitedName: user.name || 'Member',
-                    referredBy: user.referredBy || null,
+                    referredBy: referrerUid || null,
                     amount,
                     bonuses,
                     createdAt: FS().serverTimestamp()
@@ -9557,20 +9568,33 @@
             return payout;
         }
 
+        async function executeReferralPayoutForInvestment(investmentId, uid, amount, source = 'unknown') {
+            try {
+                const referralResult = await applyReferralBonusesForInvestment(investmentId, uid, amount);
+                const userSnap = await db.collection('users').doc(uid).get();
+                const invited = userSnap.data() || {};
+                if (referralResult?.triggered) {
+                    for (const lv of referralResult.levels || []) {
+                        await logAct(lv.uid, `Level ${lv.level} referral bonus from ${invited.name || 'member'} qualifying investment`, lv.amount, '👥', 'deposit');
+                        await db.collection('userNotifs').add({ uid: lv.uid, msg: `👥 Level ${lv.level} referral bonus: +$${fmt(lv.amount)} from ${(invited.name || 'member')} investment!`, read: false, createdAt: FS().serverTimestamp() });
+                    }
+                    await logReferralDebug('payout_success', { source, investmentId, invitedUid: uid, levels: referralResult.levels?.length || 0, totalBonus: (referralResult.levels || []).reduce((a, b) => a + Number(b.amount || 0), 0) });
+                } else {
+                    await logReferralDebug('payout_skipped', { source, investmentId, invitedUid: uid, reason: referralResult?.reason || (referralResult?.alreadyPaid ? 'already_paid' : 'not_triggered') });
+                }
+                return referralResult;
+            } catch (e) {
+                await logReferralDebug('payout_error', { source, investmentId, invitedUid: uid, error: e.message || String(e) });
+                throw e;
+            }
+        }
+
         async function adminApproveInv(id, uid, amount) {
             const batch = db.batch();
             batch.update(db.collection('investments').doc(id), { status: 'active', earningEnabled: true, approvedAt: FS().serverTimestamp(), totalPaid: 0 });
             batch.update(db.collection('users').doc(uid), { totalInvested: FS().increment(amount) });
             await batch.commit();
-            const userSnap = await db.collection('users').doc(uid).get();
-            const u = userSnap.data() || {};
-            const referralResult = await applyReferralBonusesForInvestment(id, uid, amount);
-            if (referralResult?.triggered) {
-                for (const lv of referralResult.levels || []) {
-                    await logAct(lv.uid, `Level ${lv.level} referral bonus from ${u.name} qualifying investment`, lv.amount, '👥', 'deposit');
-                    await db.collection('userNotifs').add({ uid: lv.uid, msg: `👥 Level ${lv.level} referral bonus: +$${fmt(lv.amount)} from ${u.name} investment!`, read: false, createdAt: FS().serverTimestamp() });
-                }
-            }
+            await executeReferralPayoutForInvestment(id, uid, amount, 'adminApproveInv');
             // Notify investor
             await db.collection('userNotifs').add({ uid, msg: `Your investment of $${fmt(amount)} has been approved!`, read: false, createdAt: FS().serverTimestamp() });
             logAct(uid, `Investment approved $${fmt(amount)}`, amount, '📈', 'deposit');
@@ -9789,6 +9813,7 @@
                 batch.set(invRef, { uid: t.id, userName: t.name, userEmail: t.email, amount: amt, method, txid: 'MANUAL-' + Date.now(), status: 'active', earningEnabled: true, dailyProfit: amt * 0.02, totalPaid: 0, note, approvedAt: FS().serverTimestamp(), createdAt: FS().serverTimestamp() });
                 batch.update(db.collection('users').doc(t.id), { totalInvested: FS().increment(amt) });
                 await batch.commit();
+                await executeReferralPayoutForInvestment(invRef.id, t.id, amt, 'confirmInvAdj_add');
                 await logAct(t.id, `Manual investment added $${fmt(amt)} (${note})`, amt, '📈', 'deposit');
                 toast(`Investment of $${fmt(amt)} added ✓`);
             } else {

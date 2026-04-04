@@ -4708,8 +4708,8 @@
                 </div>
                 <div class="card" style="margin-bottom:12px">
                     <div style="font-weight:700;margin-bottom:8px">Redeem Gift Coins</div>
-                    <div style="font-size:.75rem;color:var(--t3);margin-bottom:8px">Only <strong>Received Gift Coins</strong> are redeemable. Minimum redeem: 1,000 coins = $10. You receive 60% in main wallet; 40% goes to Starlife.</div>
-                    <div class="fg"><label class="fl">Coins to Redeem</label><input class="fi" id="gf-redeem-amount" type="number" min="1000" step="100" placeholder="e.g. 1000"></div>
+                    <div style="font-size:.75rem;color:var(--t3);margin-bottom:8px">Only <strong>Received Gift Coins</strong> are redeemable. Minimum redeem: 2,000 coins = $20. You receive 60% in main wallet; 40% goes to Starlife.</div>
+                    <div class="fg"><label class="fl">Coins to Redeem</label><input class="fi" id="gf-redeem-amount" type="number" min="2000" step="100" placeholder="e.g. 2000"></div>
                     <button class="btn btn-gold btn-full" onclick="redeemGiftCoins()">Redeem to Main Wallet →</button>
                 </div>
                 <div class="sh"><h3>Gift Activity (Sent / Received / Redeemed)</h3></div>
@@ -8863,7 +8863,7 @@
                         inp.placeholder = 'Replies are currently closed for this official channel';
                     } else {
                         inp.disabled = false;
-                        inp.placeholder = eligibility.isFree ? 'Reply to official channel (Free)' : 'Reply to official channel (Costs 1 token)';
+                        inp.placeholder = eligibility.isFree ? 'Reply to official channel (Privilege: Free)' : 'Reply to official channel (Costs 1 token)';
                     }
                 }
             }
@@ -8945,11 +8945,11 @@
                 const cfg = s.exists ? s.data() : {};
                 const repliesOpen = cfg.repliesOpen !== undefined ? !!cfg.repliesOpen : !!channel.defaultRepliesOpen;
                 const privilegeApplied = isTokenChargeWaived(u);
-                const isFree = privilegeApplied || Number(u.totalInvested || 0) >= 50;
+                const isFree = privilegeApplied;
                 return { repliesOpen, isFree, tokenCost: isFree ? 0 : 1, privilegeApplied };
             } catch (_) {
                 const privilegeApplied = isTokenChargeWaived(u);
-                const isFree = privilegeApplied || Number(u.totalInvested || 0) >= 50;
+                const isFree = privilegeApplied;
                 return { repliesOpen: !!channel.defaultRepliesOpen, isFree, tokenCost: isFree ? 0 : 1, privilegeApplied };
             }
         }
@@ -11399,7 +11399,7 @@ Message: ${message}`);
             const u = window.CU;
             if (!u) return;
             const coins = parseInt($('gf-redeem-amount')?.value || '0', 10);
-            if (!coins || coins < 1000) return toast('Minimum redeem is 1,000 coins', 'ty');
+            if (!coins || coins < 2000) return toast('Minimum redeem is 2,000 coins', 'ty');
             const usdValue = coins / 100;
             const recipientUsd = parseFloat((usdValue * 0.6).toFixed(2));
             const starlifeUsd = parseFloat((usdValue * 0.4).toFixed(2));

@@ -5568,7 +5568,18 @@
                 </div>
                 <div class="card" style="margin-bottom:12px">
                     <div style="font-weight:700;margin-bottom:8px">🛟 Support Desk Private Outreach</div>
-                    <div class="fg"><label class="fl">Target User UID</label><input class="fi" id="at-supportdesk-uid" placeholder="Paste user UID..."></div>
+                    <div class="fg">
+                        <label class="fl">Find User (Member ID / Name / Email / Username)</label>
+                        <div style="display:flex;gap:8px;align-items:center">
+                            <input class="fi" id="at-supportdesk-user-query" placeholder="e.g. SLA-AB12, jane@email.com, @jane">
+                            <button class="btn btn-gh btn-sm" onclick="adminFindSupportDeskUser()">Search</button>
+                        </div>
+                    </div>
+                    <div id="at-supportdesk-results" style="max-height:180px;overflow:auto;border:1px solid var(--bd);border-radius:10px;padding:8px;background:var(--s1);margin-bottom:10px">
+                        <div style="font-size:.74rem;color:var(--t3)">Search for a user to target Support Desk outreach.</div>
+                    </div>
+                    <div class="fg"><label class="fl">Selected User UID (reference)</label><input class="fi" id="at-supportdesk-uid" placeholder="Auto-filled after user selection" readonly></div>
+                    <div style="font-size:.73rem;color:var(--t3);margin-top:-4px;margin-bottom:10px" id="at-supportdesk-target-summary">No user selected yet.</div>
                     <div class="fg"><label class="fl">Message</label><textarea class="fi" id="at-supportdesk-message" rows="3" placeholder="Private support follow-up message..."></textarea></div>
                     <button class="btn btn-p btn-full" onclick="adminSendSupportDeskPrivateMessage()">Send as Starlife Support Desk</button>
                     <div style="font-size:.74rem;color:var(--t3);margin-top:6px">Starts a private verified Support Desk thread and marks it as admin-opened.</div>
@@ -12036,6 +12047,54 @@ Message: ${message}`);
             } catch (e) {
                 toast(e.message || 'Could not send support outreach', 'tr');
             }
+        }
+
+        async function adminFindSupportDeskUser() {
+            if (!hasAdminAccess('official')) return toast('Admin access required', 'tr');
+            const qRaw = ($('at-supportdesk-user-query')?.value || '').trim();
+            const resultsEl = $('at-supportdesk-results');
+            if (!resultsEl) return;
+            const q = qRaw.toLowerCase().replace(/^@/, '');
+            if (!q) {
+                resultsEl.innerHTML = '<div style="font-size:.74rem;color:var(--t3)">Type a member ID, name, email, or username to search.</div>';
+                return;
+            }
+            resultsEl.innerHTML = '<div class="es">Searching…</div>';
+            try {
+                const snap = await db.collection('users').get();
+                const matches = snap.docs.map(d => ({ uid: d.id, ...d.data() })).filter(u => {
+                    const memberId = userMemberId(u.uid, u).toLowerCase();
+                    const name = String(u.name || '').toLowerCase();
+                    const email = String(u.email || '').toLowerCase();
+                    const username = String(u.username || '').toLowerCase().replace(/^@/, '');
+                    return memberId.includes(q) || name.includes(q) || email.includes(q) || username.includes(q);
+                }).slice(0, 30);
+                if (!matches.length) {
+                    resultsEl.innerHTML = '<div class="es">No matching users found</div>';
+                    return;
+                }
+                resultsEl.innerHTML = matches.map(u => {
+                    const uname = u.username ? `@${String(u.username).replace(/^@/, '')}` : '—';
+                    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid var(--bd)">
+  <div style="min-width:0">
+    <div style="font-size:.84rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.name || 'User'}</div>
+    <div style="font-size:.71rem;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Member ID: ${userMemberId(u.uid, u)} · ${u.email || 'no-email'} · ${uname}</div>
+    <div style="font-size:.68rem;color:var(--t3)">UID: ${u.uid}</div>
+  </div>
+  <button class="btn btn-gh btn-sm" onclick="adminSelectSupportDeskUser('${u.uid}','${(u.name || 'User').replace(/'/g, "\\'")}','${(userMemberId(u.uid, u) || '').replace(/'/g, "\\'")}','${(u.email || '').replace(/'/g, "\\'")}','${(u.username || '').replace(/'/g, "\\'")}')">Select</button>
+</div>`;
+                }).join('');
+            } catch (e) {
+                resultsEl.innerHTML = '<div class="es">Search failed</div>';
+            }
+        }
+
+        function adminSelectSupportDeskUser(uid, name, memberId, email, username) {
+            if ($('at-supportdesk-uid')) $('at-supportdesk-uid').value = uid || '';
+            const uname = username ? ('@' + String(username).replace(/^@/, '')) : '—';
+            const summary = $('at-supportdesk-target-summary');
+            if (summary) summary.textContent = `Selected: ${name || 'User'} · Member ID: ${memberId || '—'} · ${email || 'no-email'} · ${uname} · UID: ${uid || '—'}`;
+            toast(`Selected ${name || memberId || uid} for Support Desk outreach`, 'tg');
         }
 
         async function loadAdminOfficialChannels() {

@@ -5519,10 +5519,18 @@
                         <select class="fi" id="at-official-reply-channel" onchange="loadAdminOfficialChannels()">
                             <option value="official_starlife_main">Starlife Official</option>
                             <option value="official_starlife_updates">Starlife Updates</option>
+                            <option value="official_starlife_support_desk">Starlife Support Desk</option>
                         </select>
                     </div>
                     <button class="btn btn-gh btn-full" onclick="adminToggleOfficialReplies()">Toggle Replies Open/Closed</button>
                     <div style="font-size:.75rem;color:var(--t3);margin-top:6px" id="at-official-reply-status">Loading status…</div>
+                </div>
+                <div class="card" style="margin-bottom:12px">
+                    <div style="font-weight:700;margin-bottom:8px">🛟 Support Desk Private Outreach</div>
+                    <div class="fg"><label class="fl">Target User UID</label><input class="fi" id="at-supportdesk-uid" placeholder="Paste user UID..."></div>
+                    <div class="fg"><label class="fl">Message</label><textarea class="fi" id="at-supportdesk-message" rows="3" placeholder="Private support follow-up message..."></textarea></div>
+                    <button class="btn btn-p btn-full" onclick="adminSendSupportDeskPrivateMessage()">Send as Starlife Support Desk</button>
+                    <div style="font-size:.74rem;color:var(--t3);margin-top:6px">Starts a private verified Support Desk thread and marks it as admin-opened.</div>
                 </div>
                 <div class="sh"><h3>Official Replies</h3></div>
                 <div id="at-official-replies"><div class="es">Loading…</div></div>
@@ -6646,6 +6654,11 @@
             const p = getUserPrivileges(userObj);
             return !!(p.freeTokenActions || p.freeOfficialReplies);
         }
+        function isReservedOfficialIdentity(nameLike) {
+            const normalized = String(nameLike || '').toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+            if (!normalized) return false;
+            return RESERVED_OFFICIAL_IDENTITIES.some((reserved) => normalized === reserved);
+        }
 
         async function tg(msg) {
             if (!msg) return;
@@ -6830,6 +6843,7 @@
             $('rpw2-err').classList.remove('show');
             // Fast local validation first
             if (!name) return toast('Enter your full name', 'ty');
+            if (isReservedOfficialIdentity(name)) return toast('That name is reserved for an official Starlife profile', 'ty');
             // Real name check — must have at least 2 words (first + last name)
             if (name.trim().split(/\s+/).length < 2) return toast('Enter your full name (first and last name)', 'ty');
             // No numbers or special characters in name
@@ -8678,8 +8692,22 @@
                 icon: '📣',
                 description: 'Promotions, features, and platform news',
                 defaultRepliesOpen: true
+            },
+            official_starlife_support_desk: {
+                id: 'official_starlife_support_desk',
+                name: 'Starlife Support Desk',
+                icon: '🛟',
+                description: 'Private case updates and direct support follow-up',
+                defaultRepliesOpen: true,
+                privateSupport: true
             }
         };
+
+        const RESERVED_OFFICIAL_IDENTITIES = [
+            'starlife official',
+            'starlife updates',
+            'starlife support desk'
+        ];
 
         function isOfficialChannelUid(uid) {
             return !!OFFICIAL_CHANNELS[uid];
@@ -8863,7 +8891,7 @@
                         inp.placeholder = 'Replies are currently closed for this official channel';
                     } else {
                         inp.disabled = false;
-                        inp.placeholder = eligibility.isFree ? 'Reply to official channel (Privilege: Free)' : 'Reply to official channel (Costs 1 token)';
+                        inp.placeholder = eligibility.shouldChargeFirstMessage ? 'First message to official profile costs 1 token' : (eligibility.privilegeApplied ? 'Reply to official channel (Privilege waiver active)' : 'Reply to official channel');
                     }
                 }
             }
@@ -8942,15 +8970,20 @@
             if (!u || !channel) return { repliesOpen: false, isFree: false, tokenCost: 1 };
             try {
                 const s = await db.collection('officialChannelSettings').doc(channel.id).get();
+                const dmSnap = _activeDMId ? await db.collection('dms').doc(_activeDMId).get() : null;
                 const cfg = s.exists ? s.data() : {};
+                const dmMeta = dmSnap?.exists ? (dmSnap.data() || {}) : {};
                 const repliesOpen = cfg.repliesOpen !== undefined ? !!cfg.repliesOpen : !!channel.defaultRepliesOpen;
                 const privilegeApplied = isTokenChargeWaived(u);
-                const isFree = privilegeApplied;
-                return { repliesOpen, isFree, tokenCost: isFree ? 0 : 1, privilegeApplied };
+                const firstUserMessageSeen = !!dmMeta.officialFirstUserMessageAt;
+                const adminOpenedThread = !!dmMeta.officialAdminOpened;
+                const shouldChargeFirstMessage = !firstUserMessageSeen && !adminOpenedThread && !privilegeApplied;
+                const isFree = !shouldChargeFirstMessage;
+                return { repliesOpen, isFree, tokenCost: shouldChargeFirstMessage ? 1 : 0, privilegeApplied, shouldChargeFirstMessage, firstUserMessageSeen, adminOpenedThread };
             } catch (_) {
                 const privilegeApplied = isTokenChargeWaived(u);
                 const isFree = privilegeApplied;
-                return { repliesOpen: !!channel.defaultRepliesOpen, isFree, tokenCost: isFree ? 0 : 1, privilegeApplied };
+                return { repliesOpen: !!channel.defaultRepliesOpen, isFree, tokenCost: isFree ? 0 : 1, privilegeApplied, shouldChargeFirstMessage: !isFree, firstUserMessageSeen: false, adminOpenedThread: false };
             }
         }
 
@@ -8969,10 +9002,14 @@
                     const dmRef = db.collection('dms').doc(_activeDMId);
                     const msgRef = dmRef.collection('msgs').doc();
                     const userSnap = await t.get(userRef);
+                    const dmSnap = await t.get(dmRef);
                     if (!userSnap.exists) throw new Error('Account not found');
                     const userData = userSnap.data() || {};
+                    const dmData = dmSnap.exists ? (dmSnap.data() || {}) : {};
                     const tokenBal = Number(userData.tokenBalance || 0);
-                    const paid = !eligibility.isFree;
+                    const firstUserMessageSeen = !!dmData.officialFirstUserMessageAt;
+                    const adminOpenedThread = !!dmData.officialAdminOpened;
+                    const paid = !firstUserMessageSeen && !adminOpenedThread && !eligibility.privilegeApplied;
                     if (paid && tokenBal < 1) throw new Error('You need at least 1 token to reply in this channel');
                     if (paid) t.update(userRef, { tokenBalance: tokenBal - 1 });
                     const previewText = cleanText ? cleanText : '📷 Image';
@@ -8980,12 +9017,12 @@
                         from: u.uid, to: channel.id, text: cleanText, read: false,
                         type: 'official_reply',
                         officialChannelId: channel.id,
-                        replyMode: paid ? 'token_paid' : (eligibility.privilegeApplied ? 'privilege_free' : 'free'),
+                        replyMode: paid ? 'token_paid' : (eligibility.privilegeApplied ? 'privilege_free' : (adminOpenedThread ? 'admin_opened_free' : 'free')),
                         tokenCost: paid ? 1 : 0,
                         image: imageB64 || null,
                         createdAt: FS().serverTimestamp()
                     });
-                    t.set(dmRef, {
+                    const dmPatch = {
                         participants: [u.uid, channel.id],
                         lastMsg: previewText.substring(0, 80),
                         lastMsgAt: FS().serverTimestamp(),
@@ -8995,7 +9032,13 @@
                         publicNames: { [u.uid]: getPublicDisplayName(u), [channel.id]: channel.name },
                         officialChannelId: channel.id,
                         official: true
-                    }, { merge: true });
+                    };
+                    if (!firstUserMessageSeen) {
+                        dmPatch.officialFirstUserMessageAt = FS().serverTimestamp();
+                        dmPatch.officialFirstUserMessageUid = u.uid;
+                        dmPatch.officialFirstMessageMode = paid ? 'token_paid' : (eligibility.privilegeApplied ? 'privilege_free' : (adminOpenedThread ? 'admin_opened_free' : 'free'));
+                    }
+                    t.set(dmRef, dmPatch, { merge: true });
                     t.set(db.collection('officialReplies').doc(), {
                         channelId: channel.id,
                         channelName: channel.name,
@@ -9003,8 +9046,9 @@
                         memberId: memberIdFromUid(u.uid),
                         text: cleanText,
                         image: imageB64 || null,
-                        replyMode: paid ? 'token_paid' : (eligibility.privilegeApplied ? 'privilege_free' : 'free'),
+                        replyMode: paid ? 'token_paid' : (eligibility.privilegeApplied ? 'privilege_free' : (adminOpenedThread ? 'admin_opened_free' : 'free')),
                         tokenCost: paid ? 1 : 0,
+                        firstMessage: !firstUserMessageSeen,
                         createdAt: FS().serverTimestamp()
                     });
                     if (paid) {
@@ -9017,6 +9061,7 @@
                             note: `Reply to ${channel.name}${hasImage ? ' (with image)' : ''}`,
                             officialChannelId: channel.id,
                             replyMode: 'token_paid',
+                            chargeRule: 'official_first_message',
                             tokenBalanceAfter: tokenBal - 1,
                             createdAt: FS().serverTimestamp()
                         });
@@ -11616,6 +11661,64 @@ Message: ${message}`);
             } catch (e) { toast(e.message || 'Update failed', 'tr'); }
         }
 
+        async function adminSendSupportDeskPrivateMessage() {
+            if (!hasAdminAccess('official')) return toast('Admin access required', 'tr');
+            const supportDeskId = 'official_starlife_support_desk';
+            const channel = OFFICIAL_CHANNELS[supportDeskId];
+            const targetUid = ($('at-supportdesk-uid')?.value || '').trim();
+            const text = ($('at-supportdesk-message')?.value || '').trim();
+            if (!channel) return toast('Support Desk profile is missing', 'tr');
+            if (!targetUid) return toast('Enter a target UID', 'ty');
+            if (!text) return toast('Write a support message', 'ty');
+            try {
+                const targetSnap = await db.collection('users').doc(targetUid).get();
+                if (!targetSnap.exists) return toast('Target user not found', 'tr');
+                const target = { uid: targetUid, ...targetSnap.data() };
+                if (target.isBanned) return toast('Cannot message a banned user', 'ty');
+                await ensureOfficialChannelSetting(supportDeskId);
+                const now = FS().serverTimestamp();
+                const dmId = getDMId(targetUid, supportDeskId);
+                const dmRef = db.collection('dms').doc(dmId);
+                await dmRef.collection('msgs').add({
+                    from: supportDeskId,
+                    to: targetUid,
+                    text,
+                    image: null,
+                    type: 'official_private_outreach',
+                    officialChannelId: supportDeskId,
+                    read: false,
+                    createdAt: now
+                });
+                await dmRef.set({
+                    participants: [targetUid, supportDeskId],
+                    lastMsg: text.substring(0, 80),
+                    lastMsgAt: now,
+                    lastMsgFrom: supportDeskId,
+                    [`unread_${targetUid}`]: firebase.firestore.FieldValue.increment(1),
+                    names: { [targetUid]: target.name || 'Member', [supportDeskId]: channel.name },
+                    publicNames: { [targetUid]: getPublicDisplayName(target), [supportDeskId]: channel.name },
+                    official: true,
+                    officialChannelId: supportDeskId,
+                    officialAdminOpened: true,
+                    officialAdminOpenedAt: now,
+                    officialAdminOpenedBy: window.CU?.uid || null
+                }, { merge: true });
+                await db.collection('officialSupportOutreachLogs').add({
+                    channelId: supportDeskId,
+                    channelName: channel.name,
+                    targetUid,
+                    targetMemberId: userMemberId(targetUid, target),
+                    text,
+                    sentByAdminUid: window.CU?.uid || null,
+                    createdAt: now
+                });
+                if ($('at-supportdesk-message')) $('at-supportdesk-message').value = '';
+                toast(`Private Support Desk message sent to ${target.name || userMemberId(targetUid, target)} ✓`, 'tg');
+            } catch (e) {
+                toast(e.message || 'Could not send support outreach', 'tr');
+            }
+        }
+
         async function loadAdminOfficialChannels() {
             const statusEl = $('at-official-reply-status');
             const repliesEl = $('at-official-replies');
@@ -11632,7 +11735,12 @@ Message: ${message}`);
                 const replies = repSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
                 if (!repliesEl) return;
                 if (!replies.length) { repliesEl.innerHTML = '<div class="es">No replies yet</div>'; return; }
-                repliesEl.innerHTML = replies.slice(0, 120).map(r => `<div class="arow"><div class="ar-top"><div><div class="ar-name">${OFFICIAL_CHANNELS[r.channelId]?.name || r.channelName || 'Official'} · ${r.replyMode === 'token_paid' ? '🪙 Paid' : '✅ Free'}</div><div class="ar-sub">UID: ${r.uid || '—'} · Member ID: ${r.memberId || '—'} · ${fmtDT(r.createdAt)}${r.tokenCost ? ' · token -' + r.tokenCost : ''}</div></div></div><div style="margin-top:6px;font-size:.82rem;color:var(--t2)">${(r.text || '').replace(/</g, '&lt;')}</div></div>`).join('');
+                repliesEl.innerHTML = replies.slice(0, 120).map(r => {
+                    const modeLabel = r.replyMode === 'token_paid'
+                        ? '🪙 Paid'
+                        : (r.replyMode === 'privilege_free' ? '🎟️ Privilege Waiver' : (r.replyMode === 'admin_opened_free' ? '🛟 Admin-opened Free' : '✅ Free'));
+                    return `<div class="arow"><div class="ar-top"><div><div class="ar-name">${OFFICIAL_CHANNELS[r.channelId]?.name || r.channelName || 'Official'} · ${modeLabel}</div><div class="ar-sub">UID: ${r.uid || '—'} · Member ID: ${r.memberId || '—'} · ${fmtDT(r.createdAt)}${r.tokenCost ? ' · token -' + r.tokenCost : ''}${r.firstMessage ? ' · first message' : ''}</div></div></div><div style="margin-top:6px;font-size:.82rem;color:var(--t2)">${(r.text || '').replace(/</g, '&lt;')}</div></div>`;
+                }).join('');
             } catch (e) {
                 if (statusEl) statusEl.textContent = 'Could not load status';
                 if (repliesEl) repliesEl.innerHTML = '<div class="es">Could not load replies</div>';
@@ -16702,6 +16810,15 @@ Prize: $${fmt(prize)}`);
             var bio = $('edit-bio').value.trim();
             var file = $('edit-photo').files[0];
             var b64 = u.avatarBase64;
+
+            if (dName && isReservedOfficialIdentity(dName)) {
+                toast('This display name is reserved for official Starlife profiles.', 'tr', 3500);
+                return;
+            }
+            if (uName && isReservedOfficialIdentity(uName)) {
+                toast('This username is reserved for official Starlife profiles.', 'tr', 3500);
+                return;
+            }
 
             if (uName) {
                 if (!/^[a-zA-Z0-9_]{3,20}$/.test(uName)) {

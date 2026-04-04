@@ -8677,14 +8677,16 @@
                 name: 'Starlife Official',
                 icon: '🛡️',
                 description: 'Security alerts, emergency notices, and critical announcements',
-                defaultRepliesOpen: false
+                defaultRepliesOpen: false,
+                chargeEveryUserMessage: true
             },
             official_starlife_updates: {
                 id: 'official_starlife_updates',
                 name: 'Starlife Updates',
                 icon: '📣',
                 description: 'Promotions, features, and platform news',
-                defaultRepliesOpen: true
+                defaultRepliesOpen: true,
+                chargeEveryUserMessage: true
             },
             official_starlife_support_desk: {
                 id: 'official_starlife_support_desk',
@@ -8884,7 +8886,7 @@
                         inp.placeholder = 'Replies are currently closed for this official channel';
                     } else {
                         inp.disabled = false;
-                        inp.placeholder = eligibility.shouldChargeFirstMessage ? 'First message to official profile costs 1 token' : (eligibility.privilegeApplied ? 'Reply to official channel (Privilege waiver active)' : 'Reply to official channel');
+                        inp.placeholder = eligibility.shouldChargeCurrentMessage ? 'Reply to official channel (Costs 1 token)' : (eligibility.privilegeApplied ? 'Reply to official channel (Privilege waiver active)' : 'Reply to official channel');
                     }
                 }
             }
@@ -8970,13 +8972,16 @@
                 const privilegeApplied = isTokenChargeWaived(u);
                 const firstUserMessageSeen = !!dmMeta.officialFirstUserMessageAt;
                 const adminOpenedThread = !!dmMeta.officialAdminOpened;
-                const shouldChargeFirstMessage = !firstUserMessageSeen && !adminOpenedThread && !privilegeApplied;
-                const isFree = !shouldChargeFirstMessage;
-                return { repliesOpen, isFree, tokenCost: shouldChargeFirstMessage ? 1 : 0, privilegeApplied, shouldChargeFirstMessage, firstUserMessageSeen, adminOpenedThread };
+                const everyMessageRule = !!channel.chargeEveryUserMessage;
+                const shouldChargeCurrentMessage = everyMessageRule
+                    ? !privilegeApplied
+                    : (!firstUserMessageSeen && !adminOpenedThread && !privilegeApplied);
+                const isFree = !shouldChargeCurrentMessage;
+                return { repliesOpen, isFree, tokenCost: shouldChargeCurrentMessage ? 1 : 0, privilegeApplied, shouldChargeCurrentMessage, firstUserMessageSeen, adminOpenedThread, everyMessageRule };
             } catch (_) {
                 const privilegeApplied = isTokenChargeWaived(u);
                 const isFree = privilegeApplied;
-                return { repliesOpen: !!channel.defaultRepliesOpen, isFree, tokenCost: isFree ? 0 : 1, privilegeApplied, shouldChargeFirstMessage: !isFree, firstUserMessageSeen: false, adminOpenedThread: false };
+                return { repliesOpen: !!channel.defaultRepliesOpen, isFree, tokenCost: isFree ? 0 : 1, privilegeApplied, shouldChargeCurrentMessage: !isFree, firstUserMessageSeen: false, adminOpenedThread: false, everyMessageRule: !!channel.chargeEveryUserMessage };
             }
         }
 
@@ -9004,7 +9009,10 @@
                     const tokenBal = Number(userData.tokenBalance || 0);
                     const firstUserMessageSeen = !!dmData.officialFirstUserMessageAt;
                     const adminOpenedThread = !!dmData.officialAdminOpened;
-                    const paid = !firstUserMessageSeen && !adminOpenedThread && !eligibility.privilegeApplied;
+                    const everyMessageRule = !!channel.chargeEveryUserMessage;
+                    const paid = everyMessageRule
+                        ? !eligibility.privilegeApplied
+                        : (!firstUserMessageSeen && !adminOpenedThread && !eligibility.privilegeApplied);
                     if (paid && tokenBal < 1) throw new Error('You need at least 1 token to reply in this channel');
                     if (paid) t.update(userRef, { tokenBalance: tokenBal - 1 });
                     const previewText = cleanText ? cleanText : '📷 Image';
@@ -9056,7 +9064,7 @@
                             note: `Reply to ${channel.name}${hasImage ? ' (with image)' : ''}`,
                             officialChannelId: channel.id,
                             replyMode: 'token_paid',
-                            chargeRule: 'official_first_message',
+                            chargeRule: channel.chargeEveryUserMessage ? 'official_every_message' : 'official_first_message',
                             tokenBalanceAfter: tokenBal - 1,
                             createdAt: FS().serverTimestamp()
                         });

@@ -192,10 +192,16 @@
             white-space: nowrap;
             min-width: 100%;
             will-change: transform;
-            animation: tickerMove 16s linear infinite;
+            animation: tickerMove var(--ticker-duration, 42s) linear infinite;
             padding-right: 24px;
             font-size: .84rem;
             font-weight: 700;
+        }
+
+        @media (max-width: 768px) {
+            .moving-ticker-line {
+                --ticker-duration: 56s;
+            }
         }
 
         .moving-ticker-line span {
@@ -6039,6 +6045,13 @@
                         </select>
                     </div>
                 </div>
+                <div class="fg"><label class="fl">Speed</label>
+                    <select class="fi" id="ma-speed">
+                        <option value="slow">Slow (default)</option>
+                        <option value="normal">Normal</option>
+                        <option value="fast">Fast</option>
+                    </select>
+                </div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap">
                     <button class="btn btn-p" onclick="adminSaveMovingAnnouncement()">💾 Save / Replace Ticker</button>
                     <button class="btn btn-gh" onclick="adminToggleMovingAnnouncement()">⏻ Toggle On/Off</button>
@@ -9586,9 +9599,21 @@
             }
         };
         let _movingAnnouncementUnsub = null;
+        const MOVING_ANNOUNCEMENT_SPEEDS = {
+            slow: 42,
+            normal: 30,
+            fast: 22
+        };
 
         function movingAnnouncementTheme(themeName) {
             return MOVING_ANNOUNCEMENT_THEMES[themeName] || MOVING_ANNOUNCEMENT_THEMES.neon;
+        }
+
+        function movingAnnouncementDuration(speedName) {
+            const baseSeconds = MOVING_ANNOUNCEMENT_SPEEDS[speedName] || MOVING_ANNOUNCEMENT_SPEEDS.slow;
+            const isMobile = window.matchMedia('(max-width: 768px)').matches;
+            const seconds = isMobile ? Math.round(baseSeconds * 1.33) : baseSeconds;
+            return `${seconds}s`;
         }
 
         function renderMovingAnnouncement(data) {
@@ -9611,6 +9636,7 @@
             bar.style.color = theme.text;
             tag.textContent = data.label || theme.badge || 'Live';
             line.style.color = theme.text;
+            line.style.animationDuration = movingAnnouncementDuration(data.speed || 'slow');
             const safeMsg = msg.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
             line.innerHTML = `<span>📣 ${safeMsg}</span><span>📣 ${safeMsg}</span><span>📣 ${safeMsg}</span>`;
         }
@@ -9637,9 +9663,10 @@
                 if ($('ma-text')) $('ma-text').value = data.text || '';
                 if ($('ma-theme')) $('ma-theme').value = data.theme || 'sunset';
                 if ($('ma-enabled')) $('ma-enabled').value = data.enabled === false ? 'false' : 'true';
+                if ($('ma-speed')) $('ma-speed').value = data.speed || 'slow';
                 if (preview) {
                     if (!snap.exists || !data.text) preview.innerHTML = '<div class="es">No ticker created yet.</div>';
-                    else preview.innerHTML = `<div style="font-weight:700;margin-bottom:6px">${data.enabled === false ? 'OFF' : 'ON'} · Theme: ${String(data.theme || 'sunset').replace(/</g,'&lt;')}</div><div style="font-size:.84rem;color:var(--t2)">${String(data.text || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div><div style="font-size:.72rem;color:var(--t3);margin-top:6px">Updated: ${fmtDT(data.updatedAt || data.createdAt)}</div>`;
+                    else preview.innerHTML = `<div style="font-weight:700;margin-bottom:6px">${data.enabled === false ? 'OFF' : 'ON'} · Theme: ${String(data.theme || 'sunset').replace(/</g,'&lt;')} · Speed: ${String(data.speed || 'slow').replace(/</g,'&lt;')}</div><div style="font-size:.84rem;color:var(--t2)">${String(data.text || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div><div style="font-size:.72rem;color:var(--t3);margin-top:6px">Updated: ${fmtDT(data.updatedAt || data.createdAt)}</div>`;
                 }
             } catch (e) {
                 if (preview) preview.innerHTML = '<div class="es">Failed to load ticker settings.</div>';
@@ -9651,11 +9678,13 @@
             const text = ($('ma-text')?.value || '').trim();
             const theme = $('ma-theme')?.value || 'sunset';
             const enabled = ($('ma-enabled')?.value || 'true') === 'true';
+            const speed = $('ma-speed')?.value || 'slow';
             if (!text) return toast('Enter ticker text', 'ty');
             await db.collection('appSettings').doc('movingAnnouncement').set({
                 text,
                 theme,
                 enabled,
+                speed,
                 label: movingAnnouncementTheme(theme).badge,
                 updatedAt: FS().serverTimestamp(),
                 updatedBy: window.CU?.uid || null

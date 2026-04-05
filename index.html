@@ -147,6 +147,78 @@
             box-shadow: 0 0 0 3px var(--gg)
         }
 
+        /* MOVING ANNOUNCEMENT TICKER */
+        .moving-ticker {
+            position: fixed;
+            top: 56px;
+            left: 0;
+            right: 0;
+            z-index: 295;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            overflow: hidden;
+            display: none;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, .25);
+        }
+
+        .moving-ticker.show {
+            display: flex;
+            align-items: center;
+        }
+
+        .moving-ticker-tag {
+            flex-shrink: 0;
+            padding: 8px 11px;
+            font-size: .68rem;
+            font-weight: 800;
+            letter-spacing: .3px;
+            text-transform: uppercase;
+            border-right: 1px solid rgba(255, 255, 255, .2);
+        }
+
+        .moving-ticker-track {
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            padding: 8px 0;
+            mask-image: linear-gradient(to right, transparent 0, #000 5%, #000 95%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to right, transparent 0, #000 5%, #000 95%, transparent 100%);
+        }
+
+        .moving-ticker-line {
+            display: inline-flex;
+            align-items: center;
+            gap: 20px;
+            white-space: nowrap;
+            min-width: 100%;
+            will-change: transform;
+            animation: tickerMove 16s linear infinite;
+            padding-right: 24px;
+            font-size: .84rem;
+            font-weight: 700;
+        }
+
+        .moving-ticker-line span {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 6px;
+        }
+
+        @keyframes tickerMove {
+            0% {
+                transform: translateX(100%);
+            }
+
+            100% {
+                transform: translateX(-100%);
+            }
+        }
+
+        body.has-moving-ticker #pg-app .wrap {
+            padding-top: 106px;
+        }
+
         /* BOTTOM NAV */
         .bnav {
             position: fixed;
@@ -3198,6 +3270,16 @@
             </div>
         </nav>
 
+        <div class="moving-ticker" id="moving-ticker">
+            <div class="moving-ticker-tag" id="moving-ticker-tag">Live</div>
+            <div class="moving-ticker-track">
+                <div class="moving-ticker-line" id="moving-ticker-line">
+                    <span>✨ Welcome to Starlife announcements</span>
+                    <span>✨ Welcome to Starlife announcements</span>
+                </div>
+            </div>
+        </div>
+
         <div class="wrap">
             <div id="notif-area"></div>
 
@@ -5935,6 +6017,40 @@
             </div>
         </div>
 
+        <div id="at-moving" class="atab">
+            <div class="card">
+                <div style="font-weight:700;margin-bottom:8px">📡 Moving Announcement Ticker</div>
+                <div style="font-size:.78rem;color:var(--t2);margin-bottom:14px">Runs as a horizontal scrolling banner across the app. Great for promos, urgent notices, maintenance updates, giveaways, and winner announcements.</div>
+                <div class="fg"><label class="fl">Announcement Text</label><textarea class="fi" id="ma-text" rows="4" placeholder="🎉 Giveaway tonight at 8PM UTC — Winner gets $500 bonus!"></textarea></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                    <div class="fg"><label class="fl">Theme</label>
+                        <select class="fi" id="ma-theme">
+                            <option value="sunset">🌅 Sunset Alert</option>
+                            <option value="neon">💚 Neon Starlife</option>
+                            <option value="ocean">🌊 Ocean Flash</option>
+                            <option value="danger">🚨 Red Urgent</option>
+                            <option value="royal">👑 Royal Gold</option>
+                        </select>
+                    </div>
+                    <div class="fg"><label class="fl">Status</label>
+                        <select class="fi" id="ma-enabled">
+                            <option value="true">On — show ticker</option>
+                            <option value="false">Off — hide ticker</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <button class="btn btn-p" onclick="adminSaveMovingAnnouncement()">💾 Save / Replace Ticker</button>
+                    <button class="btn btn-gh" onclick="adminToggleMovingAnnouncement()">⏻ Toggle On/Off</button>
+                    <button class="btn btn-d" onclick="adminDeleteMovingAnnouncement()">🗑 Delete</button>
+                </div>
+            </div>
+            <div class="card" style="margin-top:14px">
+                <div style="font-weight:600;margin-bottom:8px">Current Ticker</div>
+                <div id="ma-preview" class="es">Loading ticker settings...</div>
+            </div>
+        </div>
+
         <div id="at-broadcast" class="atab">
             <div class="card">
                 <div class="fg"><label class="fl">Title</label><input class="fi" id="bc-title"
@@ -6783,6 +6899,8 @@
                 const fab = $('ai-chat-fab');
                 if (fab) fab.style.display = 'none';
                 await applyMaintenanceModeToUI(null);
+                stopMovingAnnouncementListener();
+                renderMovingAnnouncement(null);
                 go(window._maintenanceState?.active ? 'pg-maint' : 'pg-land');
                 return;
             }
@@ -6796,6 +6914,7 @@
             const d = snap.data();
             window.CU = { uid: user.uid, ...d };
             await loadPlatformSettings(true);
+            initMovingAnnouncementListener();
             if (d.isBanned) { go('pg-banned'); return; }
             await warmSecurityContext();
             const blocked = await isCurrentIpBlocked();
@@ -7199,6 +7318,7 @@
 
         async function loadAdminFinancialSettings() {
             await loadPlatformSettings(true);
+            initMovingAnnouncementListener();
             if ($('fin-wd-min')) $('fin-wd-min').value = getFinancialSetting('withdrawMinAmount');
             if ($('fin-wd-fee')) $('fin-wd-fee').value = parseFloat((getFinancialSetting('withdrawFeeRate') * 100).toFixed(4));
             if ($('fin-tf-fee')) $('fin-tf-fee').value = parseFloat((getFinancialSetting('transferFeeRate') * 100).toFixed(4));
@@ -7230,6 +7350,7 @@
                 });
                 window._platformSettingsLoaded = false;
                 await loadPlatformSettings(true);
+            initMovingAnnouncementListener();
                 toast('Financial settings updated ✓', 'tg');
             } catch (e) { toast(e.message || 'Failed to save settings', 'tr'); }
         }
@@ -9432,13 +9553,144 @@
             } catch (e) { el.innerHTML = '<div class="es">Error loading conversations</div>'; }
         }
 
+        const MOVING_ANNOUNCEMENT_THEMES = {
+            sunset: {
+                barBg: 'linear-gradient(90deg,#2b0d0d,#6f2414,#a73f1b)',
+                tagBg: 'rgba(255,193,7,.18)',
+                text: '#FFE9C2',
+                badge: 'Alert'
+            },
+            neon: {
+                barBg: 'linear-gradient(90deg,#08210f,#0f5a2a,#0b2c16)',
+                tagBg: 'rgba(0,230,118,.2)',
+                text: '#E4FFE9',
+                badge: 'Live'
+            },
+            ocean: {
+                barBg: 'linear-gradient(90deg,#031a2f,#0a4168,#125b84)',
+                tagBg: 'rgba(64,196,255,.22)',
+                text: '#E3F7FF',
+                badge: 'Update'
+            },
+            danger: {
+                barBg: 'linear-gradient(90deg,#280404,#7f1010,#440707)',
+                tagBg: 'rgba(255,82,82,.25)',
+                text: '#FFD8D8',
+                badge: 'Urgent'
+            },
+            royal: {
+                barBg: 'linear-gradient(90deg,#281b03,#6e4a00,#9d6d00)',
+                tagBg: 'rgba(255,213,79,.25)',
+                text: '#FFF5D4',
+                badge: 'Hot'
+            }
+        };
+        let _movingAnnouncementUnsub = null;
+
+        function movingAnnouncementTheme(themeName) {
+            return MOVING_ANNOUNCEMENT_THEMES[themeName] || MOVING_ANNOUNCEMENT_THEMES.neon;
+        }
+
+        function renderMovingAnnouncement(data) {
+            const bar = $('moving-ticker');
+            const tag = $('moving-ticker-tag');
+            const line = $('moving-ticker-line');
+            if (!bar || !tag || !line) return;
+            const enabled = !!(data && data.enabled && (data.text || '').trim());
+            if (!enabled) {
+                bar.classList.remove('show');
+                document.body.classList.remove('has-moving-ticker');
+                return;
+            }
+            const msg = (data.text || '').trim();
+            const theme = movingAnnouncementTheme(data.theme);
+            bar.classList.add('show');
+            document.body.classList.add('has-moving-ticker');
+            bar.style.background = theme.barBg;
+            tag.style.background = theme.tagBg;
+            bar.style.color = theme.text;
+            tag.textContent = data.label || theme.badge || 'Live';
+            line.style.color = theme.text;
+            const safeMsg = msg.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            line.innerHTML = `<span>📣 ${safeMsg}</span><span>📣 ${safeMsg}</span><span>📣 ${safeMsg}</span>`;
+        }
+
+        function stopMovingAnnouncementListener() {
+            if (typeof _movingAnnouncementUnsub === 'function') _movingAnnouncementUnsub();
+            _movingAnnouncementUnsub = null;
+        }
+
+        function initMovingAnnouncementListener() {
+            stopMovingAnnouncementListener();
+            _movingAnnouncementUnsub = db.collection('appSettings').doc('movingAnnouncement').onSnapshot((snap) => {
+                renderMovingAnnouncement(snap.exists ? (snap.data() || null) : null);
+            }, () => renderMovingAnnouncement(null));
+        }
+
+        async function loadAdminMovingAnnouncement() {
+            if (!hasAdminAccess('moving')) return;
+            const preview = $('ma-preview');
+            if (preview) preview.innerHTML = '<div class="es">Loading ticker settings...</div>';
+            try {
+                const snap = await db.collection('appSettings').doc('movingAnnouncement').get();
+                const data = snap.exists ? (snap.data() || {}) : {};
+                if ($('ma-text')) $('ma-text').value = data.text || '';
+                if ($('ma-theme')) $('ma-theme').value = data.theme || 'sunset';
+                if ($('ma-enabled')) $('ma-enabled').value = data.enabled === false ? 'false' : 'true';
+                if (preview) {
+                    if (!snap.exists || !data.text) preview.innerHTML = '<div class="es">No ticker created yet.</div>';
+                    else preview.innerHTML = `<div style="font-weight:700;margin-bottom:6px">${data.enabled === false ? 'OFF' : 'ON'} · Theme: ${String(data.theme || 'sunset').replace(/</g,'&lt;')}</div><div style="font-size:.84rem;color:var(--t2)">${String(data.text || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div><div style="font-size:.72rem;color:var(--t3);margin-top:6px">Updated: ${fmtDT(data.updatedAt || data.createdAt)}</div>`;
+                }
+            } catch (e) {
+                if (preview) preview.innerHTML = '<div class="es">Failed to load ticker settings.</div>';
+            }
+        }
+
+        async function adminSaveMovingAnnouncement() {
+            if (!hasAdminAccess('moving')) return toast('Admin access required', 'tr');
+            const text = ($('ma-text')?.value || '').trim();
+            const theme = $('ma-theme')?.value || 'sunset';
+            const enabled = ($('ma-enabled')?.value || 'true') === 'true';
+            if (!text) return toast('Enter ticker text', 'ty');
+            await db.collection('appSettings').doc('movingAnnouncement').set({
+                text,
+                theme,
+                enabled,
+                label: movingAnnouncementTheme(theme).badge,
+                updatedAt: FS().serverTimestamp(),
+                updatedBy: window.CU?.uid || null
+            }, { merge: true });
+            toast('Moving announcement saved ✓', 'tg');
+            loadAdminMovingAnnouncement();
+        }
+
+        async function adminToggleMovingAnnouncement() {
+            if (!hasAdminAccess('moving')) return toast('Admin access required', 'tr');
+            const ref = db.collection('appSettings').doc('movingAnnouncement');
+            const snap = await ref.get();
+            if (!snap.exists) return toast('Create a ticker first', 'ty');
+            const current = !!snap.data()?.enabled;
+            await ref.set({ enabled: !current, updatedAt: FS().serverTimestamp(), updatedBy: window.CU?.uid || null }, { merge: true });
+            toast(`Ticker ${!current ? 'enabled' : 'disabled'} ✓`, 'tg');
+            loadAdminMovingAnnouncement();
+        }
+
+        async function adminDeleteMovingAnnouncement() {
+            if (!hasAdminAccess('moving')) return toast('Admin access required', 'tr');
+            if (!confirm('Delete moving ticker announcement?')) return;
+            await db.collection('appSettings').doc('movingAnnouncement').delete();
+            renderMovingAnnouncement(null);
+            toast('Ticker deleted', 'tg');
+            loadAdminMovingAnnouncement();
+        }
+
         // ════════════════════════════════════════════════════════
         // ADMIN ROLE SYSTEM
         // ════════════════════════════════════════════════════════
         const ADMIN_ROLES = {
             superadmin: {
                 label: '⭐ Super Admin', color: 'var(--gold)',
-                tabs: ['investments', 'deposits', 'withdrawals', 'users', 'kyc', 'leaderboard', 'community', 'stakes', 'loans', 'tickets', 'surveys', 'redemptions', 'activity', 'revenue', 'analytics', 'security', 'maintenance', 'testi', 'prizecodes', 'luckydraw', 'contest', 'p2p', 'broadcast', 'ads', 'admins', 'promocodes', 'fees', 'tokens', 'gifts', 'paiddm', 'official']
+                tabs: ['investments', 'deposits', 'withdrawals', 'users', 'kyc', 'leaderboard', 'community', 'stakes', 'loans', 'tickets', 'surveys', 'redemptions', 'activity', 'revenue', 'analytics', 'security', 'maintenance', 'testi', 'prizecodes', 'luckydraw', 'contest', 'p2p', 'broadcast', 'moving', 'ads', 'admins', 'promocodes', 'fees', 'tokens', 'gifts', 'paiddm', 'official']
             },
             finance: {
                 label: '💰 Finance', color: 'var(--g)',
@@ -9450,7 +9702,7 @@
             },
             moderator: {
                 label: '🌐 Moderator', color: '#a78bfa',
-                tabs: ['community', 'testi', 'broadcast', 'ads', 'activity', 'official']
+                tabs: ['community', 'testi', 'broadcast', 'moving', 'ads', 'activity', 'official']
             },
             operations: {
                 label: '⚙️ Operations', color: 'var(--gold)',
@@ -9483,6 +9735,7 @@
             contest: () => loadAdminContest(),
             p2p: () => loadAdminP2P(),
             broadcast: () => loadAdminBroadcasts(),
+            moving: () => loadAdminMovingAnnouncement(),
             ads: () => loadAds(),
             admins: () => loadAdminsList(),
             promocodes: () => loadAdminPromoCodes(),
@@ -9517,6 +9770,7 @@
             { id: 'contest', label: '🏆 Contest' },
             { id: 'p2p', label: '💱 P2P' },
             { id: 'broadcast', label: 'Broadcast' },
+            { id: 'moving', label: '📡 Moving Ticker' },
             { id: 'ads', label: '📢 Ads' },
             { id: 'admins', label: '👥 Admins' },
             { id: 'promocodes', label: '🎁 Promo Codes' },

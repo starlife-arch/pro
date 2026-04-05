@@ -149,6 +149,7 @@
 
         /* MOVING ANNOUNCEMENT TICKER */
         .moving-ticker {
+            --ticker-duration: 42s;
             position: fixed;
             top: 56px;
             left: 0;
@@ -158,71 +159,97 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
             overflow: hidden;
             display: none;
+            align-items: stretch;
+            min-height: 42px;
             box-shadow: 0 8px 20px rgba(0, 0, 0, .25);
         }
 
         .moving-ticker.show {
             display: flex;
-            align-items: center;
         }
 
         .moving-ticker-tag {
             flex-shrink: 0;
-            padding: 8px 11px;
-            font-size: .68rem;
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            font-size: .67rem;
             font-weight: 800;
             letter-spacing: .3px;
             text-transform: uppercase;
             border-right: 1px solid rgba(255, 255, 255, .2);
         }
 
-        .moving-ticker-track {
+        .moving-ticker-viewport {
             position: relative;
             overflow: hidden;
             width: 100%;
-            padding: 8px 0;
-            mask-image: linear-gradient(to right, transparent 0, #000 5%, #000 95%, transparent 100%);
-            -webkit-mask-image: linear-gradient(to right, transparent 0, #000 5%, #000 95%, transparent 100%);
+            display: flex;
+            align-items: center;
+            mask-image: linear-gradient(to right, transparent 0, #000 4%, #000 96%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to right, transparent 0, #000 4%, #000 96%, transparent 100%);
         }
 
-        .moving-ticker-line {
+        .moving-ticker-belt {
             display: inline-flex;
             align-items: center;
-            gap: 20px;
+            gap: 14px;
             white-space: nowrap;
-            min-width: 100%;
-            will-change: transform;
-            animation: tickerMove var(--ticker-duration, 90s) linear infinite;
-            padding-right: 24px;
+            min-width: max-content;
+            padding: 10px 18px 10px 0;
             font-size: .84rem;
             font-weight: 700;
+            letter-spacing: .1px;
+            will-change: transform;
+            transform: translate3d(0, 0, 0);
+            animation: none;
+        }
+
+        .moving-ticker.animate .moving-ticker-belt {
+            animation: tickerLoop var(--ticker-duration) linear infinite;
+        }
+
+        .moving-ticker-item {
+            display: inline-flex;
+            align-items: center;
+            padding: 0 2px;
+        }
+
+        .moving-ticker-divider {
+            opacity: .7;
+            font-size: .9em;
+        }
+
+        @keyframes tickerLoop {
+            from {
+                transform: translateX(0);
+            }
+
+            to {
+                transform: translateX(-50%);
+            }
         }
 
         @media (max-width: 768px) {
-            .moving-ticker-line {
-                --ticker-duration: 120s;
+            .moving-ticker-tag {
+                padding: 8px 10px;
+                font-size: .63rem;
+            }
+
+            .moving-ticker-belt {
+                font-size: .8rem;
+                gap: 12px;
             }
         }
 
-        .moving-ticker-line span {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 0 6px;
-        }
-
-        @keyframes tickerMove {
-            0% {
-                transform: translateX(100%);
-            }
-
-            100% {
-                transform: translateX(-100%);
+        @media (prefers-reduced-motion: reduce) {
+            .moving-ticker.animate .moving-ticker-belt {
+                animation: none;
             }
         }
 
         body.has-moving-ticker #pg-app .wrap {
-            padding-top: 106px;
+            padding-top: 108px;
         }
 
         /* BOTTOM NAV */
@@ -3276,12 +3303,14 @@
             </div>
         </nav>
 
-        <div class="moving-ticker" id="moving-ticker">
+        <div class="moving-ticker" id="moving-ticker" role="region" aria-label="Site announcements">
             <div class="moving-ticker-tag" id="moving-ticker-tag">Live</div>
-            <div class="moving-ticker-track">
-                <div class="moving-ticker-line" id="moving-ticker-line">
-                    <span>✨ Welcome to Starlife announcements</span>
-                    <span>✨ Welcome to Starlife announcements</span>
+            <div class="moving-ticker-viewport">
+                <div class="moving-ticker-belt" id="moving-ticker-belt">
+                    <span class="moving-ticker-item" id="moving-ticker-item-primary">📣 Welcome to Starlife announcements</span>
+                    <span class="moving-ticker-divider" aria-hidden="true">•</span>
+                    <span class="moving-ticker-item" id="moving-ticker-item-clone">📣 Welcome to Starlife announcements</span>
+                    <span class="moving-ticker-divider" aria-hidden="true">•</span>
                 </div>
             </div>
         </div>
@@ -9600,32 +9629,43 @@
             }
         };
         let _movingAnnouncementUnsub = null;
+        let _movingAnnouncementCurrent = null;
+        let _movingAnnouncementResizeTimer = null;
         const MOVING_ANNOUNCEMENT_SPEEDS = {
-            verySlow: 90,
-            slow: 65,
-            normal: 45,
-            fast: 30
+            verySlow: { desktopPxPerSec: 24, mobilePxPerSec: 20, minSeconds: 34, label: 'Very Slow' },
+            slow: { desktopPxPerSec: 32, mobilePxPerSec: 28, minSeconds: 26, label: 'Slow' },
+            normal: { desktopPxPerSec: 42, mobilePxPerSec: 36, minSeconds: 20, label: 'Normal' },
+            fast: { desktopPxPerSec: 58, mobilePxPerSec: 50, minSeconds: 14, label: 'Fast' }
         };
 
         function movingAnnouncementTheme(themeName) {
             return MOVING_ANNOUNCEMENT_THEMES[themeName] || MOVING_ANNOUNCEMENT_THEMES.neon;
         }
 
-        function movingAnnouncementDuration(speedName) {
-            const baseSeconds = MOVING_ANNOUNCEMENT_SPEEDS[speedName] || MOVING_ANNOUNCEMENT_SPEEDS.verySlow;
+        function movingAnnouncementSpeedConfig(speedName) {
+            return MOVING_ANNOUNCEMENT_SPEEDS[speedName] || MOVING_ANNOUNCEMENT_SPEEDS.verySlow;
+        }
+
+        function moveAnnouncementDurationFromContent(speedName, beltEl) {
+            const speedCfg = movingAnnouncementSpeedConfig(speedName);
             const isMobile = window.matchMedia('(max-width: 768px)').matches;
-            const seconds = isMobile ? Math.round(baseSeconds * 1.6) : baseSeconds;
-            return `${seconds}s`;
+            const pxPerSecond = isMobile ? speedCfg.mobilePxPerSec : speedCfg.desktopPxPerSec;
+            const singleLoopDistance = Math.max((beltEl?.scrollWidth || 0) / 2, window.innerWidth + 140);
+            const durationSeconds = Math.max(singleLoopDistance / pxPerSecond, speedCfg.minSeconds);
+            return `${durationSeconds.toFixed(2)}s`;
         }
 
         function renderMovingAnnouncement(data) {
             const bar = $('moving-ticker');
             const tag = $('moving-ticker-tag');
-            const line = $('moving-ticker-line');
-            if (!bar || !tag || !line) return;
+            const belt = $('moving-ticker-belt');
+            const primary = $('moving-ticker-item-primary');
+            const clone = $('moving-ticker-item-clone');
+            if (!bar || !tag || !belt || !primary || !clone) return;
             const enabled = !!(data && data.enabled && (data.text || '').trim());
+            _movingAnnouncementCurrent = enabled ? { ...data } : null;
             if (!enabled) {
-                bar.classList.remove('show');
+                bar.classList.remove('show', 'animate');
                 document.body.classList.remove('has-moving-ticker');
                 return;
             }
@@ -9634,13 +9674,17 @@
             bar.classList.add('show');
             document.body.classList.add('has-moving-ticker');
             bar.style.background = theme.barBg;
-            tag.style.background = theme.tagBg;
             bar.style.color = theme.text;
+            tag.style.background = theme.tagBg;
             tag.textContent = data.label || theme.badge || 'Live';
-            line.style.color = theme.text;
-            line.style.animationDuration = movingAnnouncementDuration(data.speed || 'verySlow');
-            const safeMsg = msg.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            line.innerHTML = `<span>📣 ${safeMsg}</span><span>📣 ${safeMsg}</span><span>📣 ${safeMsg}</span>`;
+            const displayText = `📣 ${msg}`;
+            primary.textContent = displayText;
+            clone.textContent = displayText;
+            bar.classList.remove('animate');
+            requestAnimationFrame(() => {
+                bar.style.setProperty('--ticker-duration', moveAnnouncementDurationFromContent(data.speed || 'verySlow', belt));
+                bar.classList.add('animate');
+            });
         }
 
         function stopMovingAnnouncementListener() {
@@ -9655,6 +9699,12 @@
             }, () => renderMovingAnnouncement(null));
         }
 
+        window.addEventListener('resize', () => {
+            if (!_movingAnnouncementCurrent) return;
+            clearTimeout(_movingAnnouncementResizeTimer);
+            _movingAnnouncementResizeTimer = setTimeout(() => renderMovingAnnouncement(_movingAnnouncementCurrent), 180);
+        });
+
         async function loadAdminMovingAnnouncement() {
             if (!hasAdminAccess('moving')) return;
             const preview = $('ma-preview');
@@ -9668,7 +9718,10 @@
                 if ($('ma-speed')) $('ma-speed').value = data.speed || 'verySlow';
                 if (preview) {
                     if (!snap.exists || !data.text) preview.innerHTML = '<div class="es">No ticker created yet.</div>';
-                    else preview.innerHTML = `<div style="font-weight:700;margin-bottom:6px">${data.enabled === false ? 'OFF' : 'ON'} · Theme: ${String(data.theme || 'sunset').replace(/</g,'&lt;')} · Speed: ${String(data.speed || 'verySlow').replace(/</g,'&lt;')}</div><div style="font-size:.84rem;color:var(--t2)">${String(data.text || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div><div style="font-size:.72rem;color:var(--t3);margin-top:6px">Updated: ${fmtDT(data.updatedAt || data.createdAt)}</div>`;
+                    else {
+                        const speedLabel = movingAnnouncementSpeedConfig(data.speed || 'verySlow').label;
+                        preview.innerHTML = `<div style="font-weight:700;margin-bottom:6px">${data.enabled === false ? 'OFF' : 'ON'} · Theme: ${String(data.theme || 'sunset').replace(/</g, '&lt;')} · Speed: ${speedLabel}</div><div style="font-size:.84rem;color:var(--t2)">${String(data.text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div><div style="font-size:.72rem;color:var(--t3);margin-top:6px">Updated: ${fmtDT(data.updatedAt || data.createdAt)}</div>`;
+                    }
                 }
             } catch (e) {
                 if (preview) preview.innerHTML = '<div class="es">Failed to load ticker settings.</div>';

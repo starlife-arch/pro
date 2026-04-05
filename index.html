@@ -11362,6 +11362,26 @@ Message: ${message}`);
             return Math.max(0, (u?.balance || 0) - (u?.heldAmount || 0));
         }
 
+        function getSpendableMainBalance(u = window.CU) {
+            return getAvailableBalance(u);
+        }
+
+        function ensureWalletDeductionAllowed(userData, amount, actionLabel = 'transaction') {
+            const normalizedAmount = Number(amount);
+            if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) throw new Error(`Invalid ${actionLabel} amount`);
+            const balance = Number(userData?.balance || 0);
+            const held = Number(userData?.heldAmount || 0);
+            const spendable = getSpendableMainBalance(userData);
+            if (spendable < normalizedAmount) {
+                const heldNote = held > 0 ? ` ($${fmt(held)} on hold)` : '';
+                throw new Error(`Insufficient available balance. Available: $${fmt(spendable)}${heldNote}`);
+            }
+            const nextBal = parseFloat((balance - normalizedAmount).toFixed(4));
+            if (nextBal < 0) throw new Error('Operation would create negative balance');
+            if (nextBal < held) throw new Error('Held balance is not spendable');
+            return { balance, held, spendable, nextBal };
+        }
+
         // ════════════════════════════════════════════════════════
         // TRANSFER / GIFT
         // ════════════════════════════════════════════════════════
@@ -11650,15 +11670,14 @@ Message: ${message}`);
                     if (!snap.exists) throw new Error('Account not found');
                     const d = snap.data() || {};
                     if (d.paidDMBlocked) throw new Error('Paid DM is blocked for this account');
-                    const bal = Number(d.balance || 0);
-                    if (bal < 10) throw new Error('Insufficient wallet balance ($10 required)');
+                    const allowance = ensureWalletDeductionAllowed(d, 10, 'Paid DM activation');
                     const curExpiry = toMillis(d.paidDMExpiresAt);
                     const base = curExpiry > nowMs ? curExpiry : nowMs;
                     const nextExpiry = base + ninetyDaysMs;
                     const priceCoins = Math.min(30, Math.max(10, parseInt(d.paidDMPriceCoins || 10, 10)));
                     const renewal = curExpiry > nowMs;
                     t.update(ref, {
-                        balance: bal - 10,
+                        balance: allowance.nextBal,
                         paidDMExpiresAt: new Date(nextExpiry),
                         paidDMChargingOn: true,
                         paidDMPriceCoins: priceCoins,
@@ -11704,6 +11723,9 @@ Message: ${message}`);
             if (!u) return;
             if (!tokenAmount || !usdCost) return;
             if (Number(tokenAmount) < 1) return toast('Minimum token purchase is 1 token', 'ty');
+            const computedUsdCost = parseFloat((Number(tokenAmount) / 5).toFixed(2));
+            const spendable = getSpendableMainBalance(u);
+            if (spendable < computedUsdCost) return toast(`Insufficient available balance. Available: $${fmt(spendable)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' on hold)' : ''}`, 'tr');
             if (!u.withdrawPin) {
                 toast('Set a withdrawal PIN first from your Profile', 'ty', 5000);
                 tab('profile');
@@ -11726,13 +11748,9 @@ Message: ${message}`);
                     const snap = await t.get(ref);
                     if (!snap.exists) throw new Error('Account not found');
                     const d = snap.data() || {};
-                    const bal = Number(d.balance || 0);
-                    if (!Number.isFinite(computedUsdCost) || computedUsdCost <= 0) throw new Error('Invalid token purchase amount');
-                    if (bal < computedUsdCost) throw new Error('Insufficient main wallet balance');
-                    const nextBal = bal - computedUsdCost;
-                    if (nextBal < 0) throw new Error('Operation would create negative balance');
+                    const allowance = ensureWalletDeductionAllowed(d, computedUsdCost, 'token purchase');
                     const nextToken = Number(d.tokenBalance || 0) + tokenAmount;
-                    t.update(ref, { balance: FS().increment(-computedUsdCost), tokenBalance: nextToken });
+                    t.update(ref, { balance: allowance.nextBal, tokenBalance: nextToken });
                     t.set(db.collection('tokenLogs').doc(), {
                         uid: u.uid,
                         memberId: userMemberId(u.uid, d),
@@ -11766,6 +11784,9 @@ Message: ${message}`);
             if (!u) return;
             if (!coinAmount || !usdCost) return;
             if (Number(coinAmount) < 100) return toast('Minimum gift coin purchase is 100 coins', 'ty');
+            const computedUsdCost = parseFloat((Number(coinAmount) / 100).toFixed(2));
+            const spendable = getSpendableMainBalance(u);
+            if (spendable < computedUsdCost) return toast(`Insufficient available balance. Available: $${fmt(spendable)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' on hold)' : ''}`, 'tr');
             if (!u.withdrawPin) {
                 toast('Set a withdrawal PIN first from your Profile', 'ty', 5000);
                 tab('profile');
@@ -11788,17 +11809,13 @@ Message: ${message}`);
                     const snap = await t.get(ref);
                     if (!snap.exists) throw new Error('Account not found');
                     const d = snap.data() || {};
-                    const bal = Number(d.balance || 0);
-                    if (!Number.isFinite(computedUsdCost) || computedUsdCost <= 0) throw new Error('Invalid gift coin purchase amount');
-                    if (bal < computedUsdCost) throw new Error('Insufficient main wallet balance');
-                    const nextBal = bal - computedUsdCost;
-                    if (nextBal < 0) throw new Error('Operation would create negative balance');
+                    const allowance = ensureWalletDeductionAllowed(d, computedUsdCost, 'gift coin purchase');
                     const purchasedBefore = Number(d.purchasedGiftCoinBalance ?? d.giftCoinBalance ?? 0);
                     const receivedBefore = Number(d.receivedGiftCoinBalance || 0);
                     const nextPurchased = purchasedBefore + coinAmount;
                     const nextTotal = nextPurchased + receivedBefore;
                     t.update(ref, {
-                        balance: FS().increment(-computedUsdCost),
+                        balance: allowance.nextBal,
                         purchasedGiftCoinBalance: nextPurchased,
                         giftCoinBalance: nextTotal
                     });

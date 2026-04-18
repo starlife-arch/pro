@@ -24,11 +24,21 @@ const SHIPPING_MULTIPLIERS = { small: 1.2, medium: 2.1, large: 3.6 };
 const PLATFORM_FEE_RATE = 0.05;
 const LISTING_FEE = 15;
 const MAJOR_ASSET_THRESHOLD = 40000;
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCF09qr8P8_BOzWt53wopZlavHFZb7sBnM",
+  authDomain: "starlife-advert-a6587.firebaseapp.com",
+  projectId: "starlife-advert-a6587",
+  storageBucket: "starlife-advert-a6587.firebasestorage.app",
+  messagingSenderId: "946780590831",
+  appId: "1:946780590831:web:dd22e4879ec0786a31011a",
+};
 
 const state = loadState();
 let activeUserId = getInitialActiveUserId();
 let signatureTargetContractId = null;
 let pendingAssetImages = [];
+let platform = { enabled: false, auth: null, db: null };
+let cloudSyncTimer = null;
 
 init();
 
@@ -38,6 +48,7 @@ function init() {
   wireFilters();
   wireDialogs();
   renderAll();
+  bootstrapPlatform();
 }
 
 function getInitialActiveUserId() {
@@ -107,6 +118,94 @@ function loadState() {
 
 function saveState(next = state) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  if (platform.enabled) scheduleCloudSync();
+}
+
+async function bootstrapPlatform() {
+  if (!window.firebase) return;
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    platform.auth = firebase.auth();
+    platform.db = firebase.firestore();
+    platform.enabled = true;
+    platform.auth.onAuthStateChanged(async (user) => {
+      if (!user) return;
+      await hydrateStateFromCloud(user.uid);
+      renderAll();
+    });
+  } catch (error) {
+    console.warn("Platform sync unavailable", error);
+  }
+}
+
+async function hydrateStateFromCloud(uid) {
+  const userSnap = await platform.db.collection("users").doc(uid).get();
+  if (!userSnap.exists) return;
+  const userData = userSnap.data();
+  const role = userData.isAdmin ? "admin" : "user";
+
+  state.users = [{
+    id: uid,
+    name: userData.name || "User",
+    role,
+    mainBalance: Number(userData.balance || 0),
+    heldBalance: Number(userData.heldAmount || 0),
+    vip: !!userData.privileges?.promoAccessEnabled,
+  }];
+  activeUserId = uid;
+
+  const [assetsSnap, userAssetsSnap, listingsSnap, txSnap, shippingSnap, receiptsSnap, contractsSnap] = await Promise.all([
+    platform.db.collection("sl_assets").get(),
+    platform.db.collection("sl_user_assets").where("userId", "==", uid).get(),
+    platform.db.collection("sl_listings").get(),
+    platform.db.collection("sl_transactions").where("fromUserId", "==", uid).get(),
+    platform.db.collection("sl_shipping").where("userId", "==", uid).get(),
+    platform.db.collection("sl_receipts").where("senderUserId", "==", uid).get(),
+    platform.db.collection("sl_contracts").where("partyUserIds", "array-contains", uid).get(),
+  ]);
+
+  state.assets = assetsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  state.userAssets = userAssetsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  state.listings = listingsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  state.transactions = txSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  state.shipping = shippingSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  state.receipts = receiptsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  state.contracts = contractsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+function scheduleCloudSync() {
+  clearTimeout(cloudSyncTimer);
+  cloudSyncTimer = setTimeout(() => {
+    syncToCloud().catch((error) => console.warn("Cloud sync error", error));
+  }, 300);
+}
+
+async function syncToCloud() {
+  if (!platform.enabled || !platform.db) return;
+  const syncSets = [
+    ["sl_assets", state.assets],
+    ["sl_user_assets", state.userAssets],
+    ["sl_listings", state.listings],
+    ["sl_transactions", state.transactions],
+    ["sl_shipping", state.shipping.map((item) => ({ ...item, userId: activeUserId }))],
+    ["sl_receipts", state.receipts],
+    ["sl_contracts", state.contracts.map((contract) => ({ ...contract, partyUserIds: contract.parties.map((p) => p.userId) }))],
+  ];
+
+  for (const [collectionName, rows] of syncSets) {
+    const batch = platform.db.batch();
+    rows.forEach((row) => {
+      const ref = platform.db.collection(collectionName).doc(row.id);
+      batch.set(ref, row, { merge: true });
+    });
+    await batch.commit();
+  }
+
+  await platform.db.collection("users").doc(activeUserId).set({
+    balance: getUser(activeUserId).mainBalance,
+    heldAmount: getUser(activeUserId).heldBalance,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  }, { merge: true });
 }
 
 function wireTabs() {
@@ -199,6 +298,12 @@ function wireDialogs() {
 
   const stop = () => (drawing = false);
 
+  canvas.addEventListener("pointerdown", (e) => {
+    canvas.setPointerCapture(e.pointerId);
+    start(e.offsetX, e.offsetY);
+  });
+  canvas.addEventListener("pointermove", (e) => draw(e.offsetX, e.offsetY));
+  canvas.addEventListener("pointerup", stop);
   canvas.addEventListener("mousedown", (e) => start(e.offsetX, e.offsetY));
   canvas.addEventListener("mousemove", (e) => draw(e.offsetX, e.offsetY));
   canvas.addEventListener("mouseup", stop);
@@ -235,11 +340,12 @@ function renderAll() {
 
 function renderTopbar() {
   const userSelect = document.getElementById("activeUser");
-  userSelect.innerHTML = state.users
-    .map((u) => `<option value="${u.id}" ${activeUserId === u.id ? "selected" : ""}>${u.name} (${u.role})</option>`)
-    .join("");
+  userSelect.innerHTML = state.users.map((u) => `<option value="${u.id}" ${activeUserId === u.id ? "selected" : ""}>${u.name} (${u.role})</option>`).join("");
+  userSelect.disabled = platform.enabled;
+  if (platform.enabled) userSelect.title = "Connected to logged-in Starlife account";
 
   const current = getUser(activeUserId);
+  if (!current) return;
   const spendable = current.mainBalance - current.heldBalance;
   document.getElementById("activeRoleBadge").textContent = `Role: ${current.role}`;
   document.getElementById("balanceCard").textContent = `Main: ${money(current.mainBalance)} | Held: ${money(current.heldBalance)} | Spendable: ${money(spendable)}`;
@@ -353,7 +459,7 @@ function renderMarketplace() {
         <h3>${asset.name}</h3>
         ${assetPreview(asset)}
         <div class="tags">
-          <span class="tag">Owner: ${owner.name}</span>
+          <span class="tag">Owner: ${owner?.name || listing.holderName || "User"}</span>
           <span class="tag">Rent: ${money(listing.rentPrice)} / ${listing.paymentDuration}</span>
           <span class="tag">${listing.availability}</span>
           <span class="tag">${listing.featured ? "Featured" : "Standard"}</span>
@@ -450,7 +556,7 @@ function renderReceipts() {
     .join("") || "<p>No receipts yet.</p>";
 
   mine.forEach((r) => {
-    document.getElementById(`receipt-${r.id}`).addEventListener("click", () => downloadDocument(`receipt-${r.id}.html`, `Receipt ${r.id}`, r));
+    document.getElementById(`receipt-${r.id}`).addEventListener("click", () => downloadReceipt(r));
   });
 }
 
@@ -472,7 +578,7 @@ function renderContracts() {
     .join("") || "<p>No contracts for this user.</p>";
 
   mine.forEach((c) => {
-    document.getElementById(`view-contract-${c.id}`).addEventListener("click", () => downloadDocument(`contract-${c.id}.html`, `Contract ${c.id}`, c));
+    document.getElementById(`view-contract-${c.id}`).addEventListener("click", () => downloadContract(c));
     const signButton = document.getElementById(`sign-contract-${c.id}`);
     if (signButton) signButton.addEventListener("click", () => openSignaturePad(c.id));
   });
@@ -677,6 +783,7 @@ function createListing(userAssetId) {
     userAssetId: ua.id,
     assetId: ua.assetId,
     holderUserId: ua.userId,
+    holderName: holder.name,
     rentPrice,
     paymentDuration,
     availability,
@@ -694,13 +801,29 @@ function createListing(userAssetId) {
   toast("Listing created.");
 }
 
-function rentFromListing(listingId) {
+async function rentFromListing(listingId) {
   const listing = state.listings.find((l) => l.id === listingId);
   if (!listing || !listing.active) return;
   if (!listing.allowMultipleRents && listing.currentRenterId) return toast("This listing is already rented.");
 
   const renter = getUser(activeUserId);
-  const owner = getUser(listing.holderUserId);
+  let owner = getUser(listing.holderUserId);
+  if (!owner && platform.enabled) {
+    const ownerSnap = await platform.db.collection("users").doc(listing.holderUserId).get();
+    if (ownerSnap.exists) {
+      const ownerData = ownerSnap.data();
+      owner = {
+        id: listing.holderUserId,
+        name: ownerData.name || listing.holderName || "User",
+        role: ownerData.isAdmin ? "admin" : "user",
+        mainBalance: Number(ownerData.balance || 0),
+        heldBalance: Number(ownerData.heldAmount || 0),
+        vip: !!ownerData.privileges?.promoAccessEnabled,
+      };
+      state.users.push(owner);
+    }
+  }
+  if (!owner) return toast("Owner account not found.");
   const asset = getAsset(listing.assetId);
 
   const destination = asset.isPhysical ? prompt("Delivery destination:")?.trim() : "";
@@ -850,7 +973,7 @@ function maybeCreateContract({ asset, buyerId, sellerId, amount, mode, duration,
   if (duplicate) return;
 
   const buyer = getUser(buyerId);
-  const sellerName = sellerId === "platform" ? "Starlife Platform" : getUser(sellerId).name;
+  const sellerName = sellerId === "platform" ? "Starlife Platform" : (getUser(sellerId)?.name || "User");
 
   const parties = [
     { userId: buyerId, name: buyer.name, role: "buyer/renter", signed: false, signedAt: null, signatureData: null },
@@ -1082,8 +1205,69 @@ function downloadTextFile(name, content) {
   URL.revokeObjectURL(url);
 }
 
+function downloadReceipt(receipt) {
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Receipt ${receipt.id}</title><style>body{font-family:Arial;padding:24px;line-height:1.5} .box{border:1px solid #ddd;border-radius:8px;padding:16px;max-width:760px} h1{margin-top:0} table{width:100%;border-collapse:collapse} td{padding:6px 0;border-bottom:1px solid #eee} .right{text-align:right}</style></head><body>
+  <div class="box">
+  <h1>Starlife Payment Receipt</h1>
+  <p><strong>Receipt ID:</strong> ${receipt.id}</p>
+  <p><strong>Transaction ID:</strong> ${receipt.transactionId}</p>
+  <table>
+    <tr><td>User</td><td class="right">${receipt.userName}</td></tr>
+    <tr><td>Asset</td><td class="right">${receipt.assetName}</td></tr>
+    <tr><td>Payment type</td><td class="right">${receipt.paymentType}</td></tr>
+    <tr><td>Base amount</td><td class="right">${money(receipt.baseAmount || 0)}</td></tr>
+    <tr><td>Shipping</td><td class="right">${money(receipt.shippingFee || 0)}</td></tr>
+    <tr><td><strong>Total paid</strong></td><td class="right"><strong>${money(receipt.amountPaid)}</strong></td></tr>
+    <tr><td>From</td><td class="right">${receipt.senderName}</td></tr>
+    <tr><td>To</td><td class="right">${receipt.receiverName}</td></tr>
+    <tr><td>Date</td><td class="right">${new Date(receipt.createdAt).toLocaleString()}</td></tr>
+  </table>
+  </div></body></html>`;
+  saveHtmlFile(`receipt-${receipt.id}.html`, html);
+}
+
+function downloadContract(contract) {
+  const signatures = contract.parties.map((party) => `<tr>
+    <td>${party.name}</td>
+    <td>${party.role}</td>
+    <td>${party.signed ? `Signed ${new Date(party.signedAt).toLocaleString()}` : "Pending"}</td>
+    <td>${party.signatureData?.startsWith("data:image") ? `<img src="${party.signatureData}" alt="${party.name} signature" style="max-width:180px;max-height:65px"/>` : (party.signatureData || "-")}</td>
+  </tr>`).join("");
+
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Contract ${contract.id}</title><style>body{font-family:Arial;padding:24px;line-height:1.5;color:#222} .box{border:1px solid #ddd;border-radius:8px;padding:18px;max-width:900px} h1,h2{margin:0 0 12px} table{width:100%;border-collapse:collapse;margin-top:10px} th,td{border:1px solid #eee;padding:8px;text-align:left;vertical-align:top} .muted{color:#666;font-size:12px}</style></head><body>
+  <div class="box">
+    <h1>Starlife Asset Contract</h1>
+    <p class="muted">Contract ID: ${contract.id}</p>
+    <p><strong>Asset:</strong> ${contract.assetName}</p>
+    <p><strong>Type:</strong> ${contract.type}</p>
+    <p><strong>Agreed Price:</strong> ${money(contract.price)}</p>
+    <p><strong>Duration:</strong> ${contract.duration}</p>
+    <p><strong>Payment Terms:</strong> ${contract.paymentTerms}</p>
+    <p><strong>Agreement Date:</strong> ${new Date(contract.agreedDate).toLocaleString()}</p>
+    <h2>Terms</h2>
+    <ol>
+      <li>All payments are processed inside Starlife.</li>
+      <li>Unsigned contracts are not legally active inside the platform.</li>
+      <li>Once fully signed, this contract is locked and cannot be edited.</li>
+      <li>Breach or abuse may trigger account restrictions per platform policy.</li>
+    </ol>
+    <h2>Parties & Signatures</h2>
+    <table><thead><tr><th>Name</th><th>Role</th><th>Status</th><th>Signature</th></tr></thead><tbody>${signatures}</tbody></table>
+  </div></body></html>`;
+  saveHtmlFile(`contract-${contract.id}.html`, html);
+}
+
 function downloadDocument(name, title, data) {
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title></head><body><h1>${title}</h1><pre>${escapeHtml(JSON.stringify(data, null, 2))}</pre></body></html>`;
+  const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function saveHtmlFile(name, html) {
   const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
   const a = document.createElement("a");
   a.href = url;

@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Starlife Assets</title>
   <link rel="stylesheet" href="styles.css" />
+  <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
   <header class="topbar">
@@ -26,7 +29,7 @@
     <button data-tab="marketTab">Marketplace</button>
     <button data-tab="receiptsTab">Receipts</button>
     <button data-tab="contractsTab">Contracts</button>
-    <button data-tab="adminTab">Admin</button>
+    <button data-tab="adminTab" style="display:none">Admin</button>
   </nav>
 
   <main>

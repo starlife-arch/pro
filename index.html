@@ -5363,7 +5363,7 @@
             <div class="more-item" onclick="tab('blog');hideMore()">📰 Blog</div>
             <div class="more-item" onclick="tab('community');loadCommunity();hideMore()">🌐 Community</div>
             <div class="more-item" onclick="window.location.href='starlife-assets.html';hideMore()">🏘️ Starlife Assets</div>
-            <div class="more-item" onclick="window.location.href='starlife-assets.html?as=admin';hideMore()">🛠️ Assets Admin</div>
+            <div class="more-item" id="nav-assets-admin" style="display:none" onclick="window.location.href='starlife-assets.html?as=admin';hideMore()">🛠️ Assets Admin</div>
             <div class="more-item" onclick="tab('transfer');hideMore()">💸 Transfer / Gift</div>
             <div class="more-item" onclick="tab('p2p');loadP2P();hideMore()">💱 P2P Trading</div>
             <div class="more-item" onclick="tab('messages');loadDMList();hideMore()">💬 Messages</div>
@@ -7356,6 +7356,8 @@
             } else {
                 const navAg = $('nav-agent'); if (navAg) navAg.style.display = 'none';
             }
+            const navAssetsAdmin = $('nav-assets-admin');
+            if (navAssetsAdmin) navAssetsAdmin.style.display = u.isAdmin ? 'block' : 'none';
         }
 
         function updateCountdown(unlockDate) {

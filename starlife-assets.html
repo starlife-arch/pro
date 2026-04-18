@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Starlife Assets</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>Starlife Assets</h1>
+    <div class="topbar-controls">
+      <a href="index.html" class="back-link">← Back to Main App</a>
+      <label>
+        Active User
+        <select id="activeUser"></select>
+      </label>
+      <div id="balanceCard" class="balance-card"></div>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="active" data-tab="assetsTab">Assets</button>
+    <button data-tab="myAssetsTab">My Assets</button>
+    <button data-tab="marketTab">Marketplace</button>
+    <button data-tab="receiptsTab">Receipts</button>
+    <button data-tab="contractsTab">Contracts</button>
+    <button data-tab="adminTab">Admin</button>
+  </nav>
+
+  <main>
+    <section id="assetsTab" class="tab-panel active">
+      <h2>Assets</h2>
+      <div class="filters">
+        <select id="assetTypeFilter"><option value="all">All Types</option></select>
+        <input id="assetLocationFilter" placeholder="Filter by location" />
+        <input id="assetPriceFilter" type="number" placeholder="Max full price" />
+      </div>
+      <div id="assetsGrid" class="grid"></div>
+    </section>
+
+    <section id="myAssetsTab" class="tab-panel">
+      <h2>My Assets</h2>
+      <div id="myAssetsGrid" class="grid"></div>
+    </section>
+
+    <section id="marketTab" class="tab-panel">
+      <h2>Marketplace</h2>
+      <div id="marketGrid" class="grid"></div>
+    </section>
+
+    <section id="receiptsTab" class="tab-panel">
+      <h2>Receipts</h2>
+      <div id="receiptList" class="list"></div>
+    </section>
+
+    <section id="contractsTab" class="tab-panel">
+      <h2>Contracts</h2>
+      <div id="contractList" class="list"></div>
+    </section>
+
+    <section id="adminTab" class="tab-panel">
+      <h2>Admin</h2>
+      <form id="assetForm" class="card">
+        <input type="hidden" id="assetId" />
+        <div class="form-grid">
+          <label>Name <input id="assetName" required /></label>
+          <label>Type
+            <select id="assetType">
+              <option value="house">House</option>
+              <option value="phone">Phone</option>
+              <option value="car">Car</option>
+              <option value="electronics">Electronics</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+          <label>Description <textarea id="assetDescription" rows="2"></textarea></label>
+          <label>Location <input id="assetLocation" /></label>
+          <label>Origin location <input id="assetOrigin" /></label>
+          <label>Full price <input id="assetFullPrice" type="number" min="1" required /></label>
+          <label>Rent price <input id="assetRentPrice" type="number" min="1" required /></label>
+          <label>Payment interval
+            <select id="assetInterval">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </label>
+          <label>Ownership type
+            <select id="assetOwnershipType">
+              <option value="rent-only">Rent only</option>
+              <option value="rent-to-own">Rent to own</option>
+              <option value="full-purchase">Full purchase</option>
+            </select>
+          </label>
+          <label>Physical asset
+            <select id="assetPhysical">
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </label>
+          <label>Weight category
+            <select id="assetWeight">
+              <option value="small">Small</option>
+              <option value="medium">Medium</option>
+              <option value="large">Large</option>
+            </select>
+          </label>
+          <label>VIP only
+            <select id="assetVip">
+              <option value="no">No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="asset-images-wrap">
+          <label>Asset images (max 3, image/* only, max 1.5MB each before compression)</label>
+          <input id="assetImageInput" type="file" accept="image/*" multiple />
+          <div id="assetImagePreview" class="image-preview-grid"></div>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="primary">Save Asset</button>
+          <button type="button" id="clearAssetForm">Clear</button>
+        </div>
+      </form>
+
+      <h3>Assets</h3>
+      <div id="adminAssetList" class="list"></div>
+
+      <h3>Listings</h3>
+      <div id="adminListingList" class="list"></div>
+    </section>
+  </main>
+
+  <dialog id="assetDialog">
+    <div id="assetDetailContent" class="modal-content"></div>
+  </dialog>
+
+  <dialog id="signatureDialog">
+    <div class="modal-content">
+      <h3>Sign Contract</h3>
+      <p id="signatureContractInfo"></p>
+      <canvas id="signaturePad" width="560" height="220"></canvas>
+      <div class="actions">
+        <button id="saveSignature" class="primary">Save Signature</button>
+        <button id="clearSignature">Clear</button>
+        <button id="closeSignature">Close</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

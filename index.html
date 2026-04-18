@@ -252,6 +252,100 @@
             padding-top: 108px;
         }
 
+        .targeted-announcement-card {
+            margin-bottom: 14px;
+            border-radius: var(--r);
+            border: 1px solid var(--bds);
+            padding: 14px;
+            background: linear-gradient(135deg, rgba(0, 230, 118, .12), rgba(0, 0, 0, .2));
+            box-shadow: 0 8px 24px rgba(0, 0, 0, .2);
+        }
+
+        .targeted-announcement-card .ta-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .targeted-announcement-card .ta-pill {
+            font-size: .64rem;
+            letter-spacing: .3px;
+            text-transform: uppercase;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-weight: 700;
+            background: rgba(255, 255, 255, .16);
+            border: 1px solid rgba(255, 255, 255, .18);
+        }
+
+        .targeted-announcement-card .ta-title {
+            font-size: .98rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .targeted-announcement-card .ta-body {
+            font-size: .84rem;
+            line-height: 1.45;
+            color: rgba(255, 255, 255, .92);
+            white-space: pre-wrap;
+        }
+
+        .targeted-announcement-card .ta-meta {
+            font-size: .72rem;
+            color: rgba(255, 255, 255, .72);
+            margin-top: 10px;
+        }
+
+        .ta-rec-wrap {
+            margin-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .ta-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-radius: 999px;
+            border: 1px solid var(--bd);
+            background: var(--s2);
+            padding: 4px 8px;
+            font-size: .72rem;
+        }
+
+        .ta-chip button {
+            border: 0;
+            background: transparent;
+            color: var(--red);
+            cursor: pointer;
+            font-size: .78rem;
+            line-height: 1;
+        }
+
+        .ta-search-results {
+            max-height: 190px;
+            overflow: auto;
+            border: 1px solid var(--bd);
+            border-radius: 10px;
+            background: var(--s1);
+            margin-top: 8px;
+        }
+
+        .ta-search-item {
+            padding: 9px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, .05);
+            cursor: pointer;
+            font-size: .78rem;
+        }
+
+        .ta-search-item:hover {
+            background: var(--s2);
+        }
+
         /* BOTTOM NAV */
         .bnav {
             position: fixed;
@@ -3317,6 +3411,7 @@
 
         <div class="wrap">
             <div id="notif-area"></div>
+            <div id="targeted-announcement-wrap" style="display:none"></div>
 
             <!-- HOME -->
             <div id="t-home" class="itc on">
@@ -6094,6 +6189,56 @@
             </div>
         </div>
 
+        <div id="at-targeted" class="atab">
+            <div class="card">
+                <div style="font-weight:700;margin-bottom:8px">🎯 Targeted Announcements</div>
+                <div style="font-size:.78rem;color:var(--t2);margin-bottom:14px">Create official in-app notices for specific users. This appears on their home dashboard only.</div>
+                <input type="hidden" id="ta-edit-id">
+                <div class="fg"><label class="fl">Title</label><input class="fi" id="ta-title" maxlength="120" placeholder="Important account update"></div>
+                <div class="fg"><label class="fl">Message</label><textarea class="fi" id="ta-body" rows="4" placeholder="Write official announcement message..."></textarea></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                    <div class="fg"><label class="fl">Theme</label>
+                        <select class="fi" id="ta-theme">
+                            <option value="neon">💚 Neon Official</option>
+                            <option value="ocean">🌊 Ocean Alert</option>
+                            <option value="royal">👑 Royal Notice</option>
+                            <option value="danger">🚨 Urgent Red</option>
+                            <option value="sunset">🌅 Sunset</option>
+                        </select>
+                    </div>
+                    <div class="fg"><label class="fl">Status</label>
+                        <select class="fi" id="ta-enabled">
+                            <option value="true">On — show to selected users</option>
+                            <option value="false">Off — hidden</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="fg"><label class="fl">Target Type</label>
+                    <select class="fi" id="ta-target-type">
+                        <option value="users">Selected users (UID list)</option>
+                    </select>
+                </div>
+                <div class="fg"><label class="fl">Find user (name/email/member id)</label><input class="fi" id="ta-user-search" oninput="adminSearchAnnouncementUsers()" placeholder="Search and tap to add recipients"></div>
+                <div id="ta-user-search-results" class="ta-search-results" style="display:none"></div>
+                <div class="fg"><label class="fl">Selected recipients</label><div id="ta-selected-users" class="ta-rec-wrap"><div style="font-size:.75rem;color:var(--t3)">No users selected</div></div></div>
+                <div class="fg"><label class="fl">Optional UID list (comma/new line)</label><textarea class="fi" id="ta-target-uids" rows="2" placeholder="Paste UID(s) to include additional users"></textarea></div>
+                <div class="fg"><label class="fl">Optional DM companion (future-ready)</label>
+                    <select class="fi" id="ta-dm-mode">
+                        <option value="none">Do not send DM (default)</option>
+                        <option value="queue">Mark for future DM delivery</option>
+                    </select>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <button class="btn btn-p" onclick="adminSaveTargetedAnnouncement()">💾 Save / Publish</button>
+                    <button class="btn btn-gh" onclick="adminResetTargetedForm()">Reset Form</button>
+                </div>
+            </div>
+            <div class="card" style="margin-top:14px">
+                <div style="font-weight:600;margin-bottom:8px">Existing targeted announcements</div>
+                <div id="ta-list" class="es">Loading…</div>
+            </div>
+        </div>
+
         <div id="at-broadcast" class="atab">
             <div class="card">
                 <div class="fg"><label class="fl">Title</label><input class="fi" id="bc-title"
@@ -6943,7 +7088,9 @@
                 if (fab) fab.style.display = 'none';
                 await applyMaintenanceModeToUI(null);
                 stopMovingAnnouncementListener();
+                stopTargetedAnnouncementListener();
                 renderMovingAnnouncement(null);
+                renderTargetedAnnouncement(null);
                 go(window._maintenanceState?.active ? 'pg-maint' : 'pg-land');
                 return;
             }
@@ -6958,6 +7105,7 @@
             window.CU = { uid: user.uid, ...d };
             await loadPlatformSettings(true);
             initMovingAnnouncementListener();
+            initTargetedAnnouncementListener();
             if (d.isBanned) { go('pg-banned'); return; }
             await warmSecurityContext();
             const blocked = await isCurrentIpBlocked();
@@ -9768,13 +9916,243 @@
             loadAdminMovingAnnouncement();
         }
 
+        let _targetedAnnouncementUnsub = null;
+        let _targetedAnnouncementCurrent = null;
+        let _adminTargetedRecipients = [];
+
+        function escapeHtml(v) {
+            return String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function renderTargetedAnnouncement(data) {
+            const wrap = $('targeted-announcement-wrap');
+            if (!wrap) return;
+            if (!data || !data.enabled) {
+                wrap.style.display = 'none';
+                wrap.innerHTML = '';
+                _targetedAnnouncementCurrent = null;
+                return;
+            }
+            const theme = movingAnnouncementTheme(data.theme || 'neon');
+            const title = escapeHtml(data.title || 'Official Notice');
+            const body = escapeHtml(data.body || data.text || '');
+            const when = fmtDT(data.updatedAt || data.createdAt);
+            wrap.style.display = 'block';
+            wrap.innerHTML = `<div class="targeted-announcement-card" style="background:${theme.barBg};color:${theme.text}">
+                <div class="ta-top">
+                    <span class="ta-pill" style="background:${theme.tagBg}">Official Notice</span>
+                    <span style="font-size:.7rem;opacity:.85">For you</span>
+                </div>
+                <div class="ta-title">${title}</div>
+                <div class="ta-body">${body}</div>
+                <div class="ta-meta">Updated: ${escapeHtml(when || 'just now')}</div>
+            </div>`;
+            _targetedAnnouncementCurrent = { ...data };
+        }
+
+        function stopTargetedAnnouncementListener() {
+            if (typeof _targetedAnnouncementUnsub === 'function') _targetedAnnouncementUnsub();
+            _targetedAnnouncementUnsub = null;
+            renderTargetedAnnouncement(null);
+        }
+
+        function initTargetedAnnouncementListener() {
+            stopTargetedAnnouncementListener();
+            const uid = window.CU?.uid;
+            if (!uid) return;
+            _targetedAnnouncementUnsub = db.collection('targetedAnnouncements')
+                .where('enabled', '==', true)
+                .where('targetUserIds', 'array-contains', uid)
+                .onSnapshot((snap) => {
+                    if (snap.empty) return renderTargetedAnnouncement(null);
+                    const sorted = snap.docs
+                        .map(doc => ({ id: doc.id, ...(doc.data() || {}) }))
+                        .sort((a, b) => ((b.updatedAt?.seconds || b.createdAt?.seconds || 0) - (a.updatedAt?.seconds || a.createdAt?.seconds || 0)));
+                    renderTargetedAnnouncement(sorted[0] || null);
+                }, () => renderTargetedAnnouncement(null));
+        }
+
+        function adminRenderTargetedRecipients() {
+            const el = $('ta-selected-users');
+            if (!el) return;
+            if (!_adminTargetedRecipients.length) {
+                el.innerHTML = '<div style="font-size:.75rem;color:var(--t3)">No users selected</div>';
+                return;
+            }
+            el.innerHTML = _adminTargetedRecipients.map(u => `<span class="ta-chip">${escapeHtml(u.name || 'User')} · ${(u.id || '').substring(0, 8).toUpperCase()} <button type="button" onclick="adminRemoveTargetedRecipient('${u.id}')">✕</button></span>`).join('');
+        }
+
+        function adminAddTargetedRecipient(uid) {
+            if (!uid) return;
+            const pool = window.AU || [];
+            const u = pool.find(x => x.id === uid);
+            if (!u) return toast('User not found in cache. Reload Users tab and try again.', 'ty');
+            if (_adminTargetedRecipients.some(x => x.id === uid)) return;
+            _adminTargetedRecipients.push({ id: u.id, name: u.name || u.email || 'User', email: u.email || '' });
+            adminRenderTargetedRecipients();
+            if ($('ta-user-search')) $('ta-user-search').value = '';
+            if ($('ta-user-search-results')) $('ta-user-search-results').style.display = 'none';
+        }
+
+        function adminRemoveTargetedRecipient(uid) {
+            _adminTargetedRecipients = _adminTargetedRecipients.filter(u => u.id !== uid);
+            adminRenderTargetedRecipients();
+        }
+
+        function adminSearchAnnouncementUsers() {
+            const list = $('ta-user-search-results');
+            const q = ($('ta-user-search')?.value || '').trim().toLowerCase();
+            if (!list) return;
+            if (!q) { list.style.display = 'none'; list.innerHTML = ''; return; }
+            const results = (window.AU || []).filter(u => {
+                const memberId = (u.id || '').substring(0, 8).toLowerCase();
+                return (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q) || memberId.includes(q);
+            }).slice(0, 25);
+            if (!results.length) {
+                list.style.display = 'block';
+                list.innerHTML = '<div class="ta-search-item" style="cursor:default;color:var(--t3)">No users found</div>';
+                return;
+            }
+            list.style.display = 'block';
+            list.innerHTML = results.map(u => `<div class="ta-search-item" onclick="adminAddTargetedRecipient('${u.id}')">${escapeHtml(u.name || 'User')}<div style="font-size:.7rem;color:var(--t3);margin-top:2px">${escapeHtml(u.email || '')} · ${(u.id || '').substring(0, 8).toUpperCase()}</div></div>`).join('');
+        }
+
+        function adminResetTargetedForm() {
+            if ($('ta-edit-id')) $('ta-edit-id').value = '';
+            if ($('ta-title')) $('ta-title').value = '';
+            if ($('ta-body')) $('ta-body').value = '';
+            if ($('ta-theme')) $('ta-theme').value = 'neon';
+            if ($('ta-enabled')) $('ta-enabled').value = 'true';
+            if ($('ta-target-type')) $('ta-target-type').value = 'users';
+            if ($('ta-target-uids')) $('ta-target-uids').value = '';
+            if ($('ta-dm-mode')) $('ta-dm-mode').value = 'none';
+            if ($('ta-user-search')) $('ta-user-search').value = '';
+            if ($('ta-user-search-results')) { $('ta-user-search-results').style.display = 'none'; $('ta-user-search-results').innerHTML = ''; }
+            _adminTargetedRecipients = [];
+            adminRenderTargetedRecipients();
+        }
+
+        async function loadAdminTargetedAnnouncements() {
+            if (!hasAdminAccess('targeted')) return;
+            const listEl = $('ta-list');
+            if (listEl) listEl.innerHTML = '<div class="es">Loading…</div>';
+            adminResetTargetedForm();
+            try {
+                const snap = await db.collection('targetedAnnouncements').orderBy('updatedAt', 'desc').limit(30).get();
+                if (!listEl) return;
+                if (snap.empty) { listEl.innerHTML = '<div class="es">No targeted announcements yet.</div>'; return; }
+                listEl.innerHTML = snap.docs.map(doc => {
+                    const d = doc.data() || {};
+                    const count = Array.isArray(d.targetUserIds) ? d.targetUserIds.length : 0;
+                    return `<div class="arow">
+                    <div style="flex:1">
+                        <div class="ar-name">${escapeHtml(d.title || 'Untitled')}</div>
+                        <div class="ar-sub">${escapeHtml((d.body || '').slice(0, 120))}${(d.body || '').length > 120 ? '…' : ''}</div>
+                        <div class="ar-sub">${d.enabled ? '<span class="badge bg">On</span>' : '<span class="badge bmut">Off</span>'} · ${escapeHtml(d.theme || 'neon')} · Targets: ${count} · Updated: ${escapeHtml(fmtDT(d.updatedAt || d.createdAt) || '—')}</div>
+                    </div>
+                    <div class="ar-acts">
+                        <button class="btn btn-gh btn-sm" onclick="adminEditTargetedAnnouncement('${doc.id}')">Edit</button>
+                        <button class="btn btn-p btn-sm" onclick="adminToggleTargetedAnnouncement('${doc.id}',${d.enabled ? 'true' : 'false'})">${d.enabled ? 'Turn Off' : 'Turn On'}</button>
+                        <button class="btn btn-d btn-sm" onclick="adminDeleteTargetedAnnouncement('${doc.id}')">Delete</button>
+                    </div>
+                </div>`;
+                }).join('');
+            } catch (e) {
+                if (listEl) listEl.innerHTML = '<div class="es">Failed to load targeted announcements.</div>';
+            }
+        }
+
+        async function adminEditTargetedAnnouncement(id) {
+            if (!hasAdminAccess('targeted')) return toast('Admin access required', 'tr');
+            const snap = await db.collection('targetedAnnouncements').doc(id).get();
+            if (!snap.exists) return toast('Announcement not found', 'tr');
+            const d = snap.data() || {};
+            if ($('ta-edit-id')) $('ta-edit-id').value = id;
+            if ($('ta-title')) $('ta-title').value = d.title || '';
+            if ($('ta-body')) $('ta-body').value = d.body || '';
+            if ($('ta-theme')) $('ta-theme').value = d.theme || 'neon';
+            if ($('ta-enabled')) $('ta-enabled').value = d.enabled === false ? 'false' : 'true';
+            if ($('ta-target-type')) $('ta-target-type').value = d.target?.type || 'users';
+            if ($('ta-dm-mode')) $('ta-dm-mode').value = d.delivery?.dmMode || 'none';
+            const ids = Array.isArray(d.targetUserIds) ? d.targetUserIds : [];
+            if ($('ta-target-uids')) $('ta-target-uids').value = ids.join(', ');
+            _adminTargetedRecipients = ids.map(uid => {
+                const u = (window.AU || []).find(x => x.id === uid);
+                return { id: uid, name: u?.name || u?.email || uid, email: u?.email || '' };
+            });
+            adminRenderTargetedRecipients();
+            toast('Loaded announcement into editor', 'tg');
+        }
+
+        async function adminSaveTargetedAnnouncement() {
+            if (!hasAdminAccess('targeted')) return toast('Admin access required', 'tr');
+            const editId = ($('ta-edit-id')?.value || '').trim();
+            const title = ($('ta-title')?.value || '').trim();
+            const body = ($('ta-body')?.value || '').trim();
+            const theme = $('ta-theme')?.value || 'neon';
+            const enabled = ($('ta-enabled')?.value || 'true') === 'true';
+            const targetType = $('ta-target-type')?.value || 'users';
+            const dmMode = $('ta-dm-mode')?.value || 'none';
+            const pastedIds = ($('ta-target-uids')?.value || '').split(/[\n,]+/).map(v => v.trim()).filter(Boolean);
+            const merged = [...new Set([ ..._adminTargetedRecipients.map(u => u.id), ...pastedIds ])];
+            if (!title) return toast('Enter a title', 'ty');
+            if (!body) return toast('Enter an announcement message', 'ty');
+            if (targetType === 'users' && !merged.length) return toast('Select at least one target user', 'ty');
+
+            const validUsers = [];
+            for (const uid of merged.slice(0, 300)) {
+                try {
+                    const us = await db.collection('users').doc(uid).get();
+                    if (us.exists) validUsers.push(uid);
+                } catch (e) { }
+            }
+            if (!validUsers.length) return toast('No valid target users found', 'tr');
+            const ref = editId ? db.collection('targetedAnnouncements').doc(editId) : db.collection('targetedAnnouncements').doc();
+            const now = FS().serverTimestamp();
+            const payload = {
+                title, body, theme, enabled,
+                target: { type: targetType, userIds: validUsers },
+                targetUserIds: validUsers,
+                delivery: { dmMode, dmQueued: dmMode === 'queue' },
+                updatedAt: now,
+                updatedBy: window.CU?.uid || null,
+                updatedByName: window.CU?.name || window.CU?.email || 'Admin'
+            };
+            if (!editId) {
+                payload.createdAt = now;
+                payload.createdBy = window.CU?.uid || null;
+            }
+            await ref.set(payload, { merge: true });
+            toast(editId ? 'Targeted announcement updated ✓' : 'Targeted announcement published ✓', 'tg');
+            await loadAdminTargetedAnnouncements();
+        }
+
+        async function adminToggleTargetedAnnouncement(id, currentEnabled) {
+            if (!hasAdminAccess('targeted')) return toast('Admin access required', 'tr');
+            await db.collection('targetedAnnouncements').doc(id).set({
+                enabled: !currentEnabled,
+                updatedAt: FS().serverTimestamp(),
+                updatedBy: window.CU?.uid || null
+            }, { merge: true });
+            toast(`Announcement ${!currentEnabled ? 'enabled' : 'disabled'} ✓`, 'tg');
+            loadAdminTargetedAnnouncements();
+        }
+
+        async function adminDeleteTargetedAnnouncement(id) {
+            if (!hasAdminAccess('targeted')) return toast('Admin access required', 'tr');
+            if (!confirm('Delete this targeted announcement?')) return;
+            await db.collection('targetedAnnouncements').doc(id).delete();
+            toast('Targeted announcement deleted', 'tg');
+            loadAdminTargetedAnnouncements();
+        }
+
         // ════════════════════════════════════════════════════════
         // ADMIN ROLE SYSTEM
         // ════════════════════════════════════════════════════════
         const ADMIN_ROLES = {
             superadmin: {
                 label: '⭐ Super Admin', color: 'var(--gold)',
-                tabs: ['investments', 'deposits', 'withdrawals', 'users', 'kyc', 'leaderboard', 'community', 'stakes', 'loans', 'tickets', 'surveys', 'redemptions', 'activity', 'revenue', 'analytics', 'security', 'maintenance', 'testi', 'prizecodes', 'luckydraw', 'contest', 'p2p', 'broadcast', 'moving', 'ads', 'admins', 'promocodes', 'fees', 'tokens', 'gifts', 'paiddm', 'official']
+                tabs: ['investments', 'deposits', 'withdrawals', 'users', 'kyc', 'leaderboard', 'community', 'stakes', 'loans', 'tickets', 'surveys', 'redemptions', 'activity', 'revenue', 'analytics', 'security', 'maintenance', 'testi', 'prizecodes', 'luckydraw', 'contest', 'p2p', 'broadcast', 'targeted', 'moving', 'ads', 'admins', 'promocodes', 'fees', 'tokens', 'gifts', 'paiddm', 'official']
             },
             finance: {
                 label: '💰 Finance', color: 'var(--g)',
@@ -9786,7 +10164,7 @@
             },
             moderator: {
                 label: '🌐 Moderator', color: '#a78bfa',
-                tabs: ['community', 'testi', 'broadcast', 'moving', 'ads', 'activity', 'official']
+                tabs: ['community', 'testi', 'broadcast', 'targeted', 'moving', 'ads', 'activity', 'official']
             },
             operations: {
                 label: '⚙️ Operations', color: 'var(--gold)',
@@ -9819,6 +10197,7 @@
             contest: () => loadAdminContest(),
             p2p: () => loadAdminP2P(),
             broadcast: () => loadAdminBroadcasts(),
+            targeted: () => loadAdminTargetedAnnouncements(),
             moving: () => loadAdminMovingAnnouncement(),
             ads: () => loadAds(),
             admins: () => loadAdminsList(),
@@ -9854,6 +10233,7 @@
             { id: 'contest', label: '🏆 Contest' },
             { id: 'p2p', label: '💱 P2P' },
             { id: 'broadcast', label: 'Broadcast' },
+            { id: 'targeted', label: '🎯 Targeted Notices' },
             { id: 'moving', label: '📡 Moving Ticker' },
             { id: 'ads', label: '📢 Ads' },
             { id: 'admins', label: '👥 Admins' },

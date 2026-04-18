@@ -26,8 +26,9 @@ const LISTING_FEE = 15;
 const MAJOR_ASSET_THRESHOLD = 40000;
 
 const state = loadState();
-let activeUserId = state.users[0].id;
+let activeUserId = getInitialActiveUserId();
 let signatureTargetContractId = null;
+let pendingAssetImages = [];
 
 init();
 
@@ -37,6 +38,13 @@ function init() {
   wireFilters();
   wireDialogs();
   renderAll();
+}
+
+function getInitialActiveUserId() {
+  const params = new URLSearchParams(window.location.search);
+  const requested = params.get("as");
+  if (requested && state.users.some((user) => user.id === requested)) return requested;
+  return state.users[0].id;
 }
 
 function loadState() {
@@ -123,8 +131,15 @@ function wireFilters() {
 }
 
 function wireForm() {
+  const imageInput = document.getElementById("assetImageInput");
+  imageInput.addEventListener("change", async (event) => {
+    await handleAssetImageSelection(event.target.files);
+    imageInput.value = "";
+  });
+
   document.getElementById("assetForm").addEventListener("submit", (event) => {
     event.preventDefault();
+    if (!isActiveUserAdmin()) return toast("Admin access required.");
     const editId = value("assetId");
     const payload = {
       name: value("assetName").trim(),
@@ -139,6 +154,7 @@ function wireForm() {
       isPhysical: value("assetPhysical") === "yes",
       weightCategory: value("assetWeight"),
       vipOnly: value("assetVip") === "yes",
+      images: [...pendingAssetImages],
       active: true,
     };
 
@@ -208,6 +224,7 @@ function wireDialogs() {
 
 function renderAll() {
   renderTopbar();
+  updateAdminVisibility();
   renderAssetsTab();
   renderMyAssets();
   renderMarketplace();
@@ -219,17 +236,29 @@ function renderAll() {
 function renderTopbar() {
   const userSelect = document.getElementById("activeUser");
   userSelect.innerHTML = state.users
-    .filter((u) => u.role !== "admin")
-    .map((u) => `<option value="${u.id}" ${activeUserId === u.id ? "selected" : ""}>${u.name}</option>`)
+    .map((u) => `<option value="${u.id}" ${activeUserId === u.id ? "selected" : ""}>${u.name} (${u.role})</option>`)
     .join("");
 
   const current = getUser(activeUserId);
   const spendable = current.mainBalance - current.heldBalance;
+  document.getElementById("activeRoleBadge").textContent = `Role: ${current.role}`;
   document.getElementById("balanceCard").textContent = `Main: ${money(current.mainBalance)} | Held: ${money(current.heldBalance)} | Spendable: ${money(spendable)}`;
 
   const types = [...new Set(state.assets.map((a) => a.type))];
   const typeFilter = document.getElementById("assetTypeFilter");
   typeFilter.innerHTML = `<option value="all">All Types</option>${types.map((t) => `<option ${t === typeFilter.value ? "selected" : ""}>${t}</option>`).join("")}`;
+}
+
+function updateAdminVisibility() {
+  const adminBtn = document.querySelector('.tabs button[data-tab="adminTab"]');
+  const isAdmin = isActiveUserAdmin();
+  adminBtn.style.display = isAdmin ? "inline-flex" : "none";
+  if (!isAdmin && adminBtn.classList.contains("active")) {
+    adminBtn.classList.remove("active");
+    document.querySelector('.tabs button[data-tab="assetsTab"]').classList.add("active");
+    document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.remove("active"));
+    document.getElementById("assetsTab").classList.add("active");
+  }
 }
 
 function renderAssetsTab() {
@@ -322,6 +351,7 @@ function renderMarketplace() {
       return `
       <article class="card">
         <h3>${asset.name}</h3>
+        ${assetPreview(asset)}
         <div class="tags">
           <span class="tag">Owner: ${owner.name}</span>
           <span class="tag">Rent: ${money(listing.rentPrice)} / ${listing.paymentDuration}</span>
@@ -340,6 +370,11 @@ function renderMarketplace() {
 }
 
 function renderAdmin() {
+  if (!isActiveUserAdmin()) {
+    document.getElementById("adminAssetList").innerHTML = "<p>Admin access required.</p>";
+    document.getElementById("adminListingList").innerHTML = "";
+    return;
+  }
   const list = document.getElementById("adminAssetList");
   list.innerHTML = state.assets
     .map((a) => `<article class="list-item">
@@ -415,7 +450,7 @@ function renderReceipts() {
     .join("") || "<p>No receipts yet.</p>";
 
   mine.forEach((r) => {
-    document.getElementById(`receipt-${r.id}`).addEventListener("click", () => downloadTextFile(`receipt-${r.id}.txt`, JSON.stringify(r, null, 2)));
+    document.getElementById(`receipt-${r.id}`).addEventListener("click", () => downloadDocument(`receipt-${r.id}.html`, `Receipt ${r.id}`, r));
   });
 }
 
@@ -437,7 +472,7 @@ function renderContracts() {
     .join("") || "<p>No contracts for this user.</p>";
 
   mine.forEach((c) => {
-    document.getElementById(`view-contract-${c.id}`).addEventListener("click", () => downloadTextFile(`contract-${c.id}.txt`, JSON.stringify(c, null, 2)));
+    document.getElementById(`view-contract-${c.id}`).addEventListener("click", () => downloadDocument(`contract-${c.id}.html`, `Contract ${c.id}`, c));
     const signButton = document.getElementById(`sign-contract-${c.id}`);
     if (signButton) signButton.addEventListener("click", () => openSignaturePad(c.id));
   });
@@ -446,6 +481,7 @@ function renderContracts() {
 function assetCard(asset) {
   return `<article class="card">
     <h3>${asset.name}</h3>
+    ${assetPreview(asset)}
     <div class="tags">
       <span class="tag">${asset.type}</span>
       <span class="tag">${asset.ownershipType}</span>
@@ -465,10 +501,14 @@ function assetCard(asset) {
 function openAssetDetails(assetId) {
   const asset = getAsset(assetId);
   const needsShipping = asset.isPhysical;
+  const imageSection = (asset.images || []).length
+    ? `<div class="detail-image-grid">${asset.images.map((img, idx) => `<img src="${img}" alt="${asset.name} image ${idx + 1}" />`).join("")}</div>`
+    : "<p>No images uploaded for this asset yet.</p>";
   const shippingLine = needsShipping ? `<label>Destination <input id="shippingDestination" placeholder="e.g. Miami" /></label><button id="calcShipping">Calculate Shipping</button><div id="shippingResult"></div>` : "<p>No shipping required.</p>";
 
   document.getElementById("assetDetailContent").innerHTML = `
     <h2>${asset.name}</h2>
+    ${imageSection}
     <p>${asset.description}</p>
     <p><strong>Origin:</strong> ${asset.originLocation || "N/A"} | <strong>Location:</strong> ${asset.location || "N/A"}</p>
     <p><strong>Item Price:</strong> ${money(asset.fullPrice)} | <strong>Rent:</strong> ${money(asset.rentPrice)}</p>
@@ -645,6 +685,7 @@ function createListing(userAssetId) {
     allowMultipleRents,
     currentRenterId: null,
     featured,
+    originLocation: ua.destination || holder.defaultLocation || getAsset(ua.assetId).originLocation || getAsset(ua.assetId).location,
     createdAt: new Date().toISOString(),
   });
 
@@ -665,7 +706,8 @@ function rentFromListing(listingId) {
   const destination = asset.isPhysical ? prompt("Delivery destination:")?.trim() : "";
   if (asset.isPhysical && !destination) return toast("Destination required.");
 
-  const shippingResult = asset.isPhysical ? calculateShipping(asset, destination) : { fee: 0, distance: 0 };
+  const sourceLocation = listing.originLocation || asset.originLocation || asset.location;
+  const shippingResult = asset.isPhysical ? calculateShipping(asset, destination, sourceLocation) : { fee: 0, distance: 0 };
   if (shippingResult.error) return toast(shippingResult.error);
 
   const fee = Math.round(listing.rentPrice * state.settings.platformFeeRate);
@@ -714,7 +756,7 @@ function rentFromListing(listingId) {
       id: makeId("ship"),
       assetId: asset.id,
       userAssetId: renterUa.id,
-      fromLocation: asset.originLocation || asset.location,
+      fromLocation: sourceLocation,
       toLocation: destination,
       weightCategory: asset.weightCategory,
       distance: shippingResult.distance,
@@ -858,8 +900,8 @@ function openSignaturePad(contractId) {
   document.getElementById("signatureDialog").showModal();
 }
 
-function calculateShipping(asset, destination) {
-  const from = normalizeLocation(asset.originLocation || asset.location);
+function calculateShipping(asset, destination, fromLocation = null) {
+  const from = normalizeLocation(fromLocation || asset.originLocation || asset.location);
   const to = normalizeLocation(destination);
   if (!SHIPPING_COORDS[from] || !SHIPPING_COORDS[to]) {
     return { error: "Unsupported location for shipping quote. Try Lagos, Abuja, Dubai, London, Tokyo, New York, Miami or Dallas." };
@@ -894,6 +936,7 @@ function installmentAmount(asset) {
 }
 
 function fillAssetForm(asset) {
+  if (!isActiveUserAdmin()) return;
   setValue("assetId", asset.id);
   setValue("assetName", asset.name);
   setValue("assetType", asset.type);
@@ -907,6 +950,8 @@ function fillAssetForm(asset) {
   setValue("assetPhysical", asset.isPhysical ? "yes" : "no");
   setValue("assetWeight", asset.weightCategory);
   setValue("assetVip", asset.vipOnly ? "yes" : "no");
+  pendingAssetImages = [...(asset.images || [])];
+  renderAssetImagePreview();
 }
 
 function resetAssetForm() {
@@ -917,6 +962,81 @@ function resetAssetForm() {
   setValue("assetPhysical", "yes");
   setValue("assetWeight", "small");
   setValue("assetVip", "no");
+  pendingAssetImages = [];
+  renderAssetImagePreview();
+}
+
+async function handleAssetImageSelection(files) {
+  const picks = [...(files || [])];
+  for (const file of picks) {
+    if (pendingAssetImages.length >= 3) {
+      toast("You can upload a maximum of 3 images.");
+      break;
+    }
+    const error = validateAssetImage(file);
+    if (error) {
+      toast(error);
+      continue;
+    }
+    const dataUrl = await compressImg(file);
+    pendingAssetImages.push(dataUrl);
+  }
+  renderAssetImagePreview();
+}
+
+function renderAssetImagePreview() {
+  const wrap = document.getElementById("assetImagePreview");
+  wrap.innerHTML = pendingAssetImages.length
+    ? pendingAssetImages
+      .map((img, idx) => `
+      <div class="img-preview-card">
+        <img src="${img}" alt="Asset preview ${idx + 1}" />
+        <button type="button" data-remove-image="${idx}" class="warn">Remove image</button>
+      </div>`)
+      .join("")
+    : "<small>No images selected.</small>";
+
+  wrap.querySelectorAll("[data-remove-image]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const idx = Number(btn.dataset.removeImage);
+      pendingAssetImages.splice(idx, 1);
+      renderAssetImagePreview();
+    });
+  });
+}
+
+function validateAssetImage(file) {
+  if (!file.type.startsWith("image/")) return "Only image files are allowed.";
+  if (file.size > 1500 * 1024) return "Image too large. Max allowed size is 1.5MB before compression.";
+  return null;
+}
+
+function compressImg(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 800;
+        const scale = img.width > maxW ? maxW / img.width : 1;
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.75));
+      };
+      img.onerror = () => reject(new Error("Unable to load image."));
+      img.src = event.target.result;
+    };
+    reader.onerror = () => reject(new Error("Unable to read image file."));
+    reader.readAsDataURL(file);
+  });
+}
+
+function assetPreview(asset) {
+  const firstImage = asset.images?.[0];
+  if (!firstImage) return "";
+  return `<img class="asset-cover" src="${firstImage}" alt="${asset.name}" />`;
 }
 
 function getAsset(id) {
@@ -925,6 +1045,10 @@ function getAsset(id) {
 
 function getUser(id) {
   return state.users.find((user) => user.id === id);
+}
+
+function isActiveUserAdmin() {
+  return getUser(activeUserId)?.role === "admin";
 }
 
 function setValue(id, val) { document.getElementById(id).value = val; }
@@ -956,6 +1080,20 @@ function downloadTextFile(name, content) {
   a.download = name;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function downloadDocument(name, title, data) {
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title></head><body><h1>${title}</h1><pre>${escapeHtml(JSON.stringify(data, null, 2))}</pre></body></html>`;
+  const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function escapeHtml(raw) {
+  return String(raw).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 
 function isCanvasBlank(canvas) {

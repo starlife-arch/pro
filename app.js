@@ -327,7 +327,38 @@ function renderAccountPage() {
 
   const myAssets = state.userAssets.filter((ua) => ua.userId === activeUserId && ua.status !== "closed");
   const myContracts = state.contracts.filter((c) => c.parties.some((p) => p.userId === activeUserId));
+  const myReceipts = state.receipts.filter((r) => r.senderUserId === activeUserId || r.receiverUserId === activeUserId).slice(-6).reverse();
   const txs = state.transactions.filter((tx) => tx.fromUserId === activeUserId || tx.toUserId === activeUserId).slice(-8).reverse();
+
+  document.getElementById("accountContracts").innerHTML = myContracts.map((contract) => `
+    <article class="list-item">
+      <strong>${contract.assetName}</strong>
+      <div>Type: ${contract.type} • Status: ${contract.status}</div>
+      <div class="actions">
+        <button id="account-contract-view-${contract.id}">View Contract</button>
+        ${contract.parties.some((p) => p.userId === activeUserId && !p.signed) ? `<button id="account-contract-sign-${contract.id}" class="primary">Sign Contract</button>` : ""}
+      </div>
+    </article>
+  `).join("") || "<p>No contracts yet.</p>";
+
+  myContracts.forEach((contract) => {
+    document.getElementById(`account-contract-view-${contract.id}`)?.addEventListener("click", () => renderContractDocument(contract));
+    document.getElementById(`account-contract-sign-${contract.id}`)?.addEventListener("click", () => openSignaturePad(contract.id));
+  });
+
+  document.getElementById("accountReceipts").innerHTML = myReceipts.map((receipt) => `
+    <article class="list-item">
+      <strong>${receipt.assetName}</strong>
+      <div>${money(receipt.amountPaid)} • ${receipt.paymentType} • ${new Date(receipt.createdAt).toLocaleString()}</div>
+      <div class="actions">
+        <button id="account-receipt-view-${receipt.id}">View Receipt</button>
+      </div>
+    </article>
+  `).join("") || "<p>No receipts yet.</p>";
+
+  myReceipts.forEach((receipt) => {
+    document.getElementById(`account-receipt-view-${receipt.id}`)?.addEventListener("click", () => renderReceiptDocument(receipt));
+  });
 
   const txWrap = document.getElementById("accountTransactions");
   txWrap.innerHTML = txs.map((tx) => {
@@ -402,6 +433,8 @@ function renderMarketplace() {
 }
 
 function renderAdmin() {
+  renderAdminOverview();
+
   const list = document.getElementById("adminAssetList");
   list.innerHTML = state.assets
     .map((a) => `<article class="list-item">
@@ -462,6 +495,23 @@ function renderAdmin() {
       renderAll();
     });
   });
+}
+
+function renderAdminOverview() {
+  const activeAssets = state.assets.filter((a) => a.active).length;
+  const inactiveAssets = state.assets.filter((a) => !a.active).length;
+  const activeListings = state.listings.filter((l) => l.active).length;
+  const pendingContracts = state.contracts.filter((c) => c.status === "pending").length;
+  const signedContracts = state.contracts.filter((c) => c.status === "signed" || c.status === "active").length;
+
+  document.getElementById("adminOverview").innerHTML = `
+    <article class="card"><h3>Active Assets</h3><p>${activeAssets}</p></article>
+    <article class="card"><h3>Inactive Assets</h3><p>${inactiveAssets}</p></article>
+    <article class="card"><h3>Active Listings</h3><p>${activeListings}</p></article>
+    <article class="card"><h3>Pending Contracts</h3><p>${pendingContracts}</p></article>
+    <article class="card"><h3>Signed/Active Contracts</h3><p>${signedContracts}</p></article>
+    <article class="card"><h3>Total Receipts</h3><p>${state.receipts.length}</p></article>
+  `;
 }
 
 function renderReceipts() {

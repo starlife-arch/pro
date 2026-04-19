@@ -22,10 +22,11 @@
   <nav class="tabs">
     <button class="active" data-tab="assetsTab">Assets</button>
     <button data-tab="myAssetsTab">My Assets</button>
+    <button data-tab="accountTab">My Assets &amp; Contracts</button>
     <button data-tab="marketTab">Marketplace</button>
     <button data-tab="receiptsTab">Receipts</button>
     <button data-tab="contractsTab">Contracts</button>
-    <button data-tab="adminTab">Admin</button>
+    <button data-tab="adminTab">Assets Management</button>
   </nav>
 
   <main>
@@ -42,6 +43,13 @@
     <section id="myAssetsTab" class="tab-panel">
       <h2>My Assets</h2>
       <div id="myAssetsGrid" class="grid"></div>
+    </section>
+
+    <section id="accountTab" class="tab-panel">
+      <h2>My Assets &amp; Contracts</h2>
+      <div id="accountOverview" class="grid"></div>
+      <h3>Recent Transactions</h3>
+      <div id="accountTransactions" class="list"></div>
     </section>
 
     <section id="marketTab" class="tab-panel">

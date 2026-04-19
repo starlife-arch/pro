@@ -2888,6 +2888,108 @@
         body.is-admin .ai-chat-panel {
             display: none !important
         }
+
+        /* ═══ STARLIFE ASSETS EXTENSION ═══ */
+        .asset-card {
+            background: var(--s1);
+            border: 1px solid var(--bd);
+            border-radius: var(--r);
+            overflow: hidden;
+            margin-bottom: 12px;
+            transition: .2s
+        }
+        .asset-card:hover { border-color: var(--bds) }
+        .asset-img-wrap {
+            position: relative;
+            height: 140px;
+            background: var(--s2);
+            overflow: hidden
+        }
+        .asset-img-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover
+        }
+        .asset-img-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, var(--s2), var(--s3))
+        }
+        .asset-type-badge {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: .65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .4px
+        }
+        .asset-body { padding: 13px }
+        .asset-name { font-weight: 700; font-size: .95rem; margin-bottom: 4px }
+        .asset-loc { font-size: .74rem; color: var(--t3); margin-bottom: 8px }
+        .asset-prices { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px }
+        .asset-price-box { background: var(--s2); border-radius: 8px; padding: 7px 10px; flex: 1; min-width: 80px; text-align: center }
+        .asset-price-lbl { font-size: .65rem; color: var(--t3); margin-bottom: 2px }
+        .asset-price-val { font-size: .88rem; font-weight: 700; color: var(--g); font-family: 'JetBrains Mono', monospace }
+        .asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px }
+        .my-asset-row {
+            background: var(--s1);
+            border: 1px solid var(--bd);
+            border-radius: var(--r);
+            padding: 14px;
+            margin-bottom: 10px
+        }
+        .progress-bar-wrap { background: var(--s3); border-radius: 4px; height: 6px; margin: 8px 0 4px }
+        .progress-bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--gd), var(--g)); transition: width .4s }
+        /* Signature pad */
+        .sig-pad-wrap {
+            border: 1.5px dashed var(--bds);
+            border-radius: var(--rs);
+            overflow: hidden;
+            background: #0a140d;
+            cursor: crosshair
+        }
+        /* Contract */
+        .contract-page {
+            background: #fff;
+            color: #111;
+            border-radius: 8px;
+            padding: 28px 24px;
+            font-family: Georgia, serif;
+            font-size: .82rem;
+            line-height: 1.7;
+            max-height: 60vh;
+            overflow-y: auto
+        }
+        .contract-page h2 { text-align: center; font-size: 1rem; margin-bottom: 6px; color: #000 }
+        .contract-page h3 { font-size: .88rem; margin: 12px 0 4px; color: #222 }
+        .contract-page .c-line { border-top: 1px solid #ccc; margin: 12px 0 }
+        .contract-page .c-sig { border-bottom: 1px solid #666; min-height: 32px; margin: 6px 0 2px }
+        /* Receipt */
+        .receipt-card {
+            background: var(--s1);
+            border: 1px solid var(--bds);
+            border-radius: var(--r);
+            padding: 18px;
+            max-width: 380px;
+            margin: 0 auto
+        }
+        .receipt-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--bd); font-size: .83rem }
+        .receipt-row:last-child { border-bottom: none }
+        .receipt-total { font-weight: 700; color: var(--g); font-size: .95rem }
+        /* Admin asset form */
+        .asset-img-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px }
+        .asset-img-thumb { position: relative; height: 80px; border-radius: 8px; overflow: hidden; background: var(--s2) }
+        .asset-img-thumb img { width: 100%; height: 100%; object-fit: cover }
+        .asset-img-thumb .rm-img { position: absolute; top: 4px; right: 4px; background: rgba(255,82,82,.85); color: #fff; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: .7rem; cursor: pointer; display: flex; align-items: center; justify-content: center }
+        .asset-img-add { height: 80px; border: 1.5px dashed var(--bds); border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--t3); font-size: 1.5rem; transition: .2s }
+        .asset-img-add:hover { border-color: var(--g); color: var(--g) }
     </style>
 </head>
 
@@ -5334,7 +5436,57 @@
 
         </div><!-- /wrap -->
 
-        <!-- Bottom Nav -->
+        <!-- ═══ ASSETS: MARKETPLACE TAB ═══ -->
+        <div id="t-assets-market" class="itc" style="display:none;padding:0 14px 80px">
+            <div class="ptitle">🏪 Asset Marketplace</div>
+            <div class="psub">Browse, buy, rent, or list assets</div>
+            <div class="itabs">
+                <div class="itab on" onclick="assetMarketTab(this,'am-browse')">🔍 Browse</div>
+                <div class="itab" onclick="assetMarketTab(this,'am-buy');loadAssetMarket('buy')">💰 Buy</div>
+                <div class="itab" onclick="assetMarketTab(this,'am-rent');loadAssetMarket('rent')">🔑 Rent</div>
+                <div class="itab" onclick="assetMarketTab(this,'am-installment');loadAssetMarket('installment')">📅 Installment</div>
+            </div>
+            <div id="am-browse">
+                <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+                    <select class="fi" id="am-filter-type" style="flex:1;min-width:120px" onchange="loadAssetMarket('all')">
+                        <option value="">All Types</option>
+                        <option value="house">🏠 House</option>
+                        <option value="car">🚗 Car</option>
+                        <option value="land">🌍 Land</option>
+                        <option value="electronics">📱 Electronics</option>
+                        <option value="equipment">⚙️ Equipment</option>
+                        <option value="other">📦 Other</option>
+                    </select>
+                    <select class="fi" id="am-filter-mode" style="flex:1;min-width:120px" onchange="loadAssetMarket('all')">
+                        <option value="">All Modes</option>
+                        <option value="buy">Buy</option>
+                        <option value="rent">Rent</option>
+                        <option value="installment">Installment</option>
+                    </select>
+                </div>
+                <div id="am-list" class="asset-grid"><div class="es">Loading assets…</div></div>
+            </div>
+            <div id="am-buy" style="display:none"><div id="am-buy-list" class="asset-grid"><div class="es">Loading…</div></div></div>
+            <div id="am-rent" style="display:none"><div id="am-rent-list" class="asset-grid"><div class="es">Loading…</div></div></div>
+            <div id="am-installment" style="display:none"><div id="am-installment-list" class="asset-grid"><div class="es">Loading…</div></div></div>
+        </div>
+
+        <!-- ═══ ASSETS: MY ASSETS & CONTRACTS TAB ═══ -->
+        <div id="t-my-assets" class="itc" style="display:none;padding:0 14px 80px">
+            <div class="ptitle">📦 My Assets & Contracts</div>
+            <div class="psub">Owned, rented, and listed assets</div>
+            <div class="itabs">
+                <div class="itab on" onclick="myAssetsTab(this,'ma-owned')">🏠 Owned</div>
+                <div class="itab" onclick="myAssetsTab(this,'ma-renting')">🔑 Renting</div>
+                <div class="itab" onclick="myAssetsTab(this,'ma-contracts')">📄 Contracts</div>
+                <div class="itab" onclick="myAssetsTab(this,'ma-receipts')">🧾 Receipts</div>
+            </div>
+            <div id="ma-owned"><div id="ma-owned-list"><div class="es">Loading…</div></div></div>
+            <div id="ma-renting" style="display:none"><div id="ma-renting-list"><div class="es">Loading…</div></div></div>
+            <div id="ma-contracts" style="display:none"><div id="ma-contracts-list"><div class="es">Loading…</div></div></div>
+            <div id="ma-receipts" style="display:none"><div id="ma-receipts-list"><div class="es">Loading…</div></div></div>
+        </div>
+
         <div class="bnav">
             <div class="bi on" id="bi-home" onclick="tab('home')"><span class="ico">🏠</span>Home</div>
             <div class="bi" id="bi-invest" onclick="tab('invest')"><span class="ico">📈</span>Invest</div>
@@ -5347,6 +5499,8 @@
         <div id="more-menu"
             style="display:none;position:fixed;bottom:65px;right:12px;z-index:400;background:var(--s1);border:1px solid var(--bds);border-radius:var(--r);padding:8px;min-width:180px;box-shadow:0 8px 32px rgba(0,0,0,.5)">
             <div class="more-item" onclick="tab('surveys');hideMore()">📝 Surveys</div>
+            <div class="more-item" onclick="tab('assets-market');loadAssetMarket('all');hideMore()">🏪 Asset Marketplace</div>
+            <div class="more-item" onclick="tab('my-assets');loadMyAssets();hideMore()">📦 My Assets & Contracts</div>
             <div class="more-item" onclick="tab('savings');hideMore()">🏦 Savings Wallet</div>
             <div class="more-item" onclick="tab('withdraw');hideMore()">💳 Withdraw</div>
             <div class="more-item" onclick="tab('deposit');hideMore()">💵 Deposit</div>
@@ -6356,6 +6510,84 @@
                 </div>
             </div>
         </div>
+
+        <!-- ═══ ADMIN: ASSETS MANAGEMENT TAB ═══ -->
+        <div id="at-assets" class="atab">
+            <div class="card" style="margin-bottom:12px">
+                <div style="font-weight:700;font-size:.95rem;margin-bottom:12px">➕ Create / Edit Asset</div>
+                <input type="hidden" id="aasset-edit-id">
+                <div class="fg"><label class="fl">Asset Name</label><input class="fi" id="aasset-name" placeholder="e.g. 3-Bedroom Villa, Toyota Corolla"></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                    <div class="fg"><label class="fl">Type</label>
+                        <select class="fi" id="aasset-type">
+                            <option value="house">🏠 House</option>
+                            <option value="car">🚗 Car</option>
+                            <option value="land">🌍 Land</option>
+                            <option value="electronics">📱 Electronics</option>
+                            <option value="equipment">⚙️ Equipment</option>
+                            <option value="other">📦 Other</option>
+                        </select>
+                    </div>
+                    <div class="fg"><label class="fl">Physical Asset?</label>
+                        <select class="fi" id="aasset-physical">
+                            <option value="true">Yes — shippable</option>
+                            <option value="false">No — digital/local</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="fg"><label class="fl">Location / Address</label><input class="fi" id="aasset-location" placeholder="e.g. Mombasa, Kenya"></div>
+                <div class="fg"><label class="fl">Description</label><textarea class="fi" id="aasset-desc" rows="3" placeholder="Describe the asset…"></textarea></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+                    <div class="fg"><label class="fl">Buy Price ($)</label><input class="fi" id="aasset-price-buy" type="number" min="0" placeholder="0 = not for sale"></div>
+                    <div class="fg"><label class="fl">Rent/Day ($)</label><input class="fi" id="aasset-price-rent" type="number" min="0" placeholder="0 = not rentable"></div>
+                    <div class="fg"><label class="fl">Installment/Mo ($)</label><input class="fi" id="aasset-price-install" type="number" min="0" placeholder="0 = N/A"></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                    <div class="fg"><label class="fl">Installment Duration (months)</label><input class="fi" id="aasset-install-months" type="number" min="1" placeholder="e.g. 12"></div>
+                    <div class="fg"><label class="fl">Status</label>
+                        <select class="fi" id="aasset-status">
+                            <option value="available">Available</option>
+                            <option value="rented">Rented</option>
+                            <option value="sold">Sold</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- Image Upload -->
+                <div class="fg">
+                    <label class="fl">Asset Images (max 3)</label>
+                    <div class="asset-img-grid" id="aasset-img-grid">
+                        <div class="asset-img-add" onclick="document.getElementById('aasset-img-input').click()" id="aasset-add-btn">+</div>
+                    </div>
+                    <input type="file" id="aasset-img-input" accept="image/*" style="display:none" onchange="adminAssetImgSelected(this)">
+                    <div style="font-size:.7rem;color:var(--t3);margin-top:4px">Max 1.5MB per image · JPEG/PNG/WebP</div>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <button class="btn btn-p" onclick="adminSaveAsset()">💾 Save Asset</button>
+                    <button class="btn btn-gh" onclick="adminResetAssetForm()">Reset</button>
+                </div>
+            </div>
+            <div class="sh"><h3>All Assets</h3></div>
+            <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+                <button class="btn btn-gh btn-sm" onclick="loadAdminAssets('all')">All</button>
+                <button class="btn btn-gh btn-sm" onclick="loadAdminAssets('available')">Available</button>
+                <button class="btn btn-gh btn-sm" onclick="loadAdminAssets('rented')">Rented</button>
+                <button class="btn btn-gh btn-sm" onclick="loadAdminAssets('sold')">Sold</button>
+            </div>
+            <div id="at-assets-list"><div class="es">Loading assets…</div></div>
+
+            <div class="sh" style="margin-top:18px"><h3>📄 All Contracts</h3></div>
+            <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+                <button class="btn btn-gh btn-sm" onclick="loadAdminContracts('all')">All</button>
+                <button class="btn btn-gh btn-sm" onclick="loadAdminContracts('pending')">Pending Signature</button>
+                <button class="btn btn-gh btn-sm" onclick="loadAdminContracts('active')">Active</button>
+            </div>
+            <div id="at-contracts-list"><div class="es">Loading contracts…</div></div>
+
+            <div class="sh" style="margin-top:18px"><h3>🚚 Shipping Orders</h3></div>
+            <div id="at-shipping-list"><div class="es">Loading…</div></div>
+        </div>
+
     </div>
     </div><!-- /pg-admin -->
 
@@ -18296,6 +18528,968 @@ Prize: $${fmt(prize)}`);
             </div>
         </div>
     </div>
+
+    <!-- ═══ ASSET DETAIL MODAL ═══ -->
+    <div class="mover" id="m-asset-detail">
+        <div class="modal" style="max-width:540px;padding:0;overflow:hidden;border-radius:20px">
+            <div id="m-ad-img-wrap" style="height:180px;background:var(--s2);position:relative;overflow:hidden">
+                <img id="m-ad-img" src="" style="width:100%;height:100%;object-fit:cover;display:none">
+                <div id="m-ad-img-placeholder" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:3.5rem">🏠</div>
+                <div id="m-ad-type-badge" class="asset-type-badge" style="background:var(--g);color:#000"></div>
+            </div>
+            <div style="padding:18px">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+                    <h3 id="m-ad-name" style="font-size:1.1rem;flex:1"></h3>
+                    <span id="m-ad-status-badge" class="badge bg" style="margin-left:8px;flex-shrink:0"></span>
+                </div>
+                <div id="m-ad-location" style="font-size:.78rem;color:var(--t3);margin-bottom:10px">📍</div>
+                <div id="m-ad-desc" style="font-size:.83rem;color:var(--t2);line-height:1.5;margin-bottom:14px"></div>
+                <div class="asset-prices" id="m-ad-prices"></div>
+                <!-- Image gallery -->
+                <div id="m-ad-gallery" style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto"></div>
+                <!-- Shipping section -->
+                <div id="m-ad-shipping-section" style="display:none;background:var(--s2);border-radius:10px;padding:12px;margin-bottom:14px">
+                    <div style="font-weight:700;font-size:.85rem;margin-bottom:8px">🚚 Shipping</div>
+                    <div class="fg"><label class="fl" style="font-size:.78rem">Your Delivery Address</label><input class="fi" id="m-ad-dest" placeholder="Full delivery address"></div>
+                    <div id="m-ad-ship-preview" style="display:none;font-size:.82rem;margin-top:8px"></div>
+                    <button class="btn btn-gh btn-sm" onclick="calcAssetShipping()" style="margin-top:6px">Calculate Shipping</button>
+                </div>
+                <input type="hidden" id="m-ad-id">
+                <div id="m-ad-actions" style="display:flex;gap:8px;flex-wrap:wrap">
+                    <button class="btn btn-p" id="m-ad-btn-buy" style="flex:1;display:none" onclick="doAssetAction('buy')">💰 Buy Now</button>
+                    <button class="btn btn-sky" id="m-ad-btn-rent" style="flex:1;display:none" onclick="doAssetAction('rent')">🔑 Rent</button>
+                    <button class="btn btn-gold" id="m-ad-btn-install" style="flex:1;display:none" onclick="doAssetAction('installment')">📅 Pay Installment</button>
+                    <button class="btn btn-gh" onclick="closeModal('m-asset-detail')">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ RECEIPT MODAL ═══ -->
+    <div class="mover" id="m-receipt">
+        <div class="modal" style="max-width:420px">
+            <div class="modal-title">🧾 Receipt</div>
+            <div class="receipt-card" id="m-receipt-body"></div>
+            <div class="modal-acts" style="margin-top:16px">
+                <button class="btn btn-p btn-sm" onclick="printReceipt()">🖨️ Print</button>
+                <button class="btn btn-gh" onclick="closeModal('m-receipt')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ CONTRACT MODAL ═══ -->
+    <div class="mover" id="m-contract">
+        <div class="modal" style="max-width:600px">
+            <div class="modal-title">📄 Asset Contract</div>
+            <div id="m-contract-body" class="contract-page"></div>
+            <div id="m-contract-sig-section" style="margin-top:14px;display:none">
+                <div style="font-size:.85rem;font-weight:700;margin-bottom:8px;color:var(--gold)">✍️ Your Digital Signature</div>
+                <div style="font-size:.76rem;color:var(--t2);margin-bottom:8px">Draw your signature below. This contract is invalid without your signature.</div>
+                <div class="sig-pad-wrap" id="sig-pad-wrap">
+                    <canvas id="sig-canvas" width="480" height="100" style="display:block;width:100%;touch-action:none"></canvas>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:8px">
+                    <button class="btn btn-gh btn-sm" onclick="clearSig()">Clear</button>
+                    <button class="btn btn-p btn-sm" onclick="signContract()">✅ Sign Contract</button>
+                </div>
+            </div>
+            <div id="m-contract-signed-note" style="display:none;margin-top:10px;background:rgba(0,230,118,.08);border:1px solid var(--bds);border-radius:8px;padding:10px;font-size:.8rem;color:var(--g)">
+                ✅ Contract signed. Both parties have agreed to terms.
+            </div>
+            <div class="modal-acts" style="margin-top:14px">
+                <button class="btn btn-gh" onclick="closeModal('m-contract')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ SHIPPING CONFIRM MODAL ═══ -->
+    <div class="mover" id="m-shipping-confirm">
+        <div class="modal" style="max-width:420px">
+            <div class="modal-title">🚚 Confirm Shipping</div>
+            <div id="m-ship-summary" style="background:var(--s2);border-radius:10px;padding:14px;margin-bottom:14px;font-size:.85rem"></div>
+            <div class="modal-acts">
+                <button class="btn btn-p" onclick="confirmShipping()">Confirm & Pay</button>
+                <button class="btn btn-gh" onclick="closeModal('m-shipping-confirm')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ RENT DURATION MODAL ═══ -->
+    <div class="mover" id="m-rent-duration">
+        <div class="modal" style="max-width:400px">
+            <div class="modal-title">🔑 Rent Duration</div>
+            <div id="m-rent-asset-name" style="font-size:.88rem;color:var(--t2);margin-bottom:12px"></div>
+            <div class="fg"><label class="fl">Number of Days</label><input class="fi" id="m-rent-days" type="number" min="1" max="365" placeholder="e.g. 7" oninput="calcRentTotal()"></div>
+            <div id="m-rent-preview" style="display:none;background:var(--s2);border-radius:10px;padding:12px;margin-bottom:12px">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:.8rem;color:var(--t2)">Daily Rate</span><span id="m-rent-daily" style="color:var(--sky);font-family:'JetBrains Mono',monospace"></span></div>
+                <div style="display:flex;justify-content:space-between"><span style="font-size:.8rem;color:var(--t2)">Total</span><span id="m-rent-total" style="color:var(--g);font-weight:700;font-family:'JetBrains Mono',monospace"></span></div>
+            </div>
+            <div class="modal-acts">
+                <button class="btn btn-p" onclick="confirmRent()">Confirm Rent →</button>
+                <button class="btn btn-gh" onclick="closeModal('m-rent-duration')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ ASSETS JS EXTENSION ═══ -->
+    <script>
+    // ════════════════════════════════════════════════════════
+    // STARLIFE ASSETS — SAFE EXTENSION (adds to existing system)
+    // Collections: assets, user_assets, receipts, contracts, shipping
+    // Uses: existing db, auth, CU, fmt, fmtD, toast, tg, logAct, getAvailableBalance
+    // ════════════════════════════════════════════════════════
+
+    const ASSET_TYPE_ICONS = { house:'🏠', car:'🚗', land:'🌍', electronics:'📱', equipment:'⚙️', other:'📦' };
+    const ASSET_TYPE_COLORS = { house:'#00E676', car:'#40C4FF', land:'#FFD54F', electronics:'#CE93D8', equipment:'#FF7043', other:'#8FAE95' };
+    const SHIP_RATES = { small:{ base:5, perKm:.01 }, medium:{ base:12, perKm:.02 }, large:{ base:25, perKm:.04 } };
+    function assetIcon(type){ return ASSET_TYPE_ICONS[type]||'📦'; }
+    function assetColor(type){ return ASSET_TYPE_COLORS[type]||'var(--t2)'; }
+
+    // ── Asset size helper ──
+    function getAssetSize(type){
+        if(['house','land'].includes(type)) return 'large';
+        if(['car','equipment'].includes(type)) return 'medium';
+        return 'small';
+    }
+
+    // ── Shipping fee calculation (flat distance estimate based on addr length heuristic) ──
+    function calcShippingFee(type, destAddr){
+        const size = getAssetSize(type);
+        const rate = SHIP_RATES[size];
+        // Rough km estimate: 5km per word in address (capped at 200km)
+        const words = (destAddr||'').trim().split(/\s+/).length;
+        const km = Math.min(200, words * 5);
+        return parseFloat((rate.base + km * rate.perKm).toFixed(2));
+    }
+
+    // ── genId helper ──
+    function genAssetTxId(){
+        return 'AST-'+Math.random().toString(36).substr(2,8).toUpperCase();
+    }
+
+    // ═══ TAB HELPERS ═══
+    function assetMarketTab(el, id){
+        document.querySelectorAll('#t-assets-market .itab').forEach(t=>t.classList.remove('on'));
+        el.classList.add('on');
+        ['am-browse','am-buy','am-rent','am-installment'].forEach(x=>{
+            const el2=document.getElementById(x); if(el2) el2.style.display='none';
+        });
+        const show=document.getElementById(id); if(show) show.style.display='block';
+    }
+    function myAssetsTab(el, id){
+        document.querySelectorAll('#t-my-assets .itab').forEach(t=>t.classList.remove('on'));
+        el.classList.add('on');
+        ['ma-owned','ma-renting','ma-contracts','ma-receipts'].forEach(x=>{
+            const el2=document.getElementById(x); if(el2) el2.style.display='none';
+        });
+        const show=document.getElementById(id); if(show) show.style.display='block';
+        if(id==='ma-owned') loadMyOwnedAssets();
+        if(id==='ma-renting') loadMyRentingAssets();
+        if(id==='ma-contracts') loadMyContracts();
+        if(id==='ma-receipts') loadMyReceipts();
+    }
+    function loadMyAssets(){
+        loadMyOwnedAssets();
+    }
+
+    // ═══ RENDER ASSET CARD ═══
+    function renderAssetCard(asset, id){
+        const imgHtml = (asset.images&&asset.images[0])
+            ? `<img src="${asset.images[0]}" style="width:100%;height:100%;object-fit:cover">`
+            : `<div class="asset-img-placeholder">${assetIcon(asset.type)}</div>`;
+        const buyBtn = asset.priceBy>0 ? `<button class="btn btn-p btn-sm" style="flex:1" onclick="openAssetDetail('${id}')">View</button>` : '';
+        const rentBtn = asset.priceRent>0 ? `<button class="btn btn-sky btn-sm" style="flex:1" onclick="openAssetDetail('${id}')">Rent</button>` : '';
+        const installBtn = asset.priceInstall>0 ? `<button class="btn btn-gold btn-sm" style="flex:1" onclick="openAssetDetail('${id}')">Installment</button>` : '';
+        return `<div class="asset-card">
+            <div class="asset-img-wrap">
+                ${imgHtml}
+                <div class="asset-type-badge" style="background:${assetColor(asset.type)};color:#000">${assetIcon(asset.type)} ${(asset.type||'').toUpperCase()}</div>
+            </div>
+            <div class="asset-body">
+                <div class="asset-name">${asset.name||'Asset'}</div>
+                <div class="asset-loc">📍 ${asset.location||'—'}</div>
+                <div class="asset-prices">
+                    ${asset.priceBy>0 ? `<div class="asset-price-box"><div class="asset-price-lbl">Buy</div><div class="asset-price-val">$${fmt(asset.priceBy)}</div></div>` : ''}
+                    ${asset.priceRent>0 ? `<div class="asset-price-box"><div class="asset-price-lbl">Rent/Day</div><div class="asset-price-val" style="color:var(--sky)">$${fmt(asset.priceRent)}</div></div>` : ''}
+                    ${asset.priceInstall>0 ? `<div class="asset-price-box"><div class="asset-price-lbl">Installment</div><div class="asset-price-val" style="color:var(--gold)">$${fmt(asset.priceInstall)}/mo</div></div>` : ''}
+                </div>
+                <div style="display:flex;gap:6px">${buyBtn}${rentBtn}${installBtn}</div>
+            </div>
+        </div>`;
+    }
+
+    // ═══ LOAD MARKETPLACE ═══
+    async function loadAssetMarket(mode){
+        const listIds = { all:'am-list', buy:'am-buy-list', rent:'am-rent-list', installment:'am-installment-list' };
+        const listEl = document.getElementById(listIds[mode]||'am-list');
+        if(!listEl) return;
+        listEl.innerHTML = '<div class="es">Loading…</div>';
+        try {
+            let q = db.collection('assets').where('status','==','available');
+            if(mode==='buy') q = q.where('priceBy','>',0);
+            else if(mode==='rent') q = q.where('priceRent','>',0);
+            else if(mode==='installment') q = q.where('priceInstall','>',0);
+            const filterType = document.getElementById('am-filter-type')?.value;
+            const filterMode2 = document.getElementById('am-filter-mode')?.value;
+            const snap = await q.get();
+            let docs = snap.docs.map(d=>({id:d.id,...d.data()}));
+            if(filterType) docs = docs.filter(a=>a.type===filterType);
+            if(filterMode2==='buy') docs = docs.filter(a=>a.priceBy>0);
+            if(filterMode2==='rent') docs = docs.filter(a=>a.priceRent>0);
+            if(filterMode2==='installment') docs = docs.filter(a=>a.priceInstall>0);
+            if(!docs.length){ listEl.innerHTML='<div class="es">No assets found</div>'; return; }
+            listEl.innerHTML = docs.map(a=>renderAssetCard(a,a.id)).join('');
+        } catch(e){ listEl.innerHTML=`<div class="es" style="color:var(--red)">${e.message}</div>`; }
+    }
+
+    // ═══ OPEN ASSET DETAIL MODAL ═══
+    async function openAssetDetail(id){
+        window._currentAssetId = id;
+        window._currentShipFee = 0;
+        try {
+            const snap = await db.collection('assets').doc(id).get();
+            if(!snap.exists){ toast('Asset not found','tr'); return; }
+            const a = snap.data();
+            // Populate modal
+            const img = document.getElementById('m-ad-img');
+            const ph = document.getElementById('m-ad-img-placeholder');
+            if(a.images&&a.images[0]){ img.src=a.images[0]; img.style.display='block'; ph.style.display='none'; }
+            else { img.style.display='none'; ph.style.display='flex'; ph.textContent=assetIcon(a.type); }
+            document.getElementById('m-ad-type-badge').textContent = assetIcon(a.type)+' '+(a.type||'').toUpperCase();
+            document.getElementById('m-ad-type-badge').style.background = assetColor(a.type);
+            document.getElementById('m-ad-name').textContent = a.name||'Asset';
+            document.getElementById('m-ad-location').textContent = '📍 '+(a.location||'—');
+            document.getElementById('m-ad-desc').textContent = a.description||'';
+            document.getElementById('m-ad-id').value = id;
+            // Status badge
+            const sb = document.getElementById('m-ad-status-badge');
+            sb.textContent = a.status||'available';
+            sb.className = 'badge '+(a.status==='available'?'bg':a.status==='rented'?'bsky':'br');
+            // Prices
+            let pricesHtml='';
+            if(a.priceBy>0) pricesHtml+=`<div class="asset-price-box"><div class="asset-price-lbl">Buy Price</div><div class="asset-price-val">$${fmt(a.priceBy)}</div></div>`;
+            if(a.priceRent>0) pricesHtml+=`<div class="asset-price-box"><div class="asset-price-lbl">Rent / Day</div><div class="asset-price-val" style="color:var(--sky)">$${fmt(a.priceRent)}</div></div>`;
+            if(a.priceInstall>0) pricesHtml+=`<div class="asset-price-box"><div class="asset-price-lbl">Installment/mo</div><div class="asset-price-val" style="color:var(--gold)">$${fmt(a.priceInstall)}</div></div>`;
+            document.getElementById('m-ad-prices').innerHTML = pricesHtml;
+            // Gallery
+            const gal = document.getElementById('m-ad-gallery');
+            gal.innerHTML = (a.images||[]).slice(1).map(src=>`<img src="${src}" style="height:60px;border-radius:8px;flex-shrink:0;object-fit:cover">`).join('');
+            // Shipping
+            const shipSec = document.getElementById('m-ad-shipping-section');
+            if(a.physical===true||a.physical==='true'){ shipSec.style.display='block'; }
+            else { shipSec.style.display='none'; }
+            // Buttons
+            document.getElementById('m-ad-btn-buy').style.display = (a.status==='available'&&a.priceBy>0)?'flex':'none';
+            document.getElementById('m-ad-btn-rent').style.display = (a.status==='available'&&a.priceRent>0)?'flex':'none';
+            document.getElementById('m-ad-btn-install').style.display = (a.priceInstall>0)?'flex':'none';
+            window._currentAsset = a;
+            openModal('m-asset-detail');
+        } catch(e){ toast('Error: '+e.message,'tr'); }
+    }
+
+    // ═══ CALC SHIPPING ═══
+    function calcAssetShipping(){
+        const dest = document.getElementById('m-ad-dest').value.trim();
+        if(!dest){ toast('Enter delivery address','ty'); return; }
+        const a = window._currentAsset;
+        const fee = calcShippingFee(a.type||'other', dest);
+        window._currentShipFee = fee;
+        window._currentShipDest = dest;
+        document.getElementById('m-ad-ship-preview').style.display='block';
+        document.getElementById('m-ad-ship-preview').innerHTML =
+            `<div style="display:flex;justify-content:space-between"><span style="color:var(--t2)">Shipping fee</span><span style="color:var(--gold);font-weight:700">$${fmt(fee)}</span></div>
+             <div style="font-size:.7rem;color:var(--t3);margin-top:3px">Based on asset size (${getAssetSize(a.type)}) and estimated distance</div>`;
+    }
+
+    // ═══ DO ASSET ACTION ═══
+    async function doAssetAction(mode){
+        const id = document.getElementById('m-ad-id').value;
+        const a = window._currentAsset;
+        if(!a){ toast('No asset loaded','ty'); return; }
+        if(mode==='rent'){
+            // Open rent duration picker
+            document.getElementById('m-rent-asset-name').textContent = a.name;
+            document.getElementById('m-rent-days').value='';
+            document.getElementById('m-rent-preview').style.display='none';
+            window._rentDailyRate = a.priceRent;
+            openModal('m-rent-duration');
+            return;
+        }
+        const u = window.CU;
+        if(!u){ toast('Please login','ty'); return; }
+        let amount = 0;
+        let paymentType = mode;
+        if(mode==='buy') amount = a.priceBy;
+        if(mode==='installment') amount = a.priceInstall;
+        // Add shipping if applicable
+        const shipFee = window._currentShipFee||0;
+        const dest = window._currentShipDest||'';
+        if((a.physical===true||a.physical==='true')&&shipFee>0) amount += shipFee;
+        const avail = getAvailableBalance(u);
+        if(avail < amount){ toast(`Insufficient balance. Available: $${fmt(avail)}`,'tr'); return; }
+        if(amount<=0){ toast('Invalid amount','ty'); return; }
+        // Show shipping confirm if there is shipping
+        if(shipFee>0&&dest){
+            document.getElementById('m-ship-summary').innerHTML =
+                `<div class="receipt-row"><span>Asset</span><span>${a.name}</span></div>
+                 <div class="receipt-row"><span>Action</span><span>${mode}</span></div>
+                 <div class="receipt-row"><span>Asset Price</span><span>$${fmt(mode==='buy'?a.priceBy:a.priceInstall)}</span></div>
+                 <div class="receipt-row"><span>Shipping (${getAssetSize(a.type)})</span><span style="color:var(--gold)">$${fmt(shipFee)}</span></div>
+                 <div class="receipt-row receipt-total"><span>Total</span><span>$${fmt(amount)}</span></div>
+                 <div style="font-size:.75rem;color:var(--t3);margin-top:8px">Delivery to: ${dest}</div>`;
+            window._pendingAssetAction = { id, a, mode, amount, shipFee, dest };
+            openModal('m-shipping-confirm'); return;
+        }
+        await executeAssetPayment(id, a, mode, amount, shipFee, dest);
+    }
+
+    async function confirmShipping(){
+        closeModal('m-shipping-confirm');
+        const p = window._pendingAssetAction;
+        if(!p) return;
+        await executeAssetPayment(p.id, p.a, p.mode, p.amount, p.shipFee, p.dest);
+    }
+
+    async function executeAssetPayment(id, a, mode, amount, shipFee, dest){
+        const u = window.CU;
+        try {
+            const txId = genAssetTxId();
+            const batch = db.batch();
+            // Deduct balance
+            batch.update(db.collection('users').doc(u.uid), { balance: firebase.firestore.FieldValue.increment(-amount) });
+            // Create user_asset record
+            const uaRef = db.collection('user_assets').doc();
+            batch.set(uaRef, {
+                uid: u.uid, userName: u.name, userEmail: u.email,
+                assetId: id, assetName: a.name, assetType: a.type,
+                mode, amount, txId, status: mode==='installment'?'installment_active':'active',
+                installmentPaid: mode==='installment'?amount:0,
+                installmentTotal: mode==='installment'?(a.priceInstall*(a.installMonths||12)):0,
+                installmentMonths: a.installMonths||12,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            // Update asset status if buying
+            if(mode==='buy') batch.update(db.collection('assets').doc(id), { status:'sold' });
+            if(mode==='rent') batch.update(db.collection('assets').doc(id), { status:'rented' });
+            // Generate receipt
+            const rcRef = db.collection('receipts').doc();
+            batch.set(rcRef, {
+                uid: u.uid, userName: u.name, userEmail: u.email,
+                assetId: id, assetName: a.name, assetType: a.type,
+                amountPaid: amount, paymentType: mode,
+                shipFee: shipFee||0, destination: dest||'',
+                sender: u.name, receiver: 'Starlife Assets',
+                txId, dateTime: new Date().toISOString(),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            await batch.commit();
+            // Create contract
+            await createAssetContract(id, a, mode, amount, txId, uaRef.id);
+            // Shipping record
+            if(shipFee>0&&dest){
+                await db.collection('shipping').add({
+                    uid: u.uid, userName: u.name, assetId: id, assetName: a.name,
+                    origin: a.location||'Starlife Warehouse', destination: dest,
+                    fee: shipFee, size: getAssetSize(a.type), status:'pending',
+                    txId, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+            // Log & notify
+            logAct(u.uid, `Asset ${mode}: ${a.name} — $${fmt(amount)} (${txId})`, -amount, assetIcon(a.type), 'asset');
+            tg(`${assetIcon(a.type)} <b>Asset ${mode.toUpperCase()}</b>\nUser: ${u.name} (${u.email})\nAsset: ${a.name}\nAmount: $${fmt(amount)}\nTxID: ${txId}`);
+            window.CU.balance = (u.balance||0) - amount;
+            if(typeof updateUI==='function') updateUI();
+            closeModal('m-asset-detail');
+            toast(`✅ ${a.name} — ${mode} confirmed! Contract generated.`);
+            // Auto-show receipt
+            setTimeout(()=>viewReceiptByTxId(txId), 600);
+        } catch(e){ toast('Error: '+e.message,'tr'); }
+    }
+
+    // ═══ RENT DURATION ═══
+    function calcRentTotal(){
+        const days = parseFloat(document.getElementById('m-rent-days').value)||0;
+        const rate = window._rentDailyRate||0;
+        if(days>0&&rate>0){
+            document.getElementById('m-rent-preview').style.display='block';
+            document.getElementById('m-rent-daily').textContent = '$'+fmt(rate)+'/day';
+            document.getElementById('m-rent-total').textContent = '$'+fmt(days*rate);
+        }
+    }
+    async function confirmRent(){
+        const days = parseFloat(document.getElementById('m-rent-days').value)||0;
+        if(!days||days<1){ toast('Enter number of days','ty'); return; }
+        const rate = window._rentDailyRate||0;
+        const total = parseFloat((days*rate).toFixed(2));
+        const u = window.CU;
+        const avail = getAvailableBalance(u);
+        if(avail<total){ toast(`Insufficient balance. Available: $${fmt(avail)}`,'tr'); return; }
+        closeModal('m-rent-duration');
+        window._currentShipFee = 0;
+        await executeAssetPayment(window._currentAssetId, window._currentAsset, 'rent', total, 0, '');
+    }
+
+    // ═══ CREATE CONTRACT ═══
+    async function createAssetContract(assetId, asset, mode, amount, txId, userAssetId){
+        const u = window.CU;
+        const now = new Date();
+        const end = new Date(now.getTime() + (mode==='rent'?30:365)*24*3600*1000);
+        const contractId = 'CON-'+Math.random().toString(36).substr(2,8).toUpperCase();
+        await db.collection('contracts').add({
+            contractId, txId, userAssetId,
+            uid: u.uid, userName: u.name, userEmail: u.email,
+            assetId, assetName: asset.name, assetType: asset.type,
+            assetLocation: asset.location||'', mode, amount,
+            startDate: now.toISOString(), endDate: end.toISOString(),
+            status: 'pending', // pending until user signs
+            userSignature: null, starlifeSignature: 'STARLIFE_AUTO_SIGN',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        return contractId;
+    }
+
+    // ═══ VIEW CONTRACT ═══
+    async function viewContract(contractDocId){
+        try {
+            const snap = await db.collection('contracts').doc(contractDocId).get();
+            if(!snap.exists){ toast('Contract not found','ty'); return; }
+            const c = snap.data();
+            window._activeContractDocId = contractDocId;
+            window._activeContractData = c;
+            const html = buildContractHtml(c);
+            document.getElementById('m-contract-body').innerHTML = html;
+            const isSigned = !!c.userSignature;
+            document.getElementById('m-contract-sig-section').style.display = isSigned?'none':'block';
+            document.getElementById('m-contract-signed-note').style.display = isSigned?'block':'none';
+            openModal('m-contract');
+            if(!isSigned) initSigPad();
+        } catch(e){ toast('Error: '+e.message,'tr'); }
+    }
+
+    function buildContractHtml(c){
+        const now = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+        const start = c.startDate?new Date(c.startDate).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}):'—';
+        const end = c.endDate?new Date(c.endDate).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}):'—';
+        return `
+        <h2>ASSET ${(c.mode||'').toUpperCase()} AGREEMENT</h2>
+        <p style="text-align:center;font-size:.78rem;color:#555">Contract ID: <strong>${c.contractId||c.txId||'—'}</strong> &nbsp;|&nbsp; Date: <strong>${now}</strong></p>
+        <div class="c-line"></div>
+        <h3>1. PARTIES</h3>
+        <p><strong>Buyer/Renter:</strong> ${c.userName||'—'} (${c.userEmail||'—'})</p>
+        <p><strong>Seller/Lessor:</strong> Starlife Assets, operated by Starlife Advert</p>
+        <div class="c-line"></div>
+        <h3>2. ASSET DESCRIPTION</h3>
+        <p><strong>Name:</strong> ${c.assetName||'—'}<br>
+        <strong>Type:</strong> ${(c.assetType||'').toUpperCase()}<br>
+        <strong>Location:</strong> ${c.assetLocation||'—'}</p>
+        <div class="c-line"></div>
+        <h3>3. AGREEMENT TERMS</h3>
+        <p><strong>Mode:</strong> ${(c.mode||'').toUpperCase()}<br>
+        <strong>Amount Paid:</strong> $${fmt(c.amount||0)}<br>
+        <strong>Agreement Period:</strong> ${start} to ${end}</p>
+        <div class="c-line"></div>
+        <h3>4. OBLIGATIONS</h3>
+        <p>The Buyer/Renter agrees to use the asset lawfully and as intended. Any damage beyond normal wear and tear is the responsibility of the Buyer/Renter. Payments must be made on schedule.</p>
+        <div class="c-line"></div>
+        <h3>5. OWNERSHIP CLAUSE</h3>
+        <p>${c.mode==='buy'?'Ownership transfers to the Buyer upon full payment confirmation.':c.mode==='installment'?'Ownership transfers to the Buyer upon completion of all installment payments. Asset remains property of Starlife until then.':'The asset remains property of Starlife Advert. Renter has usage rights for the agreed rental period only.'}</p>
+        <div class="c-line"></div>
+        <h3>6. DEFAULT CLAUSE</h3>
+        <p>Failure to meet payment obligations will result in termination of this agreement, repossession of the asset, and forfeiture of amounts already paid where applicable under Starlife's terms.</p>
+        <div class="c-line"></div>
+        <h3>7. TERMINATION</h3>
+        <p>Either party may terminate this agreement with 7 days written notice. Termination by the Buyer/Renter does not entitle a refund of amounts paid.</p>
+        <div class="c-line"></div>
+        <h3>8. SIGNATURES</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:8px">
+            <div>
+                <div style="font-weight:700;font-size:.78rem">Buyer/Renter Signature</div>
+                <div class="c-sig">${c.userSignature?`<img src="${c.userSignature}" style="height:30px">`:''}</div>
+                <div style="font-size:.72rem">${c.userName||'—'}</div>
+            </div>
+            <div>
+                <div style="font-weight:700;font-size:.78rem">Starlife Advert (Auto-Signed)</div>
+                <div class="c-sig" style="display:flex;align-items:center;padding:4px 0"><em style="color:#555;font-size:.75rem">✅ Starlife Advert</em></div>
+                <div style="font-size:.72rem">Authorized by System</div>
+            </div>
+        </div>`;
+    }
+
+    // ═══ SIGNATURE PAD ═══
+    let _sigDrawing = false, _sigCtx = null;
+    function initSigPad(){
+        const canvas = document.getElementById('sig-canvas');
+        if(!canvas) return;
+        _sigCtx = canvas.getContext('2d');
+        _sigCtx.strokeStyle = '#111';
+        _sigCtx.lineWidth = 2;
+        _sigCtx.lineCap = 'round';
+        // Resize canvas to actual display size
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width||480;
+        canvas.height = 100;
+        _sigCtx.fillStyle='#fff'; _sigCtx.fillRect(0,0,canvas.width,canvas.height);
+        const getPos = (e)=>{
+            const r = canvas.getBoundingClientRect();
+            const src = e.touches?e.touches[0]:e;
+            return { x:src.clientX-r.left, y:src.clientY-r.top };
+        };
+        canvas.onmousedown = canvas.ontouchstart = (e)=>{ e.preventDefault(); _sigDrawing=true; const p=getPos(e); _sigCtx.beginPath(); _sigCtx.moveTo(p.x,p.y); };
+        canvas.onmousemove = canvas.ontouchmove = (e)=>{ e.preventDefault(); if(!_sigDrawing)return; const p=getPos(e); _sigCtx.lineTo(p.x,p.y); _sigCtx.stroke(); };
+        canvas.onmouseup = canvas.ontouchend = ()=>{ _sigDrawing=false; };
+    }
+    function clearSig(){
+        const canvas = document.getElementById('sig-canvas');
+        if(!canvas||!_sigCtx) return;
+        _sigCtx.fillStyle='#fff'; _sigCtx.fillRect(0,0,canvas.width,canvas.height);
+    }
+    async function signContract(){
+        const canvas = document.getElementById('sig-canvas');
+        if(!canvas){ toast('Signature pad not ready','ty'); return; }
+        // Check canvas has drawing
+        const data = canvas.toDataURL('image/png');
+        const blank = document.createElement('canvas'); blank.width=canvas.width; blank.height=canvas.height;
+        const bctx = blank.getContext('2d'); bctx.fillStyle='#fff'; bctx.fillRect(0,0,blank.width,blank.height);
+        if(data===blank.toDataURL('image/png')){ toast('Please draw your signature first','ty'); return; }
+        try {
+            const docId = window._activeContractDocId;
+            await db.collection('contracts').doc(docId).update({ userSignature: data, status:'active', signedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            document.getElementById('m-contract-sig-section').style.display='none';
+            document.getElementById('m-contract-signed-note').style.display='block';
+            // Reload contract body
+            const c = { ...window._activeContractData, userSignature: data, status:'active' };
+            document.getElementById('m-contract-body').innerHTML = buildContractHtml(c);
+            toast('✅ Contract signed successfully!');
+        } catch(e){ toast('Error: '+e.message,'tr'); }
+    }
+
+    // ═══ VIEW RECEIPT ═══
+    async function viewReceiptByTxId(txId){
+        try {
+            const snap = await db.collection('receipts').where('txId','==',txId).limit(1).get();
+            if(snap.empty){ toast('Receipt not found','ty'); return; }
+            showReceiptModal(snap.docs[0].data());
+        } catch(e){ toast('Error: '+e.message,'tr'); }
+    }
+    async function viewReceiptById(docId){
+        try {
+            const snap = await db.collection('receipts').doc(docId).get();
+            if(!snap.exists){ toast('Receipt not found','ty'); return; }
+            showReceiptModal(snap.data());
+        } catch(e){ toast('Error: '+e.message,'tr'); }
+    }
+    function showReceiptModal(r){
+        const html = `
+        <div style="text-align:center;margin-bottom:14px">
+            <div style="font-size:2rem;margin-bottom:4px">${assetIcon(r.assetType)}</div>
+            <div style="font-weight:700;font-size:1rem">${r.assetName||'Asset'}</div>
+            <div style="font-size:.72rem;color:var(--t3)">Official Starlife Assets Receipt</div>
+        </div>
+        <div class="receipt-row"><span>Receipt No.</span><span style="font-family:'JetBrains Mono',monospace;font-size:.75rem">${r.txId||'—'}</span></div>
+        <div class="receipt-row"><span>Date</span><span>${r.dateTime?new Date(r.dateTime).toLocaleString():fmtD(r.createdAt)}</span></div>
+        <div class="receipt-row"><span>From</span><span>${r.sender||r.userName||'—'}</span></div>
+        <div class="receipt-row"><span>To</span><span>${r.receiver||'Starlife Assets'}</span></div>
+        <div class="receipt-row"><span>Payment Type</span><span style="text-transform:capitalize">${r.paymentType||'—'}</span></div>
+        ${r.shipFee>0?`<div class="receipt-row"><span>Shipping Fee</span><span style="color:var(--gold)">$${fmt(r.shipFee)}</span></div>`:''}
+        <div class="receipt-row receipt-total"><span>Total Paid</span><span>$${fmt(r.amountPaid||0)}</span></div>
+        <div style="text-align:center;margin-top:14px;font-size:.7rem;color:var(--t3)">✅ Payment confirmed by Starlife Advert</div>`;
+        document.getElementById('m-receipt-body').innerHTML = html;
+        openModal('m-receipt');
+    }
+    function printReceipt(){
+        const content = document.getElementById('m-receipt-body').innerHTML;
+        const w = window.open('','_blank','width=500,height=700');
+        w.document.write(`<html><head><title>Receipt</title><style>body{font-family:sans-serif;padding:24px;color:#111}.receipt-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #eee}.receipt-total{font-weight:700;font-size:1.05rem}</style></head><body>${content}</body></html>`);
+        w.document.close(); w.print();
+    }
+
+    // ═══ MY OWNED ASSETS ═══
+    async function loadMyOwnedAssets(){
+        const el = document.getElementById('ma-owned-list');
+        if(!el) return;
+        el.innerHTML='<div class="es">Loading…</div>';
+        const u = window.CU; if(!u) return;
+        try {
+            const snap = await db.collection('user_assets').where('uid','==',u.uid).get();
+            const docs = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+            if(!docs.length){ el.innerHTML='<div class="es"><div class="ei">📦</div>No assets yet</div>'; return; }
+            el.innerHTML = docs.map(ua=>{
+                const paidPct = ua.installmentTotal>0?Math.min(100,Math.round((ua.installmentPaid/ua.installmentTotal)*100)):100;
+                const progressBar = ua.mode==='installment'?`
+                    <div style="margin:8px 0 4px">
+                        <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--t3);margin-bottom:4px">
+                            <span>Paid: $${fmt(ua.installmentPaid||0)}</span><span>Total: $${fmt(ua.installmentTotal||0)}</span>
+                        </div>
+                        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${paidPct}%"></div></div>
+                        <div style="font-size:.7rem;color:var(--t3)">${paidPct}% complete</div>
+                    </div>`:'';
+                const installBtn = ua.mode==='installment'&&paidPct<100?`<button class="btn btn-gold btn-sm" onclick="openInstallmentPayment('${ua.id}')">💳 Pay Installment</button>`:'';
+                return `<div class="my-asset-row">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+                        <div>
+                            <div style="font-weight:700">${assetIcon(ua.assetType)} ${ua.assetName||'Asset'}</div>
+                            <div style="font-size:.74rem;color:var(--t3);text-transform:capitalize">${ua.mode||'owned'} · ${fmtD(ua.createdAt)}</div>
+                        </div>
+                        <span class="badge ${ua.status==='active'?'bg':ua.status==='installment_active'?'bgold':'br'}">${ua.status||'active'}</span>
+                    </div>
+                    ${progressBar}
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+                        ${installBtn}
+                        <button class="btn btn-gh btn-sm" onclick="viewReceiptByTxId('${ua.txId}')">🧾 Receipt</button>
+                        <button class="btn btn-gh btn-sm" onclick="viewContractByTxId('${ua.txId}')">📄 Contract</button>
+                    </div>
+                </div>`;
+            }).join('');
+        } catch(e){ el.innerHTML=`<div class="es" style="color:var(--red)">${e.message}</div>`; }
+    }
+
+    async function loadMyRentingAssets(){
+        const el = document.getElementById('ma-renting-list'); if(!el) return;
+        el.innerHTML='<div class="es">Loading…</div>';
+        const u = window.CU; if(!u) return;
+        try {
+            const snap = await db.collection('user_assets').where('uid','==',u.uid).where('mode','==','rent').get();
+            if(snap.empty){ el.innerHTML='<div class="es"><div class="ei">🔑</div>No active rentals</div>'; return; }
+            el.innerHTML = snap.docs.map(d=>{
+                const ua=d.data();
+                return `<div class="my-asset-row">
+                    <div style="font-weight:700">${assetIcon(ua.assetType)} ${ua.assetName}</div>
+                    <div style="font-size:.74rem;color:var(--t3)">Rented · $${fmt(ua.amount)} · ${fmtD(ua.createdAt)}</div>
+                    <div style="display:flex;gap:6px;margin-top:8px">
+                        <button class="btn btn-gh btn-sm" onclick="viewReceiptByTxId('${ua.txId}')">🧾 Receipt</button>
+                        <button class="btn btn-gh btn-sm" onclick="viewContractByTxId('${ua.txId}')">📄 Contract</button>
+                    </div>
+                </div>`;
+            }).join('');
+        } catch(e){ el.innerHTML=`<div class="es" style="color:var(--red)">${e.message}</div>`; }
+    }
+
+    async function loadMyContracts(){
+        const el = document.getElementById('ma-contracts-list'); if(!el) return;
+        el.innerHTML='<div class="es">Loading…</div>';
+        const u = window.CU; if(!u) return;
+        try {
+            const snap = await db.collection('contracts').where('uid','==',u.uid).get();
+            const docs = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+            if(!docs.length){ el.innerHTML='<div class="es"><div class="ei">📄</div>No contracts yet</div>'; return; }
+            el.innerHTML = docs.map(c=>`
+                <div class="my-asset-row">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                        <div>
+                            <div style="font-weight:700">📄 ${c.assetName||'Contract'}</div>
+                            <div style="font-size:.74rem;color:var(--t3);text-transform:capitalize">${c.mode||'—'} · ${fmtD(c.createdAt)}</div>
+                        </div>
+                        <span class="badge ${c.status==='active'?'bg':c.status==='pending'?'bgold':'br'}">${c.userSignature?'Signed':'Pending Signature'}</span>
+                    </div>
+                    <div style="display:flex;gap:6px;margin-top:8px">
+                        <button class="btn btn-p btn-sm" onclick="viewContract('${c.id}')">${c.userSignature?'📄 View':'✍️ Sign Contract'}</button>
+                    </div>
+                </div>`).join('');
+        } catch(e){ el.innerHTML=`<div class="es" style="color:var(--red)">${e.message}</div>`; }
+    }
+
+    async function loadMyReceipts(){
+        const el = document.getElementById('ma-receipts-list'); if(!el) return;
+        el.innerHTML='<div class="es">Loading…</div>';
+        const u = window.CU; if(!u) return;
+        try {
+            const snap = await db.collection('receipts').where('uid','==',u.uid).get();
+            const docs = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+            if(!docs.length){ el.innerHTML='<div class="es"><div class="ei">🧾</div>No receipts yet</div>'; return; }
+            el.innerHTML = docs.map(r=>`
+                <div class="my-asset-row" style="display:flex;justify-content:space-between;align-items:center">
+                    <div>
+                        <div style="font-weight:700">${assetIcon(r.assetType)} ${r.assetName||'Asset'}</div>
+                        <div style="font-size:.74rem;color:var(--t3);text-transform:capitalize">${r.paymentType||'—'} · $${fmt(r.amountPaid||0)} · ${fmtD(r.createdAt)}</div>
+                    </div>
+                    <button class="btn btn-gh btn-sm" onclick="viewReceiptById('${r.id}')">🧾 View</button>
+                </div>`).join('');
+        } catch(e){ el.innerHTML=`<div class="es" style="color:var(--red)">${e.message}</div>`; }
+    }
+
+    async function viewContractByTxId(txId){
+        try {
+            const snap = await db.collection('contracts').where('txId','==',txId).limit(1).get();
+            if(snap.empty){ toast('Contract not found','ty'); return; }
+            viewContract(snap.docs[0].id);
+        } catch(e){ toast('Error: '+e.message,'tr'); }
+    }
+
+    // ═══ INSTALLMENT PAYMENT ═══
+    async function openInstallmentPayment(userAssetDocId){
+        try {
+            const snap = await db.collection('user_assets').doc(userAssetDocId).get();
+            if(!snap.exists){ toast('Asset record not found','ty'); return; }
+            const ua = snap.data();
+            const remaining = (ua.installmentTotal||0) - (ua.installmentPaid||0);
+            const monthly = ua.amount||0;
+            const u = window.CU;
+            const avail = getAvailableBalance(u);
+            if(avail < monthly){ toast(`Insufficient balance. Available: $${fmt(avail)}`,'tr'); return; }
+            if(!confirm(`Pay installment of $${fmt(monthly)} for "${ua.assetName}"?\n\nRemaining after this: $${fmt(Math.max(0,remaining-monthly))}`)) return;
+            const batch = db.batch();
+            const newPaid = (ua.installmentPaid||0) + monthly;
+            const isDone = newPaid >= (ua.installmentTotal||0);
+            batch.update(db.collection('user_assets').doc(userAssetDocId), {
+                installmentPaid: firebase.firestore.FieldValue.increment(monthly),
+                status: isDone?'active':'installment_active'
+            });
+            batch.update(db.collection('users').doc(u.uid), { balance: firebase.firestore.FieldValue.increment(-monthly) });
+            const txId = genAssetTxId();
+            batch.set(db.collection('receipts').doc(), {
+                uid: u.uid, userName: u.name, userEmail: u.email,
+                assetId: ua.assetId, assetName: ua.assetName, assetType: ua.assetType,
+                amountPaid: monthly, paymentType:'installment', shipFee:0, destination:'',
+                sender: u.name, receiver:'Starlife Assets', txId,
+                dateTime: new Date().toISOString(), createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            await batch.commit();
+            if(isDone){
+                await db.collection('assets').doc(ua.assetId).update({ status:'sold' });
+                toast(`🎉 All installments complete! "${ua.assetName}" is now fully yours.`);
+            } else {
+                toast(`✅ Installment paid: $${fmt(monthly)}`);
+            }
+            window.CU.balance = (u.balance||0) - monthly;
+            if(typeof updateUI==='function') updateUI();
+            logAct(u.uid, `Installment payment $${fmt(monthly)} for ${ua.assetName}`, -monthly, '📅','asset');
+            loadMyOwnedAssets();
+            setTimeout(()=>viewReceiptByTxId(txId), 500);
+        } catch(e){ toast('Error: '+e.message,'tr'); }
+    }
+
+    // ═══ ADMIN: SAVE ASSET ═══
+    window._adminAssetImages = [];
+    async function adminSaveAsset(){
+        const editId = document.getElementById('aasset-edit-id').value;
+        const name = document.getElementById('aasset-name').value.trim();
+        if(!name){ toast('Enter asset name','ty'); return; }
+        const data = {
+            name,
+            type: document.getElementById('aasset-type').value,
+            physical: document.getElementById('aasset-physical').value==='true',
+            location: document.getElementById('aasset-location').value.trim(),
+            description: document.getElementById('aasset-desc').value.trim(),
+            priceBy: parseFloat(document.getElementById('aasset-price-buy').value)||0,
+            priceRent: parseFloat(document.getElementById('aasset-price-rent').value)||0,
+            priceInstall: parseFloat(document.getElementById('aasset-price-install').value)||0,
+            installMonths: parseInt(document.getElementById('aasset-install-months').value)||12,
+            status: document.getElementById('aasset-status').value,
+            images: window._adminAssetImages||[],
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        if(data.priceBy<0||data.priceRent<0||data.priceInstall<0){ toast('Prices cannot be negative','ty'); return; }
+        try {
+            if(editId){
+                await db.collection('assets').doc(editId).update(data);
+                toast('Asset updated ✓');
+            } else {
+                data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                await db.collection('assets').add(data);
+                toast('Asset created ✓');
+            }
+            adminResetAssetForm();
+            loadAdminAssets('all');
+        } catch(e){ toast('Error: '+e.message,'tr'); }
+    }
+    function adminResetAssetForm(){
+        ['aasset-edit-id','aasset-name','aasset-location','aasset-desc','aasset-price-buy','aasset-price-rent','aasset-price-install','aasset-install-months'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+        window._adminAssetImages=[];
+        renderAdminAssetImgGrid();
+    }
+    function adminAssetImgSelected(input){
+        const file = input.files[0]; if(!file) return;
+        if(file.size>1.5*1024*1024){ toast('Image too large. Max 1.5MB','ty'); return; }
+        if(window._adminAssetImages.length>=3){ toast('Max 3 images per asset','ty'); return; }
+        const reader = new FileReader();
+        reader.onload = e => {
+            // Compress using canvas
+            const img = new Image();
+            img.onload = ()=>{
+                const canvas = document.createElement('canvas');
+                const MAX=800; let w=img.width,h=img.height;
+                if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+                if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
+                canvas.width=w; canvas.height=h;
+                canvas.getContext('2d').drawImage(img,0,0,w,h);
+                const b64 = canvas.toDataURL('image/jpeg',0.75);
+                window._adminAssetImages.push(b64);
+                renderAdminAssetImgGrid();
+                input.value='';
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+    function renderAdminAssetImgGrid(){
+        const grid = document.getElementById('aasset-img-grid'); if(!grid) return;
+        const imgs = window._adminAssetImages||[];
+        let html = imgs.map((src,i)=>`
+            <div class="asset-img-thumb">
+                <img src="${src}">
+                <button class="rm-img" onclick="adminRemoveAssetImg(${i})">✕</button>
+            </div>`).join('');
+        if(imgs.length<3) html+=`<div class="asset-img-add" onclick="document.getElementById('aasset-img-input').click()">+</div>`;
+        grid.innerHTML = html;
+    }
+    function adminRemoveAssetImg(i){
+        window._adminAssetImages.splice(i,1);
+        renderAdminAssetImgGrid();
+    }
+
+    // ═══ ADMIN: LOAD ASSETS ═══
+    async function loadAdminAssets(status){
+        const el = document.getElementById('at-assets-list'); if(!el) return;
+        el.innerHTML='<div class="es">Loading…</div>';
+        try {
+            let q = db.collection('assets');
+            if(status&&status!=='all') q = q.where('status','==',status);
+            const snap = await q.get();
+            if(snap.empty){ el.innerHTML='<div class="es">No assets found</div>'; return; }
+            el.innerHTML = snap.docs.map(d=>{
+                const a=d.data();
+                return `<div class="arow">
+                    <div class="ar-top">
+                        <div>
+                            <div class="ar-name">${assetIcon(a.type)} ${a.name||'—'}</div>
+                            <div class="ar-sub">${a.type||'—'} · ${a.location||'—'} · Buy:$${fmt(a.priceBy||0)} Rent:$${fmt(a.priceRent||0)}/day</div>
+                        </div>
+                        <span class="badge ${a.status==='available'?'bg':a.status==='rented'?'bsky':'br'}">${a.status||'—'}</span>
+                    </div>
+                    <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+                        <button class="btn btn-gh btn-sm" onclick="adminEditAsset('${d.id}')">✏️ Edit</button>
+                        <button class="btn btn-d btn-sm" onclick="adminDeleteAsset('${d.id}','${(a.name||'').replace(/'/g,'')}')">🗑 Delete</button>
+                        <button class="btn btn-sky btn-sm" onclick="adminToggleAssetStatus('${d.id}','${a.status}')">⏻ Toggle Status</button>
+                    </div>
+                </div>`;
+            }).join('');
+        } catch(e){ el.innerHTML=`<div class="es" style="color:var(--red)">${e.message}</div>`; }
+    }
+    async function adminEditAsset(id){
+        const snap = await db.collection('assets').doc(id).get();
+        if(!snap.exists) return;
+        const a = snap.data();
+        document.getElementById('aasset-edit-id').value = id;
+        document.getElementById('aasset-name').value = a.name||'';
+        document.getElementById('aasset-type').value = a.type||'house';
+        document.getElementById('aasset-physical').value = a.physical?'true':'false';
+        document.getElementById('aasset-location').value = a.location||'';
+        document.getElementById('aasset-desc').value = a.description||'';
+        document.getElementById('aasset-price-buy').value = a.priceBy||'';
+        document.getElementById('aasset-price-rent').value = a.priceRent||'';
+        document.getElementById('aasset-price-install').value = a.priceInstall||'';
+        document.getElementById('aasset-install-months').value = a.installMonths||'';
+        document.getElementById('aasset-status').value = a.status||'available';
+        window._adminAssetImages = [...(a.images||[])];
+        renderAdminAssetImgGrid();
+        document.getElementById('aasset-name').scrollIntoView({behavior:'smooth'});
+        toast('Asset loaded for editing ✓');
+    }
+    async function adminDeleteAsset(id, name){
+        if(!confirm(`Delete asset "${name}"? This cannot be undone.`)) return;
+        await db.collection('assets').doc(id).delete();
+        toast('Asset deleted');
+        loadAdminAssets('all');
+    }
+    async function adminToggleAssetStatus(id, current){
+        const next = current==='available'?'inactive':current==='inactive'?'available':current;
+        await db.collection('assets').doc(id).update({ status: next });
+        toast('Status updated to: '+next);
+        loadAdminAssets('all');
+    }
+
+    // ═══ ADMIN: LOAD CONTRACTS ═══
+    async function loadAdminContracts(status){
+        const el = document.getElementById('at-contracts-list'); if(!el) return;
+        el.innerHTML='<div class="es">Loading…</div>';
+        try {
+            let q = db.collection('contracts');
+            if(status==='pending') q = q.where('status','==','pending');
+            if(status==='active') q = q.where('status','==','active');
+            const snap = await q.get();
+            if(snap.empty){ el.innerHTML='<div class="es">No contracts</div>'; return; }
+            const docs = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+            el.innerHTML = docs.map(c=>`
+                <div class="arow">
+                    <div class="ar-top">
+                        <div>
+                            <div class="ar-name">📄 ${c.assetName||'—'} — ${(c.mode||'').toUpperCase()}</div>
+                            <div class="ar-sub">${c.userName||'—'} · $${fmt(c.amount||0)} · ${fmtD(c.createdAt)}</div>
+                        </div>
+                        <span class="badge ${c.userSignature?'bg':'bgold'}">${c.userSignature?'Signed':'Unsigned'}</span>
+                    </div>
+                </div>`).join('');
+        } catch(e){ el.innerHTML=`<div class="es" style="color:var(--red)">${e.message}</div>`; }
+    }
+
+    // ═══ ADMIN: LOAD SHIPPING ═══
+    async function loadAdminShipping(){
+        const el = document.getElementById('at-shipping-list'); if(!el) return;
+        el.innerHTML='<div class="es">Loading…</div>';
+        try {
+            const snap = await db.collection('shipping').orderBy('createdAt','desc').limit(50).get();
+            if(snap.empty){ el.innerHTML='<div class="es">No shipping orders</div>'; return; }
+            el.innerHTML = snap.docs.map(d=>{
+                const s=d.data();
+                return `<div class="arow">
+                    <div class="ar-top">
+                        <div>
+                            <div class="ar-name">🚚 ${s.assetName||'—'}</div>
+                            <div class="ar-sub">${s.userName||'—'} · ${s.origin||'—'} → ${s.destination||'—'} · Fee: $${fmt(s.fee||0)} · Size: ${s.size||'—'}</div>
+                        </div>
+                        <span class="badge ${s.status==='delivered'?'bg':s.status==='shipped'?'bsky':'bgold'}">${s.status||'pending'}</span>
+                    </div>
+                    <div style="display:flex;gap:6px;margin-top:8px">
+                        <button class="btn btn-sky btn-sm" onclick="adminUpdateShipping('${d.id}','shipped')">Mark Shipped</button>
+                        <button class="btn btn-p btn-sm" onclick="adminUpdateShipping('${d.id}','delivered')">Mark Delivered</button>
+                    </div>
+                </div>`;
+            }).join('');
+        } catch(e){ el.innerHTML=`<div class="es" style="color:var(--red)">${e.message}</div>`; }
+    }
+    async function adminUpdateShipping(id, status){
+        await db.collection('shipping').doc(id).update({ status, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        toast('Shipping status updated: '+status);
+        loadAdminShipping();
+    }
+
+    // ═══ HOOK INTO EXISTING ADMIN TABS RENDERER ═══
+    // Extend renderAdminTabs to include Assets tab
+    (function patchAdminTabs(){
+        const origRender = window.renderAdminTabs;
+        window.renderAdminTabs = function(){
+            if(typeof origRender==='function') origRender.apply(this,arguments);
+            // Add Assets tab button if not already present
+            setTimeout(()=>{
+                const wrap = document.getElementById('admin-tabs-wrap');
+                if(!wrap) return;
+                if(document.getElementById('atbtn-assets')) return;
+                const btn = document.createElement('div');
+                btn.id='atbtn-assets';
+                btn.className='itab';
+                btn.textContent='🏪 Assets';
+                btn.onclick=()=>{ if(typeof atab==='function') atab(btn,'at-assets'); loadAdminAssets('all'); loadAdminContracts('all'); loadAdminShipping(); };
+                wrap.appendChild(btn);
+            },300);
+        };
+    })();
+
+    // Auto-init on tab open
+    document.addEventListener('DOMContentLoaded',()=>{
+        // Trigger asset market load when tab becomes visible
+        const origTab = window._real_tab || window.tab;
+        window._real_tab = function(name){
+            if(typeof origTab==='function') origTab(name);
+            if(name==='assets-market') { setTimeout(()=>loadAssetMarket('all'),100); }
+            if(name==='my-assets') { setTimeout(()=>loadMyAssets(),100); }
+        };
+    });
+
+    // Register safe stubs for new functions
+    ['openAssetDetail','loadAssetMarket','loadMyAssets','loadMyOwnedAssets','loadMyRentingAssets','loadMyContracts','loadMyReceipts','viewContract','signContract','clearSig','doAssetAction','confirmRent','calcRentTotal','calcAssetShipping','confirmShipping','adminSaveAsset','adminResetAssetForm','adminEditAsset','adminDeleteAsset','adminToggleAssetStatus','loadAdminAssets','loadAdminContracts','loadAdminShipping','adminUpdateShipping','printReceipt','openInstallmentPayment','viewReceiptByTxId','viewReceiptById','viewContractByTxId','adminAssetImgSelected','adminRemoveAssetImg'].forEach(n=>{
+        window['_real_'+n] = window[n];
+    });
+    </script>
 </body>
 
 </html>

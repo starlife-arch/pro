@@ -22,10 +22,11 @@
   <nav class="tabs">
     <button class="active" data-tab="assetsTab">Assets</button>
     <button data-tab="myAssetsTab">My Assets</button>
+    <button data-tab="accountTab">User Account</button>
     <button data-tab="marketTab">Marketplace</button>
     <button data-tab="receiptsTab">Receipts</button>
     <button data-tab="contractsTab">Contracts</button>
-    <button data-tab="adminTab">Admin</button>
+    <button data-tab="adminTab">Admin Panel</button>
   </nav>
 
   <main>
@@ -44,6 +45,17 @@
       <div id="myAssetsGrid" class="grid"></div>
     </section>
 
+    <section id="accountTab" class="tab-panel">
+      <h2>User Account — My Assets &amp; Contracts</h2>
+      <div id="accountOverview" class="grid"></div>
+      <h3>My Contracts</h3>
+      <div id="accountContracts" class="list"></div>
+      <h3>My Receipts</h3>
+      <div id="accountReceipts" class="list"></div>
+      <h3>Recent Transactions</h3>
+      <div id="accountTransactions" class="list"></div>
+    </section>
+
     <section id="marketTab" class="tab-panel">
       <h2>Marketplace</h2>
       <div id="marketGrid" class="grid"></div>
@@ -60,7 +72,8 @@
     </section>
 
     <section id="adminTab" class="tab-panel">
-      <h2>Admin</h2>
+      <h2>Admin Panel — Assets Management</h2>
+      <div id="adminOverview" class="grid"></div>
       <form id="assetForm" class="card">
         <input type="hidden" id="assetId" />
         <div class="form-grid">

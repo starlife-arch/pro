@@ -218,6 +218,7 @@ function renderAll() {
   renderTopbar();
   renderAssetsTab();
   renderMyAssets();
+  renderAccountPage();
   renderMarketplace();
   renderAdmin();
   renderReceipts();
@@ -296,6 +297,8 @@ function renderMyAssets() {
         <div class="actions">
           <button id="pay-${ua.id}" class="primary">Pay Installment</button>
           <button id="list-${ua.id}">List for Rent</button>
+          <button id="receipt-asset-${ua.id}">View Receipt</button>
+          <button id="contract-asset-${ua.id}">View Contract</button>
         </div>
       </article>`;
     })
@@ -304,6 +307,87 @@ function renderMyAssets() {
   myAssets.forEach((ua) => {
     document.getElementById(`pay-${ua.id}`).addEventListener("click", () => payInstallment(ua.id));
     document.getElementById(`list-${ua.id}`).addEventListener("click", () => createListing(ua.id));
+    document.getElementById(`receipt-asset-${ua.id}`).addEventListener("click", () => viewLatestReceiptForAsset(ua.assetId));
+    document.getElementById(`contract-asset-${ua.id}`).addEventListener("click", () => viewLatestContractForAsset(ua.assetId));
+  });
+}
+
+function renderAccountPage() {
+  const ownedAssets = state.userAssets.filter((ua) => ua.userId === activeUserId && ua.ownershipStatus === "fully owned" && ua.status !== "closed");
+  const rentingAssets = state.userAssets.filter((ua) => ua.userId === activeUserId && ua.ownershipStatus === "renting" && ua.status !== "closed");
+  const listedAssets = state.listings.filter((l) => l.holderUserId === activeUserId && l.active);
+  const earnings = state.userAssets.filter((ua) => ua.userId === activeUserId).reduce((sum, ua) => sum + (ua.earnings || 0), 0);
+
+  document.getElementById("accountOverview").innerHTML = `
+    <article class="card"><h3>Owned Assets</h3><p>${ownedAssets.length}</p></article>
+    <article class="card"><h3>Renting Assets</h3><p>${rentingAssets.length}</p></article>
+    <article class="card"><h3>Listed Assets</h3><p>${listedAssets.length}</p></article>
+    <article class="card"><h3>Earnings</h3><p>${money(earnings)}</p></article>
+  `;
+
+  const myAssets = state.userAssets.filter((ua) => ua.userId === activeUserId && ua.status !== "closed");
+  const myContracts = state.contracts.filter((c) => c.parties.some((p) => p.userId === activeUserId));
+  const myReceipts = state.receipts.filter((r) => r.senderUserId === activeUserId || r.receiverUserId === activeUserId).slice(-6).reverse();
+  const txs = state.transactions.filter((tx) => tx.fromUserId === activeUserId || tx.toUserId === activeUserId).slice(-8).reverse();
+
+  document.getElementById("accountContracts").innerHTML = myContracts.map((contract) => `
+    <article class="list-item">
+      <strong>${contract.assetName}</strong>
+      <div>Type: ${contract.type} • Status: ${contract.status}</div>
+      <div class="actions">
+        <button id="account-contract-view-${contract.id}">View Contract</button>
+        ${contract.parties.some((p) => p.userId === activeUserId && !p.signed) ? `<button id="account-contract-sign-${contract.id}" class="primary">Sign Contract</button>` : ""}
+      </div>
+    </article>
+  `).join("") || "<p>No contracts yet.</p>";
+
+  myContracts.forEach((contract) => {
+    document.getElementById(`account-contract-view-${contract.id}`)?.addEventListener("click", () => renderContractDocument(contract));
+    document.getElementById(`account-contract-sign-${contract.id}`)?.addEventListener("click", () => openSignaturePad(contract.id));
+  });
+
+  document.getElementById("accountReceipts").innerHTML = myReceipts.map((receipt) => `
+    <article class="list-item">
+      <strong>${receipt.assetName}</strong>
+      <div>${money(receipt.amountPaid)} • ${receipt.paymentType} • ${new Date(receipt.createdAt).toLocaleString()}</div>
+      <div class="actions">
+        <button id="account-receipt-view-${receipt.id}">View Receipt</button>
+      </div>
+    </article>
+  `).join("") || "<p>No receipts yet.</p>";
+
+  myReceipts.forEach((receipt) => {
+    document.getElementById(`account-receipt-view-${receipt.id}`)?.addEventListener("click", () => renderReceiptDocument(receipt));
+  });
+
+  const txWrap = document.getElementById("accountTransactions");
+  txWrap.innerHTML = txs.map((tx) => {
+    const asset = getAsset(tx.assetId);
+    const receipt = state.receipts.find((r) => r.transactionId === tx.id);
+    const contract = myContracts.find((c) => c.assetId === tx.assetId);
+    return `<article class="list-item">
+      <strong>${asset?.name || "Asset"} • ${tx.paymentType}</strong>
+      <div>${money(tx.amount + tx.shippingFee)} • ${new Date(tx.createdAt).toLocaleString()}</div>
+      <div class="progress-wrap"><small>Progress</small><progress value="${progressForAsset(tx.assetId, myAssets)}" max="100"></progress></div>
+      <div class="actions">
+        ${receipt ? `<button id="account-receipt-${receipt.id}">View Receipt</button>` : ""}
+        ${contract ? `<button id="account-contract-${contract.id}">View Contract</button>` : ""}
+        <button id="account-pay-${tx.id}" class="primary">Pay Installment</button>
+      </div>
+    </article>`;
+  }).join("") || "<p>No recent transactions.</p>";
+
+  txs.forEach((tx) => {
+    const receipt = state.receipts.find((r) => r.transactionId === tx.id);
+    const contract = myContracts.find((c) => c.assetId === tx.assetId);
+    if (receipt) document.getElementById(`account-receipt-${receipt.id}`).addEventListener("click", () => renderReceiptDocument(receipt));
+    if (contract) document.getElementById(`account-contract-${contract.id}`).addEventListener("click", () => renderContractDocument(contract));
+    const payBtn = document.getElementById(`account-pay-${tx.id}`);
+    if (payBtn) payBtn.addEventListener("click", () => {
+      const ua = myAssets.find((item) => item.assetId === tx.assetId && item.ownershipStatus !== "fully owned");
+      if (!ua) return toast("No pending installment for this asset.");
+      payInstallment(ua.id);
+    });
   });
 }
 
@@ -349,6 +433,8 @@ function renderMarketplace() {
 }
 
 function renderAdmin() {
+  renderAdminOverview();
+
   const list = document.getElementById("adminAssetList");
   list.innerHTML = state.assets
     .map((a) => `<article class="list-item">
@@ -411,6 +497,23 @@ function renderAdmin() {
   });
 }
 
+function renderAdminOverview() {
+  const activeAssets = state.assets.filter((a) => a.active).length;
+  const inactiveAssets = state.assets.filter((a) => !a.active).length;
+  const activeListings = state.listings.filter((l) => l.active).length;
+  const pendingContracts = state.contracts.filter((c) => c.status === "pending").length;
+  const signedContracts = state.contracts.filter((c) => c.status === "signed" || c.status === "active").length;
+
+  document.getElementById("adminOverview").innerHTML = `
+    <article class="card"><h3>Active Assets</h3><p>${activeAssets}</p></article>
+    <article class="card"><h3>Inactive Assets</h3><p>${inactiveAssets}</p></article>
+    <article class="card"><h3>Active Listings</h3><p>${activeListings}</p></article>
+    <article class="card"><h3>Pending Contracts</h3><p>${pendingContracts}</p></article>
+    <article class="card"><h3>Signed/Active Contracts</h3><p>${signedContracts}</p></article>
+    <article class="card"><h3>Total Receipts</h3><p>${state.receipts.length}</p></article>
+  `;
+}
+
 function renderReceipts() {
   const mine = state.receipts.filter((r) => r.senderUserId === activeUserId || r.receiverUserId === activeUserId);
   document.getElementById("receiptList").innerHTML = mine
@@ -424,7 +527,7 @@ function renderReceipts() {
     .join("") || "<p>No receipts yet.</p>";
 
   mine.forEach((r) => {
-    document.getElementById(`receipt-${r.id}`).addEventListener("click", () => downloadDocument(`receipt-${r.id}.html`, `Receipt ${r.id}`, r));
+    document.getElementById(`receipt-${r.id}`).addEventListener("click", () => renderReceiptDocument(r));
   });
 }
 
@@ -446,7 +549,7 @@ function renderContracts() {
     .join("") || "<p>No contracts for this user.</p>";
 
   mine.forEach((c) => {
-    document.getElementById(`view-contract-${c.id}`).addEventListener("click", () => downloadDocument(`contract-${c.id}.html`, `Contract ${c.id}`, c));
+    document.getElementById(`view-contract-${c.id}`).addEventListener("click", () => renderContractDocument(c));
     const signButton = document.getElementById(`sign-contract-${c.id}`);
     if (signButton) signButton.addEventListener("click", () => openSignaturePad(c.id));
   });
@@ -793,6 +896,8 @@ function createTransaction({ fromUserId, toUserId, assetId, amount, paymentType,
     });
   }
 
+  activateSignedContract(assetId, fromUserId, toUserId);
+
   return tx;
 }
 
@@ -843,27 +948,37 @@ function maybeCreateContract({ asset, buyerId, sellerId, amount, mode, duration,
     paymentTerms: `${mode} on ${asset.paymentInterval} interval`,
     agreedDate: new Date().toISOString(),
     summary: `${buyer.name} agrees to ${mode} ${asset.name} for ${money(amount)} (${duration}).`,
+    legalSections: buildLegalContractSections(asset, buyer.name, sellerName, amount, mode, duration),
     parties,
-    status: "pending-signatures",
+    userSignature: null,
+    otherPartySignature: sellerId === "platform" ? null : null,
+    starlifeSignature: sellerId === "platform" ? "SYSTEM_SIGNATURE_STARLIFE" : null,
+    status: "pending",
     immutableAfterSigning: true,
+    locked: false,
   });
 }
 
 function addContractSignature(contractId, userId, signatureData) {
   const contract = state.contracts.find((c) => c.id === contractId);
-  if (!contract || contract.status === "active") return;
+  if (!contract || contract.status === "active" || contract.locked) return;
   const party = contract.parties.find((p) => p.userId === userId);
   if (!party || party.signed) return;
 
   party.signed = true;
   party.signedAt = new Date().toISOString();
   party.signatureData = signatureData;
+  if (userId === contract.buyerId) contract.userSignature = signatureData;
+  if (userId === contract.sellerId) contract.otherPartySignature = signatureData;
 
   const allSigned = contract.parties.every((p) => p.signed);
-  if (allSigned) contract.status = "active";
+  if (allSigned) {
+    contract.status = "signed";
+    contract.locked = true;
+  }
 
   saveState();
-  toast(allSigned ? "Contract fully signed and active." : "Signature captured.");
+  toast(allSigned ? "Contract fully signed and locked." : "Signature captured.");
 }
 
 function openSignaturePad(contractId) {
@@ -889,6 +1004,11 @@ function calculateShipping(asset, destination, fromLocation = null) {
 
 function canSpend(user, amount) {
   return user.mainBalance - user.heldBalance >= amount;
+}
+
+function activateSignedContract(assetId, buyerId, sellerId) {
+  const signed = state.contracts.find((c) => c.assetId === assetId && c.buyerId === buyerId && c.sellerId === sellerId && c.status === "signed");
+  if (signed) signed.status = "active";
 }
 
 function validateBasePrice(fullPrice, rentPrice) {
@@ -1059,6 +1179,64 @@ function downloadDocument(name, title, data) {
   a.download = name;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function renderReceiptDocument(receipt) {
+  downloadDocument(`receipt-${receipt.id}.html`, `Receipt ${receipt.id}`, {
+    userName: receipt.userName,
+    assetName: receipt.assetName,
+    amountPaid: receipt.amountPaid,
+    dateTime: receipt.createdAt,
+    transactionId: receipt.transactionId,
+    paymentType: receipt.paymentType,
+    sender: receipt.senderName,
+    receiver: receipt.receiverName,
+  });
+}
+
+function renderContractDocument(contract) {
+  downloadDocument(`contract-${contract.id}.html`, "ASSET RENTAL / PURCHASE AGREEMENT", {
+    contractId: contract.id,
+    status: contract.status,
+    sections: contract.legalSections,
+    userSignature: contract.userSignature,
+    otherPartySignature: contract.otherPartySignature,
+    starlifeSignature: contract.starlifeSignature,
+    signedParties: contract.parties.map((p) => ({ name: p.name, role: p.role, signed: p.signed, signedAt: p.signedAt })),
+  });
+}
+
+function buildLegalContractSections(asset, buyerName, sellerName, amount, mode, duration) {
+  return {
+    title: "ASSET RENTAL / PURCHASE AGREEMENT",
+    parties: { buyerOrRenter: buyerName, seller: sellerName },
+    assetDescription: { name: asset.name, type: asset.type, location: asset.location || "N/A" },
+    agreementTerms: { totalPrice: money(amount), paymentPlan: mode, paymentInterval: asset.paymentInterval },
+    duration: mode === "rent" ? { startDate: new Date().toISOString(), endDate: `By ${duration} cycle` } : "N/A",
+    obligations: ["Buyer/Renter is responsible for agreed payments.", "Buyer/Renter must keep asset in safe condition."],
+    ownershipClause: "Ownership transfers after full payment is completed.",
+    defaultClause: "Failure to pay may result in suspension, repossession, or termination.",
+    terminationClause: "Either party may terminate per platform policy and contract terms.",
+    signaturesSection: "Digital signatures required. Unsigned contracts are invalid.",
+  };
+}
+
+function viewLatestReceiptForAsset(assetId) {
+  const receipt = [...state.receipts].reverse().find((r) => r.senderUserId === activeUserId && r.assetName === getAsset(assetId)?.name);
+  if (!receipt) return toast("No receipt found for this asset yet.");
+  renderReceiptDocument(receipt);
+}
+
+function viewLatestContractForAsset(assetId) {
+  const contract = [...state.contracts].reverse().find((c) => c.assetId === assetId && c.parties.some((p) => p.userId === activeUserId));
+  if (!contract) return toast("No contract found for this asset yet.");
+  renderContractDocument(contract);
+}
+
+function progressForAsset(assetId, userAssets) {
+  const ua = userAssets.find((item) => item.assetId === assetId);
+  if (!ua || !ua.targetPrice) return 0;
+  return Math.max(0, Math.min(100, Math.round((ua.totalPaid / ua.targetPrice) * 100)));
 }
 
 function escapeHtml(raw) {

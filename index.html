@@ -18599,8 +18599,9 @@ Prize: $${fmt(prize)}`);
     <div class="mover" id="m-cancel-contract">
         <div class="modal" style="max-width:460px">
             <div class="modal-title">❌ Cancel Contract</div>
-            <div style="background:rgba(255,82,82,.08);border:1px solid rgba(255,82,82,.2);border-radius:8px;padding:12px;margin-bottom:14px;font-size:.8rem;color:var(--red);line-height:1.5">
-                ⚠️ Cancellation is only available within <strong>24 hours</strong> of the transaction. Buyer receives <strong>60%</strong> refund. Seller retains <strong>40%</strong>. This action cannot be undone.
+            <div style="background:rgba(255,82,82,.08);border:1px solid rgba(255,82,82,.2);border-radius:8px;padding:12px;margin-bottom:14px;font-size:.8rem;color:var(--red);line-height:1.6">
+                <strong>⏱ Reversal/Refund:</strong> Within 24 hours — 60% refund, seller retains 40%.<br>
+                <strong>❌ Contract Cancellation:</strong> Within 14 days (2 weeks) — same 60/40 split with valid reason + evidence. After 2 weeks, no cancellation possible.
             </div>
             <div id="m-cancel-contract-info" style="background:var(--s2);border-radius:10px;padding:12px;margin-bottom:14px;font-size:.84rem"></div>
             <div class="fg"><label class="fl">Reason for Cancellation</label>
@@ -18751,18 +18752,24 @@ Prize: $${fmt(prize)}`);
         <div class="modal" style="max-width:480px">
             <div class="modal-title">📢 List Asset for Sale/Rent</div>
             <div style="background:rgba(255,213,79,.08);border:1px solid rgba(255,213,79,.25);border-radius:8px;padding:10px;margin-bottom:14px;font-size:.76rem;color:var(--gold)">
-                ⚠️ <strong>Member Listing:</strong> This is a transaction between two Starlife members. Starlife Advert is not a party to this agreement and bears no responsibility for the condition, delivery, or quality of the listed asset. Starlife collects a 10% platform fee on all member-to-member transactions.
+                ⚠️ <strong>Member Listing:</strong> Transaction is between two Starlife members. Starlife Advert is not responsible for any disputes. 10% platform fee applies on all transactions.
             </div>
+            <div style="background:rgba(64,196,255,.08);border:1px solid rgba(64,196,255,.2);border-radius:8px;padding:10px;margin-bottom:14px;font-size:.75rem;color:var(--sky)" id="p2p-list-stock-notice"></div>
             <input type="hidden" id="p2p-list-ua-id">
             <input type="hidden" id="p2p-list-asset-name">
             <input type="hidden" id="p2p-list-asset-type">
+            <input type="hidden" id="p2p-list-max-qty">
             <div class="fg"><label class="fl">Listing Title</label><input class="fi" id="p2p-list-title" placeholder="e.g. Spacious 2BR — great condition"></div>
             <div class="fg"><label class="fl">Description</label><textarea class="fi" id="p2p-list-desc" rows="3" placeholder="Describe condition, features, etc…"></textarea></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
                 <div class="fg"><label class="fl">Sale Price ($) — 0 = not for sale</label><input class="fi" id="p2p-list-price-buy" type="number" min="0" placeholder="0"></div>
                 <div class="fg"><label class="fl">Rent/Day ($) — 0 = not rentable</label><input class="fi" id="p2p-list-price-rent" type="number" min="0" placeholder="0"></div>
             </div>
-            <div style="font-size:.74rem;color:var(--t3);margin-bottom:14px">Starlife deducts 10% fee. You receive 90% of the transaction amount.</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <div class="fg"><label class="fl">Qty to List (max = what you own)</label><input class="fi" id="p2p-list-qty" type="number" min="1" placeholder="e.g. 1"></div>
+                <div class="fg"><label class="fl">Delivery Fee ($) — 0 = free</label><input class="fi" id="p2p-list-delivery-fee" type="number" min="0" placeholder="0"></div>
+            </div>
+            <div style="font-size:.74rem;color:var(--t3);margin-bottom:14px">You receive 90% of transaction amount. Status updates automatically based on sales.</div>
             <div class="modal-acts">
                 <button class="btn btn-p" onclick="submitP2PListing()">📢 Post Listing →</button>
                 <button class="btn btn-gh" onclick="closeModal('m-p2p-list-asset')">Cancel</button>
@@ -18866,7 +18873,8 @@ Prize: $${fmt(prize)}`);
     const VISIT_RATES = { local:{ min:15, max:50 }, international:{ min:1500, max:3000 } };
     const P2P_FEE_RATE = 0.10;
     const CANCEL_BUYER_PCT = 0.60;
-    const CANCEL_WINDOW_HOURS = 24;
+    const CANCEL_WINDOW_HOURS = 24;    // Reverse/Refund window = 24 hours
+    const CANCEL_CONTRACT_DAYS = 14;  // Cancel contract window = 2 weeks
 
     function assetIcon(t){ return ASSET_TYPE_ICONS[t]||'📦'; }
     function assetColor(t){ return ASSET_TYPE_COLORS[t]||'var(--t2)'; }
@@ -18874,7 +18882,8 @@ Prize: $${fmt(prize)}`);
     function calcShippingFee(type){ return SHIP_RATES[getAssetSize(type)]||100; }
     function genAssetTxId(){ return 'AST-'+Math.random().toString(36).substr(2,8).toUpperCase(); }
     function maskEmail(email){ if(!email||!email.includes('@')) return '—'; const[l,d]=email.split('@'); return l.substring(0,2)+'***@'+d; }
-    function isWithin24h(ts){ if(!ts) return false; const ms=(ts.seconds?ts.seconds*1000:new Date(ts).getTime()); return Date.now()-ms < CANCEL_WINDOW_HOURS*3600*1000; }
+    function isWithin24h(ts){ if(!ts) return false; const ms=(ts.seconds?ts.seconds*1000:new Date(ts).getTime()); return Date.now()-ms < 24*3600*1000; }
+    function isWithin2Weeks(ts){ if(!ts) return false; const ms=(ts.seconds?ts.seconds*1000:new Date(ts).getTime()); return Date.now()-ms < CANCEL_CONTRACT_DAYS*24*3600*1000; }
     function deliveryStatusBadge(status){
         const map={'pending_delivery':'<span class="badge bgold">📦 Pending Delivery</span>','shipping':'<span class="badge bsky">🚚 Shipping</span>','delivered':'<span class="badge bg">✅ Delivered</span>','active':'<span class="badge bg">✅ Active</span>','installment_active':'<span class="badge bgold">📅 Installment</span>','expired':'<span class="badge br">⏰ Expired</span>','cancelled':'<span class="badge br">❌ Cancelled</span>'};
         return map[status]||`<span class="badge bmut">${status||'active'}</span>`;
@@ -18911,11 +18920,16 @@ Prize: $${fmt(prize)}`);
     function renderAssetCard(asset,id){
         const imgHtml=(asset.images&&asset.images[0])?`<img src="${asset.images[0]}" style="width:100%;height:100%;object-fit:cover">`:`<div class="asset-img-placeholder">${assetIcon(asset.type)}</div>`;
         const stock=stockBadge(asset);
-        return `<div class="asset-card" onclick="openAssetDetail('${id}')">
-            <div class="asset-img-wrap">${imgHtml}<div class="asset-type-badge" style="background:${assetColor(asset.type)};color:#000">${assetIcon(asset.type)} ${(asset.type||'').toUpperCase()}</div></div>
+        const isSold=asset.status==='sold'; const isRented=asset.status==='rented'; const isInactive=asset.status==='inactive';
+        const statusOverlay=isSold?`<div style="position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:3"><span style="background:#FF5252;color:#fff;font-weight:800;font-size:1rem;padding:6px 18px;border-radius:20px;letter-spacing:1px">SOLD</span></div>`:isRented?`<div style="position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:3"><span style="background:#40C4FF;color:#000;font-weight:800;font-size:1rem;padding:6px 18px;border-radius:20px;letter-spacing:1px">RENTED</span></div>`:isInactive?`<div style="position:absolute;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:3"><span style="background:#555;color:#fff;font-weight:800;font-size:.9rem;padding:6px 18px;border-radius:20px">UNAVAILABLE</span></div>`:'';
+        const isClickable=asset.status==='available'&&(asset.stock===undefined||asset.stock===null||asset.stock>0);
+        const stockInfo=asset.stock!==null&&asset.stock!==undefined?`<div style="font-size:.7rem;color:${asset.stock<=3?'var(--gold)':'var(--t3)'};margin-top:2px">${asset.stock>0?asset.stock+' in stock':'Out of stock'}</div>`:'';
+        return `<div class="asset-card" onclick="${isClickable?`openAssetDetail('${id}')`:''}" style="${!isClickable?'cursor:default;opacity:.85':''}">
+            <div class="asset-img-wrap" style="position:relative">${imgHtml}${statusOverlay}<div class="asset-type-badge" style="background:${assetColor(asset.type)};color:#000;z-index:4">${assetIcon(asset.type)} ${(asset.type||'').toUpperCase()}</div></div>
             <div class="asset-body">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px"><div class="asset-name">${asset.name||'Asset'}</div>${stock}</div>
                 <div class="asset-loc">📍 ${asset.location||'—'}</div>
+                ${stockInfo}
                 <div class="asset-prices">
                     ${asset.priceBy>0?`<div class="asset-price-box"><div class="asset-price-lbl">Buy</div><div class="asset-price-val">$${fmt(asset.priceBy)}</div></div>`:''}
                     ${asset.priceRent>0?`<div class="asset-price-box"><div class="asset-price-lbl">Rent/Day</div><div class="asset-price-val" style="color:var(--sky)">$${fmt(asset.priceRent)}</div></div>`:''}
@@ -18933,7 +18947,8 @@ Prize: $${fmt(prize)}`);
         try {
             const snap=await db.collection('assets').get();
             let docs=snap.docs.map(d=>({id:d.id,...d.data()}));
-            docs=docs.filter(a=>a.status==='available'&&(a.stock===undefined||a.stock===null||a.stock>0));
+            // Show ALL — sold/rented stay visible with overlay. Filter out only inactive.
+            docs=docs.filter(a=>a.status!=='inactive');
             const ft=document.getElementById('am-filter-type')?.value;
             const fm=document.getElementById('am-filter-mode')?.value||mode;
             if(ft) docs=docs.filter(a=>a.type===ft);
@@ -18941,6 +18956,8 @@ Prize: $${fmt(prize)}`);
             if(fm==='rent') docs=docs.filter(a=>a.priceRent>0);
             if(fm==='installment') docs=docs.filter(a=>a.priceInstall>0);
             if(!docs.length){ listEl.innerHTML='<div class="es">No assets found</div>'; return; }
+            // Sort: available first, then rented, then sold
+            docs.sort((a,b)=>{ const order={available:0,rented:1,sold:2}; return (order[a.status]??3)-(order[b.status]??3); });
             listEl.innerHTML=docs.map(a=>renderAssetCard(a,a.id)).join('');
         } catch(e){ listEl.innerHTML=`<div class="es" style="color:var(--red)">${e.message}</div>`; }
     }
@@ -19208,29 +19225,37 @@ Prize: $${fmt(prize)}`);
             const snap=await db.collection('contracts').doc(contractDocId).get();
             if(!snap.exists){ toast('Contract not found','ty'); return; }
             const c=snap.data();
-            document.getElementById('m-admin-contract-body').innerHTML=buildContractHtml(c);
+            // Admin sees FULL details (isAdmin=true)
+            document.getElementById('m-admin-contract-body').innerHTML=buildContractHtml(c, true);
             const sigDisplay=document.getElementById('m-admin-sig-display'),noSig=document.getElementById('m-admin-no-sig');
-            if(c.userSignature){ document.getElementById('m-admin-sig-img').src=c.userSignature; document.getElementById('m-admin-sig-meta').textContent='Signed by: '+c.userName+' · '+(c.signedAt?new Date(c.signedAt.seconds*1000).toLocaleString():fmtD(c.createdAt)); sigDisplay.style.display='block'; noSig.style.display='none'; }
+            if(c.userSignature){ document.getElementById('m-admin-sig-img').src=c.userSignature; document.getElementById('m-admin-sig-meta').textContent='Signed by: '+c.userName+' ('+c.userEmail+') · '+(c.signedAt?new Date(c.signedAt.seconds*1000).toLocaleString():fmtD(c.createdAt)); sigDisplay.style.display='block'; noSig.style.display='none'; }
             else { sigDisplay.style.display='none'; noSig.style.display='block'; }
+            // Also show seller signature if P2P
+            if(c.sellerSignature){
+                const sellerSigDiv=document.getElementById('m-admin-sig-display');
+                sellerSigDiv.innerHTML+=`<div style="margin-top:12px"><div style="font-size:.82rem;font-weight:700;color:var(--sky);margin-bottom:6px">✍️ Seller's Signature</div><img src="${c.sellerSignature}" style="max-width:100%;border:1px solid var(--bd);border-radius:6px;background:#fff"><div style="font-size:.72rem;color:var(--t3);margin-top:4px">Signed by: ${c.party2Name||'Seller'} · ${c.sellerSignedAt?new Date(c.sellerSignedAt.seconds*1000).toLocaleString():'—'}</div></div>`;
+            }
             openModal('m-admin-contract');
         } catch(e){ toast('Error: '+e.message,'tr'); }
     }
 
-    function buildContractHtml(c){
+    function buildContractHtml(c, isAdmin){
         const now=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
         const start=c.startDate?new Date(c.startDate).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}):'—';
         const end=c.endDate?new Date(c.endDate).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}):'—';
         const isP2P=c.party2Type==='member';
-        const maskedEmail=maskEmail(c.userEmail);
-        const shipSection=c.shippingAddress?`<div class="c-line"></div><h3>SHIPPING / DELIVERY</h3><p><strong>Delivery Address:</strong> ${c.shippingAddress}<br><strong>Shipping Fee:</strong> $${fmt(c.shipFee||0)}<br><strong>Delivery Status:</strong> ${c.deliveryStatus||'Pending'}</p>`:'';
+        // Admin sees full email; buyer sees masked
+        const displayEmail=isAdmin?(c.userEmail||'—'):maskEmail(c.userEmail);
+        const shipSection=c.shippingAddress?`<div class="c-line"></div><h3>SHIPPING / DELIVERY</h3><p><strong>Delivery Address:</strong> ${c.shippingAddress}<br><strong>Shipping Fee:</strong> $${fmt(c.shipFee||0)}<br><strong>Status:</strong> ${c.deliveryStatus||'Pending'}</p>`:'';
         return `
         <h2>ASSET ${(c.mode||'').toUpperCase()} AGREEMENT</h2>
         <p style="text-align:center;font-size:.78rem;color:#555">Contract ID: <strong>${c.contractId||c.txId||'—'}</strong> &nbsp;|&nbsp; Date: <strong>${now}</strong></p>
         ${isP2P?`<p style="text-align:center;background:#fff3cd;color:#856404;padding:6px 10px;border-radius:6px;font-size:.74rem;margin:6px 0">⚠️ Member-to-Member Transaction. Starlife Advert collects a 10% platform fee only and bears no liability for asset condition, delivery, or disputes.</p>`:''}
         <div class="c-line"></div>
         <h3>1. PARTIES</h3>
-        <p><strong>Buyer/Renter:</strong> ${c.userName||'—'}<br><strong>Contact:</strong> ${maskedEmail}</p>
-        <p><strong>${isP2P?'Seller (Member)':'Seller/Lessor'}:</strong> ${isP2P?(c.party2Name||'Member Seller'):('Starlife Assets')}${isP2P?`<br><strong>Seller Contact:</strong> ${maskEmail(c.party2Email||'')}`:''}</p>
+        <p><strong>Buyer/Renter:</strong> ${c.userName||'—'}<br><strong>Contact:</strong> ${displayEmail}</p>
+        <p><strong>${isP2P?'Seller (Member)':'Seller/Lessor'}:</strong> ${isP2P?(c.party2Name||'Member Seller'):'Starlife Assets'}<br>
+        ${isP2P?`<strong>Seller Contact:</strong> Contact Starlife Support for seller's contact details`:(isAdmin?`<strong>Starlife Email:</strong> starlifeadvert@gmail.com`:`<strong>Contact:</strong> support@starlifeadvert.com`)}</p>
         ${isP2P?`<p><strong>Platform Facilitator:</strong> Starlife Advert (10% fee only)</p>`:''}
         <div class="c-line"></div>
         <h3>2. ASSET DESCRIPTION</h3>
@@ -19241,16 +19266,17 @@ Prize: $${fmt(prize)}`);
         ${shipSection}
         <div class="c-line"></div>
         <h3>4. OBLIGATIONS</h3>
-        <p>The Buyer/Renter agrees to use the asset lawfully. Damage beyond normal wear is Buyer/Renter's responsibility. Rental payments are due on schedule.</p>
+        <p>The Buyer/Renter agrees to use the asset lawfully. Damage beyond normal wear is Buyer/Renter's responsibility.</p>
         <div class="c-line"></div>
         <h3>5. OWNERSHIP CLAUSE</h3>
-        <p>${c.mode==='buy'?'Ownership transfers to Buyer upon full payment confirmation.':c.mode==='installment'?'Ownership transfers upon completion of all installment payments.':'Asset remains property of Seller. Renter has usage rights for the agreed period only.'}</p>
+        <p>${c.mode==='buy'?'Ownership transfers to Buyer upon full payment.':c.mode==='installment'?'Ownership transfers upon completion of all installment payments.':'Asset remains property of Seller. Renter has usage rights for the agreed period only.'}</p>
         <div class="c-line"></div>
-        <h3>6. DEFAULT & CANCELLATION</h3>
-        <p>Cancellation within 24 hours of payment entitles Buyer to a 60% refund; Seller retains 40%. After 24 hours, all payments are non-refundable. Rental non-payment results in automatic removal from Buyer's assets.</p>
+        <h3>6. CANCELLATION & REVERSAL POLICY</h3>
+        <p><strong>Reversal/Refund:</strong> Available within 24 hours. Buyer receives 60% refund; Seller retains 40%.<br>
+        <strong>Contract Cancellation:</strong> Available within 14 days (2 weeks) of transaction with valid reason and supporting evidence. Rental non-payment results in automatic removal of asset access.</p>
         <div class="c-line"></div>
         <h3>7. TERMINATION</h3>
-        <p>Either party may terminate with 7 days written notice. No refund after the 24-hour cancellation window.</p>
+        <p>Either party may terminate with 7 days written notice via Starlife Support. Refunds are subject to the cancellation policy above.</p>
         <div class="c-line"></div>
         <h3>8. SIGNATURES</h3>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:8px">
@@ -19258,7 +19284,7 @@ Prize: $${fmt(prize)}`);
                 <div style="font-weight:700;font-size:.78rem">Buyer/Renter</div>
                 <div class="c-sig">${c.userSignature?`<img src="${c.userSignature}" style="height:30px">`:'<em style="font-size:.7rem;color:#999">Awaiting signature</em>'}</div>
                 <div style="font-size:.72rem">${c.userName||'—'}</div>
-                <div style="font-size:.7rem;color:#888">${maskedEmail}</div>
+                <div style="font-size:.7rem;color:#888">${displayEmail}</div>
             </div>
             <div>
                 <div style="font-weight:700;font-size:.78rem">${isP2P?'Seller (Member)':'Starlife Advert'}</div>
@@ -19339,13 +19365,18 @@ Prize: $${fmt(prize)}`);
 
     // ═══ CANCEL CONTRACT ═══
     function openCancelContractModal(contractDocId,uaId,assetName,amount,createdAtSeconds){
-        const hrs=Math.round((Date.now()-createdAtSeconds*1000)/3600000);
-        if(hrs>CANCEL_WINDOW_HOURS){ toast(`❌ Cancellation window has closed. Only available within ${CANCEL_WINDOW_HOURS} hours of purchase.`,'tr',5000); return; }
+        const msAgo=Date.now()-createdAtSeconds*1000;
+        const hrsAgo=Math.floor(msAgo/3600000);
+        const daysAgo=Math.floor(msAgo/86400000);
+        const canReverse=msAgo<24*3600*1000; // 24h = refund/reverse
+        const canCancel=msAgo<CANCEL_CONTRACT_DAYS*24*3600*1000; // 2 weeks = cancel
+        if(!canCancel){ toast(`❌ Cancellation window has closed. Only available within ${CANCEL_CONTRACT_DAYS} days of purchase.`,'tr',5000); return; }
         const buyerRefund=parseFloat((amount*CANCEL_BUYER_PCT).toFixed(2));
         const sellerKeep=parseFloat((amount*(1-CANCEL_BUYER_PCT)).toFixed(2));
+        const windowNote=canReverse?`<span style="color:var(--g)">✅ Within 24h — full reversal eligible (60% refund)</span>`:`<span style="color:var(--gold)">⏰ Past 24h — cancellation only (60% refund) · ${daysAgo}d ${hrsAgo%24}h elapsed · ${CANCEL_CONTRACT_DAYS-daysAgo}d remaining</span>`;
         document.getElementById('m-cancel-contract-doc-id').value=contractDocId;
         document.getElementById('m-cancel-ua-id').value=uaId;
-        document.getElementById('m-cancel-contract-info').innerHTML=`<div><strong>Asset:</strong> ${assetName}</div><div style="margin-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:rgba(0,230,118,.08);border-radius:8px;padding:8px;text-align:center"><div style="font-size:.7rem;color:var(--t3)">Your Refund (60%)</div><div style="font-weight:700;color:var(--g)">$${fmt(buyerRefund)}</div></div><div style="background:rgba(255,82,82,.08);border-radius:8px;padding:8px;text-align:center"><div style="font-size:.7rem;color:var(--t3)">Seller Retains (40%)</div><div style="font-weight:700;color:var(--red)">$${fmt(sellerKeep)}</div></div></div><div style="font-size:.72rem;color:var(--t3);margin-top:8px">Time since purchase: ${hrs}h ${60-hrs>=0?`· ${CANCEL_WINDOW_HOURS-hrs}h remaining`:''}</div>`;
+        document.getElementById('m-cancel-contract-info').innerHTML=`<div><strong>Asset:</strong> ${assetName}</div><div style="margin-top:4px;font-size:.75rem">${windowNote}</div><div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:rgba(0,230,118,.08);border-radius:8px;padding:8px;text-align:center"><div style="font-size:.7rem;color:var(--t3)">Your Refund (60%)</div><div style="font-weight:700;color:var(--g)">$${fmt(buyerRefund)}</div></div><div style="background:rgba(255,82,82,.08);border-radius:8px;padding:8px;text-align:center"><div style="font-size:.7rem;color:var(--t3)">Seller Retains (40%)</div><div style="font-weight:700;color:var(--red)">$${fmt(sellerKeep)}</div></div></div>`;
         document.getElementById('m-cancel-reason').value='';
         document.getElementById('m-cancel-details').value='';
         openModal('m-cancel-contract');
@@ -19363,7 +19394,7 @@ Prize: $${fmt(prize)}`);
             if(!cSnap.exists){ toast('Contract not found','ty'); return; }
             const c=cSnap.data();
             // Check 24h window
-            if(!isWithin24h(c.createdAt)){ toast('Cancellation window has expired','tr'); closeModal('m-cancel-contract'); return; }
+            if(!isWithin2Weeks(c.createdAt)){ toast('Cancellation window has expired (2-week limit)','tr'); closeModal('m-cancel-contract'); return; }
             const u=window.CU;
             const amount=c.amount||0;
             const buyerRefund=parseFloat((amount*CANCEL_BUYER_PCT).toFixed(2));
@@ -19525,10 +19556,12 @@ Prize: $${fmt(prize)}`);
         el.innerHTML='<div class="es">Loading…</div>';
         const u=window.CU; if(!u) return;
         try {
-            const snap=await db.collection('p2p_listings').where('sellerUid','==',u.uid).get();
-            // Also check for contracts needing seller signature
-            const contractSnap=await db.collection('contracts').where('party2Uid','==',u.uid).where('requiresSellerSig','==',true).get();
+            const [snap, contractSnap] = await Promise.all([
+                db.collection('p2p_listings').where('sellerUid','==',u.uid).get(),
+                db.collection('contracts').where('party2Uid','==',u.uid).where('requiresSellerSig','==',true).get()
+            ]);
             const pendingSig=contractSnap.docs.filter(d=>!d.data().sellerSignature);
+            const signedContracts=contractSnap.docs.filter(d=>!!d.data().sellerSignature);
             let sigHtml='';
             if(pendingSig.length>0){
                 sigHtml=`<div style="background:rgba(255,213,79,.08);border:1px solid rgba(255,213,79,.25);border-radius:10px;padding:12px;margin-bottom:12px">
@@ -19536,17 +19569,30 @@ Prize: $${fmt(prize)}`);
                     ${pendingSig.map(d=>{const c=d.data(); return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)"><div><div style="font-weight:600;font-size:.85rem">${c.assetName||'Asset'}</div><div style="font-size:.72rem;color:var(--t3)">${c.userName||'Buyer'} · $${fmt(c.amount||0)}</div></div><button class="btn btn-p btn-sm" onclick="openSellerSignModal('${d.id}')">✍️ Sign</button></div>`;}).join('')}
                 </div>`;
             }
-            if(snap.empty&&!pendingSig.length){ el.innerHTML=sigHtml+'<div class="es"><div class="ei">📢</div>No listings yet</div>'; return; }
-            const docs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
-            el.innerHTML=sigHtml+docs.map(l=>`
-                <div class="my-asset-row" style="display:flex;justify-content:space-between;align-items:flex-start">
+            // Seller contracts section (viewable anytime)
+            let sellerContractHtml='';
+            if(signedContracts.length>0){
+                sellerContractHtml=`<div class="sh" style="margin-top:14px"><h3>📄 My Seller Contracts</h3></div>`+signedContracts.map(d=>{const c=d.data(); return `<div class="my-asset-row" style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-weight:700">📄 ${c.assetName||'—'}</div><div style="font-size:.74rem;color:var(--t3)">${c.mode||'—'} · Buyer: ${c.userName||'—'} · $${fmt(c.amount||0)}</div></div><button class="btn btn-sky btn-sm" onclick="viewContract('${d.id}')">View</button></div>`;}).join('');
+            }
+            const docs=snap.docs.map(d=>({id:d.id,...d.data()})).filter(l=>l.status!=='removed').sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+            if(!docs.length&&!pendingSig.length){ el.innerHTML=sigHtml+sellerContractHtml+'<div class="es"><div class="ei">📢</div>No listings yet. Go to Owned Assets to list.</div>'; return; }
+            el.innerHTML=sigHtml+docs.map(l=>{
+                // Status is AUTO-GENERATED — no manual edit
+                const statusColor=l.status==='active'?'bg':l.status==='sold'?'br':l.status==='rented'?'bsky':'bgold';
+                const stockInfo=l.qty>1?`<div style="font-size:.7rem;color:${(l.stockLeft||0)<=2?'var(--gold)':'var(--t3)'}">${l.stockLeft||0}/${l.qty} remaining</div>`:'';
+                const deliveryInfo=l.deliveryFee>0?`<span style="font-size:.7rem;color:var(--t2)"> · 🚚 $${fmt(l.deliveryFee)}</span>`:'';
+                // Only active listings can be removed manually
+                const removeBtn=l.status==='active'?`<button class="btn btn-d btn-sm" onclick="cancelP2PListing('${l.id}')">Remove</button>`:`<span style="font-size:.68rem;color:var(--t3)">Auto-managed</span>`;
+                return `<div class="my-asset-row" style="display:flex;justify-content:space-between;align-items:flex-start">
                     <div><div style="font-weight:700">${assetIcon(l.assetType)} ${l.title||l.assetName}</div>
-                    <div style="font-size:.74rem;color:var(--t3)">${l.priceBuy>0?'Buy: $'+fmt(l.priceBuy)+' ':''}${l.priceRent>0?'Rent: $'+fmt(l.priceRent)+'/day ':''} · ${fmtD(l.createdAt)}</div></div>
+                    <div style="font-size:.74rem;color:var(--t3)">${l.priceBuy>0?'Buy: $'+fmt(l.priceBuy)+' ':''}${l.priceRent>0?'Rent: $'+fmt(l.priceRent)+'/day ':''} · ${fmtD(l.createdAt)}${deliveryInfo}</div>
+                    ${stockInfo}</div>
                     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-                        <span class="badge ${l.status==='active'?'bg':l.status==='sold'?'br':'bgold'}">${l.status||'active'}</span>
-                        ${l.status==='active'?`<button class="btn btn-d btn-sm" onclick="cancelP2PListing('${l.id}')">Remove</button>`:''}
+                        <span class="badge ${statusColor}">${l.status||'active'}</span>
+                        ${removeBtn}
                     </div>
-                </div>`).join('');
+                </div>`;
+            }).join('')+sellerContractHtml;
         } catch(e){ el.innerHTML=`<div class="es" style="color:var(--red)">${e.message}</div>`; }
     }
 
@@ -19601,18 +19647,48 @@ Prize: $${fmt(prize)}`);
     // ═══════════════════════════════════════
     // P2P MEMBER-TO-MEMBER MARKETPLACE
     // ═══════════════════════════════════════
-    function openP2PListModal(uaId,assetName,assetType){ document.getElementById('p2p-list-ua-id').value=uaId; document.getElementById('p2p-list-asset-name').value=assetName; document.getElementById('p2p-list-asset-type').value=assetType; document.getElementById('p2p-list-title').value=''; document.getElementById('p2p-list-desc').value=''; document.getElementById('p2p-list-price-buy').value=''; document.getElementById('p2p-list-price-rent').value=''; openModal('m-p2p-list-asset'); }
+    async function openP2PListModal(uaId,assetName,assetType){
+        // Calculate how many of this asset the user actually owns
+        const u=window.CU; if(!u) return;
+        try {
+            const snap=await db.collection('user_assets').where('uid','==',u.uid).where('assetName','==',assetName).get();
+            const ownedQty=snap.docs.filter(d=>{ const s=d.data().status; return s==='active'||s==='installment_active'; }).length||1;
+            // Check existing active listing quantity
+            const listSnap=await db.collection('p2p_listings').where('sellerUid','==',u.uid).where('userAssetId','==',uaId).where('status','==','active').get();
+            const alreadyListed=listSnap.docs.reduce((sum,d)=>sum+(d.data().qty||1),0);
+            const availableToList=Math.max(0,ownedQty-alreadyListed);
+            document.getElementById('p2p-list-ua-id').value=uaId;
+            document.getElementById('p2p-list-asset-name').value=assetName;
+            document.getElementById('p2p-list-asset-type').value=assetType;
+            document.getElementById('p2p-list-max-qty').value=availableToList;
+            document.getElementById('p2p-list-qty').value='1';
+            document.getElementById('p2p-list-qty').max=availableToList;
+            document.getElementById('p2p-list-title').value='';
+            document.getElementById('p2p-list-desc').value='';
+            document.getElementById('p2p-list-price-buy').value='';
+            document.getElementById('p2p-list-price-rent').value='';
+            document.getElementById('p2p-list-delivery-fee').value='0';
+            const notice=document.getElementById('p2p-list-stock-notice');
+            if(notice) notice.textContent=`📦 You own ${ownedQty} unit(s) of this asset. Already listed: ${alreadyListed}. You can list up to ${availableToList} more.`;
+            if(availableToList<=0){ toast('You have no available stock to list. All units are already listed or sold.','ty',4000); return; }
+            openModal('m-p2p-list-asset');
+        } catch(e){ toast('Error loading asset info: '+e.message,'tr'); }
+    }
 
     async function submitP2PListing(){
         const uaId=document.getElementById('p2p-list-ua-id').value;
         const assetName=document.getElementById('p2p-list-asset-name').value;
         const assetType=document.getElementById('p2p-list-asset-type').value;
+        const maxQty=parseInt(document.getElementById('p2p-list-max-qty').value)||1;
         const title=document.getElementById('p2p-list-title').value.trim();
         const desc=document.getElementById('p2p-list-desc').value.trim();
         const priceBuy=parseFloat(document.getElementById('p2p-list-price-buy').value)||0;
         const priceRent=parseFloat(document.getElementById('p2p-list-price-rent').value)||0;
+        const qty=parseInt(document.getElementById('p2p-list-qty').value)||1;
+        const deliveryFee=parseFloat(document.getElementById('p2p-list-delivery-fee').value)||0;
         if(!title){ toast('Enter a listing title','ty'); return; }
         if(priceBuy<=0&&priceRent<=0){ toast('Set at least one price','ty'); return; }
+        if(qty<1||qty>maxQty){ toast(`Quantity must be between 1 and ${maxQty}`,'ty'); return; }
         const u=window.CU;
         try {
             const uaSnap=await db.collection('user_assets').doc(uaId).get();
@@ -19621,7 +19697,10 @@ Prize: $${fmt(prize)}`);
             if(ua.assetId){ const aSnap=await db.collection('assets').doc(ua.assetId).get(); if(aSnap.exists) images=aSnap.data().images||[]; }
             await db.collection('p2p_listings').add({
                 sellerUid:u.uid,sellerName:u.name,
-                userAssetId:uaId,assetName,assetType,title,description:desc,priceBuy,priceRent,images,status:'active',
+                userAssetId:uaId,assetName,assetType,title,description:desc,
+                priceBuy,priceRent,deliveryFee,
+                qty,stockLeft:qty, // stockLeft decrements per sale
+                images,status:'active',
                 createdAt:firebase.firestore.FieldValue.serverTimestamp()
             });
             closeModal('m-p2p-list-asset');
@@ -19638,14 +19717,36 @@ Prize: $${fmt(prize)}`);
             const fm=document.getElementById('p2p-filter-mode')?.value;
             const snap=await db.collection('p2p_listings').get();
             let docs=snap.docs.map(d=>({id:d.id,...d.data()}));
-            docs=docs.filter(l=>l.status==='active');
+            // Show all except removed
+            docs=docs.filter(l=>l.status!=='removed');
             if(ft) docs=docs.filter(l=>l.assetType===ft);
             if(fm==='buy') docs=docs.filter(l=>l.priceBuy>0);
             if(fm==='rent') docs=docs.filter(l=>l.priceRent>0);
             const uid=window.CU?.uid; docs=docs.filter(l=>l.sellerUid!==uid);
-            docs.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+            // Sort: active first, then sold/rented
+            docs.sort((a,b)=>{ const o={active:0,rented:1,sold:2}; return (o[a.status]??3)-(o[b.status]??3); });
             if(!docs.length){ el.innerHTML='<div class="es"><div class="ei">🤝</div>No member listings found</div>'; return; }
-            el.innerHTML=docs.map(l=>{ const imgHtml=(l.images&&l.images[0])?`<img src="${l.images[0]}" style="width:100%;height:100%;object-fit:cover">`:`<div class="asset-img-placeholder">${assetIcon(l.assetType)}</div>`; return `<div class="asset-card" onclick="openP2PDetail('${l.id}')"><div class="asset-img-wrap">${imgHtml}<div class="asset-type-badge" style="background:#FFD54F;color:#000">👤 MEMBER</div></div><div class="asset-body"><div class="asset-name">${l.title||l.assetName||'Listing'}</div><div class="asset-loc" style="color:var(--gold);font-size:.72rem">Member · ${assetIcon(l.assetType)} ${(l.assetType||'').toUpperCase()}</div><div style="font-size:.74rem;color:var(--t2);margin-bottom:6px">Listed by: ${l.sellerName||'Member'}</div><div class="asset-prices">${l.priceBuy>0?`<div class="asset-price-box"><div class="asset-price-lbl">Buy</div><div class="asset-price-val">$${fmt(l.priceBuy)}</div></div>`:''} ${l.priceRent>0?`<div class="asset-price-box"><div class="asset-price-lbl">Rent/Day</div><div class="asset-price-val" style="color:var(--sky)">$${fmt(l.priceRent)}</div></div>`:''}</div><div style="font-size:.68rem;color:var(--t3)">+10% Starlife fee</div></div></div>`; }).join('');
+            el.innerHTML=docs.map(l=>{
+                const imgHtml=(l.images&&l.images[0])?`<img src="${l.images[0]}" style="width:100%;height:100%;object-fit:cover">`:`<div class="asset-img-placeholder">${assetIcon(l.assetType)}</div>`;
+                const isSold=l.status==='sold'; const isRented=l.status==='rented';
+                const overlay=isSold?`<div style="position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:3"><span style="background:#FF5252;color:#fff;font-weight:800;font-size:1rem;padding:6px 18px;border-radius:20px">SOLD</span></div>`:isRented?`<div style="position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:3"><span style="background:#40C4FF;color:#000;font-weight:800;font-size:1rem;padding:6px 18px;border-radius:20px">RENTED</span></div>`:'';
+                const isClickable=l.status==='active'&&(l.stockLeft===undefined||l.stockLeft>0);
+                const stockInfo=l.qty>1?`<div style="font-size:.7rem;color:${(l.stockLeft||0)<=2?'var(--gold)':'var(--t3)'}">${l.stockLeft||0} of ${l.qty} remaining</div>`:'';
+                const deliveryInfo=l.deliveryFee>0?`<div style="font-size:.7rem;color:var(--t2)">🚚 Delivery: $${fmt(l.deliveryFee)}</div>`:`<div style="font-size:.7rem;color:var(--g)">🚚 Free delivery</div>`;
+                return `<div class="asset-card" onclick="${isClickable?`openP2PDetail('${l.id}')`:''}" style="${!isClickable?'cursor:default;opacity:.85':''}">
+                    <div class="asset-img-wrap" style="position:relative">${imgHtml}${overlay}<div class="asset-type-badge" style="background:#FFD54F;color:#000;z-index:4">👤 MEMBER</div></div>
+                    <div class="asset-body">
+                        <div class="asset-name">${l.title||l.assetName||'Listing'}</div>
+                        <div class="asset-loc" style="color:var(--gold);font-size:.72rem">By: ${l.sellerName||'Member'} · ${assetIcon(l.assetType)} ${(l.assetType||'').toUpperCase()}</div>
+                        ${stockInfo}${deliveryInfo}
+                        <div class="asset-prices">
+                            ${l.priceBuy>0?`<div class="asset-price-box"><div class="asset-price-lbl">Buy</div><div class="asset-price-val">$${fmt(l.priceBuy)}</div></div>`:''}
+                            ${l.priceRent>0?`<div class="asset-price-box"><div class="asset-price-lbl">Rent/Day</div><div class="asset-price-val" style="color:var(--sky)">$${fmt(l.priceRent)}</div></div>`:''}
+                        </div>
+                        <div style="font-size:.68rem;color:var(--t3)">+10% Starlife fee</div>
+                    </div>
+                </div>`;
+            }).join('');
         } catch(e){ const el2=document.getElementById('asset-p2p-list'); if(el2)el2.innerHTML=`<div class="es" style="color:var(--red)">Error: ${e.message}</div>`; }
     }
 
@@ -19701,7 +19802,15 @@ Prize: $${fmt(prize)}`);
             batch.set(db.collection('platformFees').doc(),{type:'p2p_asset',amt:fee,uid:u.uid,userName:u.name,txId,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
             const uaRef=db.collection('user_assets').doc();
             batch.set(uaRef,{uid:u.uid,userName:u.name,userEmail:u.email,assetId:listingId,assetName:l.assetName,assetType:l.assetType,mode,amount:totalAmount,txId,status:'active',isP2P:true,installmentPaid:0,installmentTotal:0,installmentMonths:0,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-            if(mode==='buy') batch.update(db.collection('p2p_listings').doc(listingId),{status:'sold'});
+            if(mode==='buy'){
+                // Decrement stockLeft; auto-mark sold if 0 left
+                const listSnap2=await db.collection('p2p_listings').doc(listingId).get();
+                const currentStock=(listSnap2.data()?.stockLeft)||1;
+                const newStock=Math.max(0,currentStock-1);
+                batch.update(db.collection('p2p_listings').doc(listingId),{stockLeft:newStock,status:newStock<=0?'sold':'active'});
+            } else if(mode==='rent'){
+                batch.update(db.collection('p2p_listings').doc(listingId),{status:'rented'});
+            }
             await batch.commit();
             // Contract with BOTH names shown, masked emails
             await db.collection('contracts').add({

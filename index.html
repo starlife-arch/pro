@@ -5512,7 +5512,7 @@
                     <option value="rent">For Rent</option>
                 </select>
             </div>
-            <div id="p2p-market-list" class="asset-grid"><div class="es">Loading listings…</div></div>
+            <div id="asset-p2p-list" class="asset-grid"><div class="es">Loading listings…</div></div>
         </div>
 
         <div class="bnav">
@@ -18533,9 +18533,9 @@ Prize: $${fmt(prize)}`);
     </script>
 
     <!-- REPORT CENTER MODAL -->
-    <div class="modal" id="m-report-center">
-        <div class="modal-content" style="max-width:500px">
-            <div class="modal-close" onclick="closeModal('m-report-center')">?</div>
+    <div class="mover" id="m-report-center">
+        <div class="modal" style="max-width:500px">
+            <div class="modal-close" onclick="closeModal('m-report-center')">✕</div>
             <div class="modal-title">My Report Center</div>
             <div style="font-size:.85rem;color:var(--t2);margin-bottom:16px;">Track the status of users you have
                 reported.</div>
@@ -18546,12 +18546,11 @@ Prize: $${fmt(prize)}`);
         </div>
     </div>
     <!-- ANNOUNCEMENTS MODAL -->
-    <div class="modal" id="m-announcements">
-        <div class="modal-content" style="max-width:500px">
-            <div class="modal-close" onclick="closeModal('m-announcements')">?</div>
+    <div class="mover" id="m-announcements">
+        <div class="modal" style="max-width:500px">
+            <div class="modal-close" onclick="closeModal('m-announcements')">✕</div>
             <div class="modal-title">Announcements</div>
             <div style="font-size:.85rem;color:var(--t2);margin-bottom:16px;">System updates, winners, and alerts.</div>
-
             <div id="ann-list" style="max-height:60vh;overflow-y:auto;padding-right:4px">
                 <div class="es">Loading announcements...</div>
             </div>
@@ -18896,8 +18895,10 @@ Prize: $${fmt(prize)}`);
         const listEl=document.getElementById(listIds[mode]||'am-list'); if(!listEl) return;
         listEl.innerHTML='<div class="es">Loading…</div>';
         try {
-            const snap = await db.collection('assets').where('status','==','available').get();
+            // No compound query — filter in JS to avoid index errors
+            const snap = await db.collection('assets').get();
             let docs = snap.docs.map(d=>({id:d.id,...d.data()}));
+            docs = docs.filter(a=>a.status==='available');
             const ft=document.getElementById('am-filter-type')?.value;
             const fm=document.getElementById('am-filter-mode')?.value||mode;
             if(ft) docs=docs.filter(a=>a.type===ft);
@@ -19431,19 +19432,23 @@ Prize: $${fmt(prize)}`);
     }
 
     async function loadP2PMarketplace(){
-        const el=document.getElementById('p2p-market-list'); if(!el) return;
+        const el=document.getElementById('asset-p2p-list'); if(!el) return;
         el.innerHTML='<div class="es">Loading…</div>';
         try {
             const ft=document.getElementById('p2p-filter-type')?.value;
             const fm=document.getElementById('p2p-filter-mode')?.value;
-            const snap=await db.collection('p2p_listings').where('status','==','active').get();
+            // Simple query — no composite index needed
+            const snap=await db.collection('p2p_listings').get();
             let docs=snap.docs.map(d=>({id:d.id,...d.data()}));
+            // Filter in JS to avoid needing Firestore indexes
+            docs=docs.filter(l=>l.status==='active');
             if(ft) docs=docs.filter(l=>l.assetType===ft);
             if(fm==='buy') docs=docs.filter(l=>l.priceBuy>0);
             if(fm==='rent') docs=docs.filter(l=>l.priceRent>0);
             // Exclude own listings
             const uid=window.CU?.uid;
             docs=docs.filter(l=>l.sellerUid!==uid);
+            docs.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
             if(!docs.length){ el.innerHTML='<div class="es"><div class="ei">🤝</div>No member listings found</div>'; return; }
             el.innerHTML=docs.map(l=>{
                 const imgHtml=(l.images&&l.images[0])
@@ -19455,16 +19460,19 @@ Prize: $${fmt(prize)}`);
                     </div>
                     <div class="asset-body">
                         <div class="asset-name">${l.title||l.assetName||'Listing'}</div>
-                        <div class="asset-loc" style="color:var(--gold);font-size:.72rem">Member listing · ${assetIcon(l.assetType)} ${(l.assetType||'').toUpperCase()}</div>
+                        <div class="asset-loc" style="color:var(--gold);font-size:.72rem">Member · ${assetIcon(l.assetType)} ${(l.assetType||'').toUpperCase()}</div>
                         <div class="asset-prices">
                             ${l.priceBuy>0?`<div class="asset-price-box"><div class="asset-price-lbl">Buy</div><div class="asset-price-val">$${fmt(l.priceBuy)}</div></div>`:''}
                             ${l.priceRent>0?`<div class="asset-price-box"><div class="asset-price-lbl">Rent/Day</div><div class="asset-price-val" style="color:var(--sky)">$${fmt(l.priceRent)}</div></div>`:''}
                         </div>
-                        <div style="font-size:.68rem;color:var(--t3)">+10% Starlife fee applies</div>
+                        <div style="font-size:.68rem;color:var(--t3)">+10% Starlife fee</div>
                     </div>
                 </div>`;
             }).join('');
-        } catch(e){ el.innerHTML=`<div class="es" style="color:var(--red)">${e.message}</div>`; }
+        } catch(e){
+            const el2=document.getElementById('asset-p2p-list');
+            if(el2) el2.innerHTML=`<div class="es" style="color:var(--red)">Error: ${e.message}</div>`;
+        }
     }
 
     async function openP2PDetail(listingId){

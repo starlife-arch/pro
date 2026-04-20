@@ -6573,12 +6573,22 @@
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
                     <div class="fg"><label class="fl">Installment Duration (months)</label><input class="fi" id="aasset-install-months" type="number" min="1" placeholder="e.g. 12"></div>
+                    <div class="fg"><label class="fl">Stock / Quantity Available</label><input class="fi" id="aasset-stock" type="number" min="1" placeholder="e.g. 5 (blank = unlimited)"></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
                     <div class="fg"><label class="fl">Status</label>
                         <select class="fi" id="aasset-status">
                             <option value="available">Available</option>
                             <option value="rented">Rented</option>
                             <option value="sold">Sold</option>
                             <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                    <div class="fg"><label class="fl">Visit/Viewing Option</label>
+                        <select class="fi" id="aasset-visit">
+                            <option value="none">No visit needed</option>
+                            <option value="local">Local visit ($15–$50 transport)</option>
+                            <option value="international">International visit ($1500–$3000)</option>
                         </select>
                     </div>
                 </div>
@@ -18557,6 +18567,86 @@ Prize: $${fmt(prize)}`);
         </div>
     </div>
 
+    <!-- ═══ VISIT / VIEWING SCHEDULE MODAL ═══ -->
+    <div class="mover" id="m-visit-schedule">
+        <div class="modal" style="max-width:440px">
+            <div class="modal-title">📅 Schedule a Visit / Viewing</div>
+            <div id="m-visit-asset-info" style="background:var(--s2);border-radius:10px;padding:12px;margin-bottom:14px;font-size:.85rem"></div>
+            <div class="fg"><label class="fl">Preferred Visit Date</label><input class="fi" id="m-visit-date" type="date"></div>
+            <div class="fg"><label class="fl">Preferred Time</label><input class="fi" id="m-visit-time" type="time" value="10:00"></div>
+            <div id="m-visit-transport-section">
+                <div style="font-weight:700;font-size:.85rem;margin-bottom:6px;color:var(--sky)">🚌 Transport Fee (Optional)</div>
+                <div style="font-size:.76rem;color:var(--t2);margin-bottom:10px" id="m-visit-transport-info"></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+                    <button class="btn btn-gh btn-sm" id="m-visit-own-btn" onclick="selectVisitTransport('own')">🚶 Own Transport (Free)</button>
+                    <button class="btn btn-sky btn-sm" id="m-visit-pay-btn" onclick="selectVisitTransport('pay')">💳 Pay Transport Fee</button>
+                </div>
+                <div id="m-visit-fee-display" style="display:none;background:var(--s2);border-radius:8px;padding:10px;font-size:.83rem;margin-bottom:10px">
+                    <div style="display:flex;justify-content:space-between"><span style="color:var(--t2)">Transport Fee</span><span id="m-visit-fee-amt" style="color:var(--gold);font-weight:700"></span></div>
+                    <div id="m-visit-fee-range" style="font-size:.7rem;color:var(--t3);margin-top:3px"></div>
+                </div>
+            </div>
+            <input type="hidden" id="m-visit-asset-id">
+            <input type="hidden" id="m-visit-transport-mode" value="own">
+            <div class="modal-acts">
+                <button class="btn btn-p" onclick="confirmVisitSchedule()">Confirm Visit →</button>
+                <button class="btn btn-gh" onclick="closeModal('m-visit-schedule')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ CANCEL CONTRACT MODAL ═══ -->
+    <div class="mover" id="m-cancel-contract">
+        <div class="modal" style="max-width:460px">
+            <div class="modal-title">❌ Cancel Contract</div>
+            <div style="background:rgba(255,82,82,.08);border:1px solid rgba(255,82,82,.2);border-radius:8px;padding:12px;margin-bottom:14px;font-size:.8rem;color:var(--red);line-height:1.5">
+                ⚠️ Cancellation is only available within <strong>24 hours</strong> of the transaction. Buyer receives <strong>60%</strong> refund. Seller retains <strong>40%</strong>. This action cannot be undone.
+            </div>
+            <div id="m-cancel-contract-info" style="background:var(--s2);border-radius:10px;padding:12px;margin-bottom:14px;font-size:.84rem"></div>
+            <div class="fg"><label class="fl">Reason for Cancellation</label>
+                <select class="fi" id="m-cancel-reason">
+                    <option value="">— Select a reason —</option>
+                    <option value="changed_mind">Changed mind</option>
+                    <option value="asset_misrepresented">Asset misrepresented in listing</option>
+                    <option value="seller_unresponsive">Seller unresponsive</option>
+                    <option value="payment_error">Payment made in error</option>
+                    <option value="asset_unavailable">Asset no longer available</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="fg"><label class="fl">Supporting Details</label><textarea class="fi" id="m-cancel-details" rows="3" placeholder="Describe the issue in detail…"></textarea></div>
+            <input type="hidden" id="m-cancel-contract-doc-id">
+            <input type="hidden" id="m-cancel-ua-id">
+            <div class="modal-acts">
+                <button class="btn btn-d" onclick="confirmCancelContract()">Confirm Cancellation</button>
+                <button class="btn btn-gh" onclick="closeModal('m-cancel-contract')">Keep Contract</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ SELLER SIGN MODAL (P2P) ═══ -->
+    <div class="mover" id="m-seller-sign">
+        <div class="modal" style="max-width:500px">
+            <div class="modal-title">✍️ Sign as Seller</div>
+            <div style="font-size:.82rem;color:var(--t2);margin-bottom:12px">A buyer has purchased your listing. Sign below to make the contract legally valid.</div>
+            <div id="m-seller-sign-contract-body" class="contract-page" style="max-height:35vh"></div>
+            <div style="margin-top:12px">
+                <div style="font-size:.82rem;font-weight:700;margin-bottom:6px;color:var(--gold)">Your Signature (Seller)</div>
+                <div class="sig-pad-wrap">
+                    <canvas id="seller-sig-canvas" width="480" height="90" style="display:block;width:100%;touch-action:none"></canvas>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:8px">
+                    <button class="btn btn-gh btn-sm" onclick="clearSellerSig()">Clear</button>
+                    <button class="btn btn-p btn-sm" onclick="submitSellerSignature()">✅ Sign & Confirm</button>
+                </div>
+            </div>
+            <input type="hidden" id="m-seller-sign-contract-id">
+            <div class="modal-acts" style="margin-top:10px">
+                <button class="btn btn-gh" onclick="closeModal('m-seller-sign')">Later</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ═══ ASSET DETAIL MODAL ═══ -->
     <div class="mover" id="m-asset-detail">
         <div class="modal" style="max-width:540px;padding:0;overflow:hidden;border-radius:20px">
@@ -18592,7 +18682,8 @@ Prize: $${fmt(prize)}`);
                 <div id="m-ad-actions" style="display:flex;gap:8px;flex-wrap:wrap">
                     <button class="btn btn-p" id="m-ad-btn-buy" style="flex:1;display:none" onclick="doAssetAction('buy')">💰 Buy Now</button>
                     <button class="btn btn-sky" id="m-ad-btn-rent" style="flex:1;display:none" onclick="doAssetAction('rent')">🔑 Rent</button>
-                    <button class="btn btn-gold" id="m-ad-btn-install" style="flex:1;display:none" onclick="doAssetAction('installment')">📅 Pay Installment</button>
+                    <button class="btn btn-gold" id="m-ad-btn-install" style="flex:1;display:none" onclick="doAssetAction('installment')">📅 Installment</button>
+                    <button class="btn btn-p" id="m-ad-btn-visit" style="flex:1;display:none" onclick="openVisitSchedule()">📅 Schedule Visit</button>
                     <button class="btn btn-gh" onclick="closeModal('m-asset-detail')">Close</button>
                 </div>
             </div>
@@ -18759,126 +18850,71 @@ Prize: $${fmt(prize)}`);
     </div>
 
     <!-- ═══ ASSETS JS EXTENSION ═══ -->
+
+    <!-- ═══ ASSETS JS EXTENSION ═══ -->
     <script>
     // ════════════════════════════════════════════════════════
-    // STARLIFE ASSETS — SAFE EXTENSION v2
-    // Collections: assets, user_assets, receipts, contracts, shipping, p2p_listings
+    // STARLIFE ASSETS — SAFE EXTENSION v3
+    // New: shipping in receipt+contract, both parties sign, buyer identity shown (masked email),
+    //      stock/quantity, visit scheduling, auto-expire rentals, cancel contract (24h, 60/40),
+    //      delivery status tracking, seller signature for P2P
     // ════════════════════════════════════════════════════════
 
     const ASSET_TYPE_ICONS = { house:'🏠', car:'🚗', land:'🌍', electronics:'📱', equipment:'⚙️', other:'📦' };
     const ASSET_TYPE_COLORS = { house:'#00E676', car:'#40C4FF', land:'#FFD54F', electronics:'#CE93D8', equipment:'#FF7043', other:'#8FAE95' };
-    // Shipping: $100–$200 based on size
-    const SHIP_RATES = { small:{ base:100, perKm:0 }, medium:{ base:140, perKm:0 }, large:{ base:200, perKm:0 } };
-    const P2P_FEE_RATE = 0.10; // 10% Starlife fee on P2P
+    const SHIP_RATES = { small:100, medium:140, large:200 };
+    const VISIT_RATES = { local:{ min:15, max:50 }, international:{ min:1500, max:3000 } };
+    const P2P_FEE_RATE = 0.10;
+    const CANCEL_BUYER_PCT = 0.60;
+    const CANCEL_WINDOW_HOURS = 24;
 
     function assetIcon(t){ return ASSET_TYPE_ICONS[t]||'📦'; }
     function assetColor(t){ return ASSET_TYPE_COLORS[t]||'var(--t2)'; }
     function getAssetSize(t){ if(['house','land'].includes(t)) return 'large'; if(['car','equipment'].includes(t)) return 'medium'; return 'small'; }
-    function calcShippingFee(type){ return SHIP_RATES[getAssetSize(type)].base; }
+    function calcShippingFee(type){ return SHIP_RATES[getAssetSize(type)]||100; }
     function genAssetTxId(){ return 'AST-'+Math.random().toString(36).substr(2,8).toUpperCase(); }
+    function maskEmail(email){ if(!email||!email.includes('@')) return '—'; const[l,d]=email.split('@'); return l.substring(0,2)+'***@'+d; }
+    function isWithin24h(ts){ if(!ts) return false; const ms=(ts.seconds?ts.seconds*1000:new Date(ts).getTime()); return Date.now()-ms < CANCEL_WINDOW_HOURS*3600*1000; }
+    function deliveryStatusBadge(status){
+        const map={'pending_delivery':'<span class="badge bgold">📦 Pending Delivery</span>','shipping':'<span class="badge bsky">🚚 Shipping</span>','delivered':'<span class="badge bg">✅ Delivered</span>','active':'<span class="badge bg">✅ Active</span>','installment_active':'<span class="badge bgold">📅 Installment</span>','expired':'<span class="badge br">⏰ Expired</span>','cancelled':'<span class="badge br">❌ Cancelled</span>'};
+        return map[status]||`<span class="badge bmut">${status||'active'}</span>`;
+    }
 
-    // ═══ IMAGE SLIDER LOGIC ═══
-    let _slideIdx = 0, _slideImages = [];
-    let _p2pSlideIdx = 0, _p2pSlideImages = [];
-
-    function buildSlider(containerEl, dotsEl, prevBtn, nextBtn, placeholderEl, images){
-        containerEl.innerHTML = '';
-        if(!images||!images.length){
-            placeholderEl.style.display='flex';
-            if(prevBtn) prevBtn.style.display='none';
-            if(nextBtn) nextBtn.style.display='none';
-            dotsEl.innerHTML='';
-            return;
-        }
+    // ═══ IMAGE SLIDER ═══
+    let _slideIdx=0,_slideImages=[],_p2pSlideIdx=0,_p2pSlideImages=[];
+    function buildSlider(containerEl,dotsEl,prevBtn,nextBtn,placeholderEl,images){
+        containerEl.innerHTML='';
+        if(!images||!images.length){ placeholderEl.style.display='flex'; if(prevBtn)prevBtn.style.display='none'; if(nextBtn)nextBtn.style.display='none'; dotsEl.innerHTML=''; return; }
         placeholderEl.style.display='none';
-        images.forEach(src=>{
-            const slide = document.createElement('div');
-            slide.style.cssText='min-width:100%;height:100%;flex-shrink:0;overflow:hidden';
-            const img = document.createElement('img');
-            img.src=src; img.style.cssText='width:100%;height:100%;object-fit:cover';
-            slide.appendChild(img);
-            containerEl.appendChild(slide);
-        });
-        if(images.length>1){
-            if(prevBtn) prevBtn.style.display='flex';
-            if(nextBtn) nextBtn.style.display='flex';
-        }
-        dotsEl.innerHTML = images.map((_,i)=>`<div style="width:7px;height:7px;border-radius:50%;background:${i===0?'#fff':'rgba(255,255,255,.4)'};cursor:pointer" onclick="goSlide(${i})"></div>`).join('');
-        // Touch swipe
+        images.forEach(src=>{ const s=document.createElement('div'); s.style.cssText='min-width:100%;height:100%;flex-shrink:0;overflow:hidden'; const i=document.createElement('img'); i.src=src; i.style.cssText='width:100%;height:100%;object-fit:cover'; s.appendChild(i); containerEl.appendChild(s); });
+        if(images.length>1){ if(prevBtn)prevBtn.style.display='flex'; if(nextBtn)nextBtn.style.display='flex'; }
+        dotsEl.innerHTML=images.map((_,i)=>`<div style="width:7px;height:7px;border-radius:50%;background:${i===0?'#fff':'rgba(255,255,255,.4)'};cursor:pointer" onclick="goSlide(${i})"></div>`).join('');
         let tx=0;
         containerEl.parentElement.addEventListener('touchstart',e=>{ tx=e.touches[0].clientX; },{passive:true});
         containerEl.parentElement.addEventListener('touchend',e=>{ const dx=e.changedTouches[0].clientX-tx; if(Math.abs(dx)>40) slideAsset(dx<0?1:-1); },{passive:true});
     }
-
-    function goSlide(i){
-        _slideIdx=i; _updateSlider();
-    }
-    function slideAsset(dir){
-        _slideIdx = Math.max(0, Math.min(_slideImages.length-1, _slideIdx+dir));
-        _updateSlider();
-    }
-    function _updateSlider(){
-        const cont = document.getElementById('m-ad-slides');
-        const dots = document.getElementById('m-ad-dots');
-        if(cont) cont.style.transform=`translateX(-${_slideIdx*100}%)`;
-        if(dots) Array.from(dots.children).forEach((d,i)=>d.style.background=i===_slideIdx?'#fff':'rgba(255,255,255,.4)');
-    }
-
-    function buildP2PSlider(images){
-        const cont=document.getElementById('m-p2p-slides');
-        const dots=document.getElementById('m-p2p-dots');
-        const prev=document.getElementById('m-p2p-prev');
-        const next=document.getElementById('m-p2p-next');
-        const ph=document.getElementById('m-p2p-img-placeholder');
-        _p2pSlideImages=images||[];
-        _p2pSlideIdx=0;
-        buildSlider(cont,dots,prev,next,ph,images);
-        // Touch
-        if(cont&&images&&images.length>1){
-            let tx=0;
-            cont.parentElement.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;},{passive:true});
-            cont.parentElement.addEventListener('touchend',e=>{ const dx=e.changedTouches[0].clientX-tx; if(Math.abs(dx)>40) slideP2P(dx<0?1:-1); },{passive:true});
-        }
-    }
-    function slideP2P(dir){
-        _p2pSlideIdx = Math.max(0,Math.min(_p2pSlideImages.length-1,_p2pSlideIdx+dir));
-        const cont=document.getElementById('m-p2p-slides');
-        const dots=document.getElementById('m-p2p-dots');
-        if(cont) cont.style.transform=`translateX(-${_p2pSlideIdx*100}%)`;
-        if(dots) Array.from(dots.children).forEach((d,i)=>d.style.background=i===_p2pSlideIdx?'#fff':'rgba(255,255,255,.4)');
-    }
+    function goSlide(i){ _slideIdx=i; _updateSlider(); }
+    function slideAsset(dir){ _slideIdx=Math.max(0,Math.min(_slideImages.length-1,_slideIdx+dir)); _updateSlider(); }
+    function _updateSlider(){ const c=document.getElementById('m-ad-slides'),d=document.getElementById('m-ad-dots'); if(c)c.style.transform=`translateX(-${_slideIdx*100}%)`; if(d)Array.from(d.children).forEach((x,i)=>x.style.background=i===_slideIdx?'#fff':'rgba(255,255,255,.4)'); }
+    function buildP2PSlider(images){ const c=document.getElementById('m-p2p-slides'),d=document.getElementById('m-p2p-dots'),p=document.getElementById('m-p2p-prev'),n=document.getElementById('m-p2p-next'),ph=document.getElementById('m-p2p-img-placeholder'); _p2pSlideImages=images||[]; _p2pSlideIdx=0; buildSlider(c,d,p,n,ph,images); if(c&&images&&images.length>1){ let tx=0; c.parentElement.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;},{passive:true}); c.parentElement.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tx; if(Math.abs(dx)>40)slideP2P(dx<0?1:-1);},{passive:true}); } }
+    function slideP2P(dir){ _p2pSlideIdx=Math.max(0,Math.min(_p2pSlideImages.length-1,_p2pSlideIdx+dir)); const c=document.getElementById('m-p2p-slides'),d=document.getElementById('m-p2p-dots'); if(c)c.style.transform=`translateX(-${_p2pSlideIdx*100}%)`; if(d)Array.from(d.children).forEach((x,i)=>x.style.background=i===_p2pSlideIdx?'#fff':'rgba(255,255,255,.4)'); }
 
     // ═══ TAB HELPERS ═══
-    function assetMarketTab(el,id){
-        document.querySelectorAll('#t-assets-market .itab').forEach(t=>t.classList.remove('on'));
-        el.classList.add('on');
-        ['am-browse','am-buy','am-rent','am-installment'].forEach(x=>{ const e2=document.getElementById(x); if(e2) e2.style.display='none'; });
-        const s=document.getElementById(id); if(s) s.style.display='block';
-    }
-    function myAssetsTab(el,id){
-        document.querySelectorAll('#t-my-assets .itab').forEach(t=>t.classList.remove('on'));
-        el.classList.add('on');
-        ['ma-owned','ma-renting','ma-contracts','ma-receipts','ma-listings'].forEach(x=>{ const e2=document.getElementById(x); if(e2) e2.style.display='none'; });
-        const s=document.getElementById(id); if(s) s.style.display='block';
-        if(id==='ma-owned') loadMyOwnedAssets();
-        if(id==='ma-renting') loadMyRentingAssets();
-        if(id==='ma-contracts') loadMyContracts();
-        if(id==='ma-receipts') loadMyReceipts();
-        if(id==='ma-listings') loadMyP2PListings();
-    }
+    function assetMarketTab(el,id){ document.querySelectorAll('#t-assets-market .itab').forEach(t=>t.classList.remove('on')); el.classList.add('on'); ['am-browse','am-buy','am-rent','am-installment'].forEach(x=>{ const e2=document.getElementById(x); if(e2)e2.style.display='none'; }); const s=document.getElementById(id); if(s)s.style.display='block'; }
+    function myAssetsTab(el,id){ document.querySelectorAll('#t-my-assets .itab').forEach(t=>t.classList.remove('on')); el.classList.add('on'); ['ma-owned','ma-renting','ma-contracts','ma-receipts','ma-listings'].forEach(x=>{ const e2=document.getElementById(x); if(e2)e2.style.display='none'; }); const s=document.getElementById(id); if(s)s.style.display='block'; if(id==='ma-owned')loadMyOwnedAssets(); if(id==='ma-renting')loadMyRentingAssets(); if(id==='ma-contracts')loadMyContracts(); if(id==='ma-receipts')loadMyReceipts(); if(id==='ma-listings')loadMyP2PListings(); }
     function loadMyAssets(){ loadMyOwnedAssets(); }
+
+    // ═══ STOCK DISPLAY HELPER ═══
+    function stockBadge(a){ if(!a.stock&&a.stock!==0) return ''; if(a.stock<=0) return '<span class="badge br">Out of Stock</span>'; if(a.stock<=3) return `<span class="badge bgold">Only ${a.stock} left</span>`; return `<span class="badge bsky">${a.stock} available</span>`; }
 
     // ═══ RENDER ASSET CARD ═══
     function renderAssetCard(asset,id){
-        const imgHtml=(asset.images&&asset.images[0])
-            ?`<img src="${asset.images[0]}" style="width:100%;height:100%;object-fit:cover">`
-            :`<div class="asset-img-placeholder">${assetIcon(asset.type)}</div>`;
+        const imgHtml=(asset.images&&asset.images[0])?`<img src="${asset.images[0]}" style="width:100%;height:100%;object-fit:cover">`:`<div class="asset-img-placeholder">${assetIcon(asset.type)}</div>`;
+        const stock=stockBadge(asset);
         return `<div class="asset-card" onclick="openAssetDetail('${id}')">
-            <div class="asset-img-wrap">${imgHtml}
-                <div class="asset-type-badge" style="background:${assetColor(asset.type)};color:#000">${assetIcon(asset.type)} ${(asset.type||'').toUpperCase()}</div>
-            </div>
+            <div class="asset-img-wrap">${imgHtml}<div class="asset-type-badge" style="background:${assetColor(asset.type)};color:#000">${assetIcon(asset.type)} ${(asset.type||'').toUpperCase()}</div></div>
             <div class="asset-body">
-                <div class="asset-name">${asset.name||'Asset'}</div>
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px"><div class="asset-name">${asset.name||'Asset'}</div>${stock}</div>
                 <div class="asset-loc">📍 ${asset.location||'—'}</div>
                 <div class="asset-prices">
                     ${asset.priceBy>0?`<div class="asset-price-box"><div class="asset-price-lbl">Buy</div><div class="asset-price-val">$${fmt(asset.priceBy)}</div></div>`:''}
@@ -18895,10 +18931,9 @@ Prize: $${fmt(prize)}`);
         const listEl=document.getElementById(listIds[mode]||'am-list'); if(!listEl) return;
         listEl.innerHTML='<div class="es">Loading…</div>';
         try {
-            // No compound query — filter in JS to avoid index errors
-            const snap = await db.collection('assets').get();
-            let docs = snap.docs.map(d=>({id:d.id,...d.data()}));
-            docs = docs.filter(a=>a.status==='available');
+            const snap=await db.collection('assets').get();
+            let docs=snap.docs.map(d=>({id:d.id,...d.data()}));
+            docs=docs.filter(a=>a.status==='available'&&(a.stock===undefined||a.stock===null||a.stock>0));
             const ft=document.getElementById('am-filter-type')?.value;
             const fm=document.getElementById('am-filter-mode')?.value||mode;
             if(ft) docs=docs.filter(a=>a.type===ft);
@@ -18917,13 +18952,8 @@ Prize: $${fmt(prize)}`);
             const snap=await db.collection('assets').doc(id).get();
             if(!snap.exists){ toast('Asset not found','tr'); return; }
             const a=snap.data(); window._currentAsset=a;
-            // Slider
             _slideImages=a.images||[]; _slideIdx=0;
-            const cont=document.getElementById('m-ad-slides');
-            const dots=document.getElementById('m-ad-dots');
-            const prev=document.getElementById('m-ad-prev-btn');
-            const next=document.getElementById('m-ad-next-btn');
-            const ph=document.getElementById('m-ad-img-placeholder');
+            const cont=document.getElementById('m-ad-slides'),dots=document.getElementById('m-ad-dots'),prev=document.getElementById('m-ad-prev-btn'),next=document.getElementById('m-ad-next-btn'),ph=document.getElementById('m-ad-img-placeholder');
             ph.textContent=assetIcon(a.type);
             buildSlider(cont,dots,prev,next,ph,_slideImages);
             document.getElementById('m-ad-type-badge').textContent=assetIcon(a.type)+' '+(a.type||'').toUpperCase();
@@ -18933,19 +18963,90 @@ Prize: $${fmt(prize)}`);
             document.getElementById('m-ad-desc').textContent=a.description||'';
             document.getElementById('m-ad-id').value=id;
             const sb=document.getElementById('m-ad-status-badge');
-            sb.textContent=a.status||'available';
-            sb.className='badge '+(a.status==='available'?'bg':a.status==='rented'?'bsky':'br');
+            // Stock display
+            const stockLeft=a.stock!==undefined&&a.stock!==null?a.stock:null;
+            let statusTxt=a.status||'available';
+            if(stockLeft!==null) statusTxt+=` · ${stockLeft} left`;
+            sb.textContent=statusTxt; sb.className='badge '+(a.status==='available'?'bg':a.status==='rented'?'bsky':'br');
             let ph2='';
             if(a.priceBy>0) ph2+=`<div class="asset-price-box"><div class="asset-price-lbl">Buy Price</div><div class="asset-price-val">$${fmt(a.priceBy)}</div></div>`;
             if(a.priceRent>0) ph2+=`<div class="asset-price-box"><div class="asset-price-lbl">Rent/Day</div><div class="asset-price-val" style="color:var(--sky)">$${fmt(a.priceRent)}</div></div>`;
             if(a.priceInstall>0) ph2+=`<div class="asset-price-box"><div class="asset-price-lbl">Installment/mo</div><div class="asset-price-val" style="color:var(--gold)">$${fmt(a.priceInstall)}</div></div>`;
             document.getElementById('m-ad-prices').innerHTML=ph2;
-            const shipSec=document.getElementById('m-ad-shipping-section');
-            shipSec.style.display=(a.physical===true||a.physical==='true')?'block':'none';
-            document.getElementById('m-ad-btn-buy').style.display=(a.status==='available'&&a.priceBy>0)?'flex':'none';
-            document.getElementById('m-ad-btn-rent').style.display=(a.status==='available'&&a.priceRent>0)?'flex':'none';
+            const isShippable=a.physical===true||a.physical==='true';
+            const isAvail=a.status==='available'&&(a.stock===undefined||a.stock===null||a.stock>0);
+            document.getElementById('m-ad-shipping-section').style.display=isShippable?'block':'none';
+            document.getElementById('m-ad-btn-buy').style.display=(isAvail&&a.priceBy>0)?'flex':'none';
+            document.getElementById('m-ad-btn-rent').style.display=(isAvail&&a.priceRent>0)?'flex':'none';
             document.getElementById('m-ad-btn-install').style.display=(a.priceInstall>0)?'flex':'none';
+            // Visit scheduling for non-shippable assets
+            const visitBtn=document.getElementById('m-ad-btn-visit');
+            if(visitBtn) visitBtn.style.display=(!isShippable&&a.visitOption&&a.visitOption!=='none')?'flex':'none';
             openModal('m-asset-detail');
+        } catch(e){ toast('Error: '+e.message,'tr'); }
+    }
+
+    // ═══ VISIT SCHEDULING ═══
+    function openVisitSchedule(){
+        const a=window._currentAsset; if(!a) return;
+        document.getElementById('m-visit-asset-id').value=window._currentAssetId;
+        document.getElementById('m-visit-asset-info').innerHTML=`<strong>${assetIcon(a.type)} ${a.name}</strong><br><span style="color:var(--t3)">📍 ${a.location||'—'}</span>`;
+        const visitType=a.visitOption||'local';
+        const rates=VISIT_RATES[visitType==='international'?'international':'local'];
+        document.getElementById('m-visit-transport-info').textContent=`${visitType==='international'?'🌍 International':'🏠 Local'} visit · Transport fee range: $${fmt(rates.min)} – $${fmt(rates.max)} (optional, pay your own way too)`;
+        window._visitTransportRates=rates;
+        document.getElementById('m-visit-transport-mode').value='own';
+        document.getElementById('m-visit-fee-display').style.display='none';
+        // Set min date to tomorrow
+        const tomorrow=new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+        document.getElementById('m-visit-date').min=tomorrow.toISOString().split('T')[0];
+        document.getElementById('m-visit-date').value='';
+        closeModal('m-asset-detail');
+        openModal('m-visit-schedule');
+    }
+    function selectVisitTransport(mode){
+        document.getElementById('m-visit-transport-mode').value=mode;
+        const feeEl=document.getElementById('m-visit-fee-display');
+        if(mode==='pay'){
+            const rates=window._visitTransportRates||{min:15,max:50};
+            const fee=parseFloat(((rates.min+rates.max)/2).toFixed(2));
+            window._visitTransportFee=fee;
+            document.getElementById('m-visit-fee-amt').textContent='$'+fmt(fee);
+            document.getElementById('m-visit-fee-range').textContent=`Range: $${fmt(rates.min)} – $${fmt(rates.max)} · Midpoint used`;
+            feeEl.style.display='block';
+        } else { feeEl.style.display='none'; window._visitTransportFee=0; }
+    }
+    async function confirmVisitSchedule(){
+        const date=document.getElementById('m-visit-date').value;
+        const time=document.getElementById('m-visit-time').value;
+        const assetId=document.getElementById('m-visit-asset-id').value;
+        const transportMode=document.getElementById('m-visit-transport-mode').value;
+        const transportFee=window._visitTransportFee||0;
+        if(!date){ toast('Please select a visit date','ty'); return; }
+        const u=window.CU; if(!u) return;
+        const a=window._currentAsset;
+        try {
+            if(transportMode==='pay'&&transportFee>0){
+                if(getAvailableBalance(u)<transportFee){ toast(`Insufficient balance. Available: $${fmt(getAvailableBalance(u))}`,'tr'); return; }
+                await db.collection('users').doc(u.uid).update({balance:firebase.firestore.FieldValue.increment(-transportFee)});
+                window.CU.balance=(u.balance||0)-transportFee;
+                if(typeof updateUI==='function') updateUI();
+            }
+            const txId=genAssetTxId();
+            await db.collection('asset_visits').add({
+                uid:u.uid,userName:u.name,userEmail:u.email,
+                assetId,assetName:a?.name||'—',assetType:a?.type||'—',
+                visitDate:date,visitTime:time,
+                transportMode,transportFee,txId,status:'scheduled',
+                createdAt:firebase.firestore.FieldValue.serverTimestamp()
+            });
+            if(transportMode==='pay'&&transportFee>0){
+                await db.collection('receipts').add({uid:u.uid,userName:u.name,userEmail:u.email,assetId,assetName:a?.name||'—',assetType:a?.type||'—',amountPaid:transportFee,paymentType:'visit_transport',shipFee:0,destination:a?.location||'—',sender:u.name,receiver:'Starlife Assets',txId,dateTime:new Date().toISOString(),createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+            }
+            await db.collection('adminNotifs').add({type:'visit',msg:`Visit scheduled: ${a?.name} by ${u.name} on ${date}`,uid:u.uid,read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+            tg(`📅 <b>Visit Scheduled</b>\nUser: ${u.name}\nAsset: ${a?.name}\nDate: ${date} ${time}${transportFee>0?'\nTransport Fee: $'+fmt(transportFee):''}`);
+            closeModal('m-visit-schedule');
+            toast(`✅ Visit scheduled for ${date} at ${time}!${transportFee>0?' Transport: $'+fmt(transportFee)+' paid.':''}`);
         } catch(e){ toast('Error: '+e.message,'tr'); }
     }
 
@@ -18957,49 +19058,31 @@ Prize: $${fmt(prize)}`);
         const fee=calcShippingFee(a.type||'other');
         window._currentShipFee=fee; window._currentShipDest=dest;
         document.getElementById('m-ad-ship-preview').style.display='block';
-        document.getElementById('m-ad-ship-preview').innerHTML=
-            `<div style="display:flex;justify-content:space-between"><span style="color:var(--t2)">Shipping fee (${getAssetSize(a.type)})</span><span style="color:var(--gold);font-weight:700">$${fmt(fee)}</span></div>
-             <div style="font-size:.7rem;color:var(--t3);margin-top:3px">Flat rate based on asset size · Delivery to: ${dest}</div>`;
+        document.getElementById('m-ad-ship-preview').innerHTML=`<div style="display:flex;justify-content:space-between"><span style="color:var(--t2)">Shipping fee (${getAssetSize(a.type)})</span><span style="color:var(--gold);font-weight:700">$${fmt(fee)}</span></div><div style="font-size:.7rem;color:var(--t3);margin-top:3px">Flat rate · Delivery to: ${dest}</div>`;
     }
 
     // ═══ ASSET ACTION ═══
     async function doAssetAction(mode){
         const id=document.getElementById('m-ad-id').value;
         const a=window._currentAsset; if(!a){ toast('No asset loaded','ty'); return; }
-        if(mode==='rent'){
-            document.getElementById('m-rent-asset-name').textContent=a.name;
-            document.getElementById('m-rent-days').value='';
-            document.getElementById('m-rent-preview').style.display='none';
-            window._rentDailyRate=a.priceRent;
-            openModal('m-rent-duration'); return;
-        }
+        if(mode==='rent'){ document.getElementById('m-rent-asset-name').textContent=a.name; document.getElementById('m-rent-days').value=''; document.getElementById('m-rent-preview').style.display='none'; window._rentDailyRate=a.priceRent; openModal('m-rent-duration'); return; }
         const u=window.CU; if(!u){ toast('Please login','ty'); return; }
-        let amount=mode==='buy'?a.priceBy:a.priceInstall;
+        const isShippable=a.physical===true||a.physical==='true';
+        if(isShippable&&!window._currentShipDest){ toast('Please enter and calculate your shipping address first','ty'); return; }
+        let baseAmount=mode==='buy'?a.priceBy:a.priceInstall;
         const shipFee=window._currentShipFee||0;
         const dest=window._currentShipDest||'';
-        if((a.physical===true||a.physical==='true')&&shipFee>0) amount+=shipFee;
-        const avail=getAvailableBalance(u);
-        if(avail<amount){ toast(`Insufficient balance. Available: $${fmt(avail)}`,'tr'); return; }
+        let amount=parseFloat((baseAmount+(isShippable?shipFee:0)).toFixed(2));
+        if(getAvailableBalance(u)<amount){ toast(`Insufficient balance. Available: $${fmt(getAvailableBalance(u))}`,'tr'); return; }
         if(amount<=0){ toast('Invalid amount','ty'); return; }
-        if(shipFee>0&&dest){
-            document.getElementById('m-ship-summary').innerHTML=
-                `<div class="receipt-row"><span>Asset</span><span>${a.name}</span></div>
-                 <div class="receipt-row"><span>Action</span><span>${mode}</span></div>
-                 <div class="receipt-row"><span>Asset Price</span><span>$${fmt(mode==='buy'?a.priceBy:a.priceInstall)}</span></div>
-                 <div class="receipt-row"><span>Shipping (${getAssetSize(a.type)})</span><span style="color:var(--gold)">$${fmt(shipFee)}</span></div>
-                 <div class="receipt-row receipt-total"><span>Total</span><span>$${fmt(amount)}</span></div>
-                 <div style="font-size:.75rem;color:var(--t3);margin-top:8px">Delivery to: ${dest}</div>`;
+        if(isShippable&&shipFee>0){
+            document.getElementById('m-ship-summary').innerHTML=`<div class="receipt-row"><span>Asset</span><span>${a.name}</span></div><div class="receipt-row"><span>Action</span><span>${mode}</span></div><div class="receipt-row"><span>Asset Price</span><span>$${fmt(baseAmount)}</span></div><div class="receipt-row"><span>Shipping (${getAssetSize(a.type)})</span><span style="color:var(--gold)">$${fmt(shipFee)}</span></div><div class="receipt-row receipt-total"><span>Total</span><span>$${fmt(amount)}</span></div><div style="font-size:.75rem;color:var(--t3);margin-top:8px">📦 Delivery to: ${dest}</div>`;
             window._pendingAssetAction={id,a,mode,amount,shipFee,dest};
             openModal('m-shipping-confirm'); return;
         }
         await executeAssetPayment(id,a,mode,amount,shipFee,dest);
     }
-
-    async function confirmShipping(){
-        closeModal('m-shipping-confirm');
-        const p=window._pendingAssetAction; if(!p) return;
-        await executeAssetPayment(p.id,p.a,p.mode,p.amount,p.shipFee,p.dest);
-    }
+    async function confirmShipping(){ closeModal('m-shipping-confirm'); const p=window._pendingAssetAction; if(!p) return; await executeAssetPayment(p.id,p.a,p.mode,p.amount,p.shipFee,p.dest); }
 
     async function executeAssetPayment(id,a,mode,amount,shipFee,dest){
         const u=window.CU;
@@ -19007,72 +19090,84 @@ Prize: $${fmt(prize)}`);
             const txId=genAssetTxId();
             const batch=db.batch();
             batch.update(db.collection('users').doc(u.uid),{balance:firebase.firestore.FieldValue.increment(-amount)});
+            const isShippable=a.physical===true||a.physical==='true';
+            const deliveryStatus=isShippable?'pending_delivery':'active';
             const uaRef=db.collection('user_assets').doc();
             batch.set(uaRef,{
                 uid:u.uid,userName:u.name,userEmail:u.email,
                 assetId:id,assetName:a.name,assetType:a.type,
-                mode,amount,txId,
-                status:mode==='installment'?'installment_active':'active',
+                mode,amount,baseAmount:mode==='buy'?a.priceBy:(mode==='installment'?a.priceInstall:amount),
+                shipFee:shipFee||0,shippingAddress:dest||'',txId,
+                status:mode==='installment'?'installment_active':deliveryStatus,
+                deliveryStatus:isShippable?'pending_delivery':null,
                 installmentPaid:mode==='installment'?amount:0,
                 installmentTotal:mode==='installment'?(a.priceInstall*(a.installMonths||12)):0,
                 installmentMonths:a.installMonths||12,
+                rentDays:mode==='rent'?Math.round(amount/(a.priceRent||1)):null,
+                rentEndDate:mode==='rent'?new Date(Date.now()+Math.round(amount/(a.priceRent||1))*24*3600*1000).toISOString():null,
                 createdAt:firebase.firestore.FieldValue.serverTimestamp()
             });
-            if(mode==='buy') batch.update(db.collection('assets').doc(id),{status:'sold'});
-            if(mode==='rent') batch.update(db.collection('assets').doc(id),{status:'rented'});
+            // Stock decrement
+            if(a.stock!==undefined&&a.stock!==null){
+                batch.update(db.collection('assets').doc(id),{stock:firebase.firestore.FieldValue.increment(-1)});
+                if(a.stock<=1){ batch.update(db.collection('assets').doc(id),{status:'sold'}); }
+            } else {
+                if(mode==='buy') batch.update(db.collection('assets').doc(id),{status:'sold'});
+                if(mode==='rent') batch.update(db.collection('assets').doc(id),{status:'rented'});
+            }
+            // Receipt with shipping address
             const rcRef=db.collection('receipts').doc();
             batch.set(rcRef,{
                 uid:u.uid,userName:u.name,userEmail:u.email,
                 assetId:id,assetName:a.name,assetType:a.type,
                 amountPaid:amount,paymentType:mode,
-                shipFee:shipFee||0,destination:dest||'',
+                shipFee:shipFee||0,shippingAddress:dest||'',
                 sender:u.name,receiver:'Starlife Assets',txId,
                 dateTime:new Date().toISOString(),
                 createdAt:firebase.firestore.FieldValue.serverTimestamp()
             });
             await batch.commit();
-            await createAssetContract(id,a,mode,amount,txId,uaRef.id,'starlife');
-            if(shipFee>0&&dest){
-                await db.collection('shipping').add({
-                    uid:u.uid,userName:u.name,assetId:id,assetName:a.name,
-                    origin:a.location||'Starlife Warehouse',destination:dest,
-                    fee:shipFee,size:getAssetSize(a.type),status:'pending',txId,
-                    createdAt:firebase.firestore.FieldValue.serverTimestamp()
-                });
+            await createAssetContract(id,a,mode,amount,txId,uaRef.id,'starlife',null,null,shipFee,dest);
+            if(isShippable&&shipFee>0&&dest){
+                await db.collection('shipping').add({uid:u.uid,userName:u.name,assetId:id,assetName:a.name,origin:a.location||'Starlife Warehouse',destination:dest,fee:shipFee,size:getAssetSize(a.type),status:'pending_delivery',txId,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
             }
             logAct(u.uid,`Asset ${mode}: ${a.name} — $${fmt(amount)} (${txId})`,-amount,assetIcon(a.type),'asset');
-            tg(`${assetIcon(a.type)} <b>Asset ${mode.toUpperCase()}</b>\nUser: ${u.name}\nAsset: ${a.name}\nAmount: $${fmt(amount)}\nTxID: ${txId}`);
+            tg(`${assetIcon(a.type)} <b>Asset ${mode.toUpperCase()}</b>\nUser: ${u.name}\nAsset: ${a.name}\nAmount: $${fmt(amount)}${shipFee>0?'\nShipping: $'+fmt(shipFee)+'\nDeliver to: '+dest:''}\nTxID: ${txId}`);
             window.CU.balance=(u.balance||0)-amount;
             if(typeof updateUI==='function') updateUI();
             closeModal('m-asset-detail');
-            toast(`✅ ${a.name} — ${mode} confirmed! Contract generated.`);
+            toast(`✅ ${a.name} — ${mode} confirmed!${isShippable?' 📦 Pending delivery.':''} Contract generated.`);
             setTimeout(()=>viewReceiptByTxId(txId),600);
         } catch(e){ toast('Error: '+e.message,'tr'); }
     }
 
     // ═══ RENT DURATION ═══
-    function calcRentTotal(){
-        const days=parseFloat(document.getElementById('m-rent-days').value)||0;
-        const rate=window._rentDailyRate||0;
-        if(days>0&&rate>0){
-            document.getElementById('m-rent-preview').style.display='block';
-            document.getElementById('m-rent-daily').textContent='$'+fmt(rate)+'/day';
-            document.getElementById('m-rent-total').textContent='$'+fmt(days*rate);
-        }
-    }
-    async function confirmRent(){
-        const days=parseFloat(document.getElementById('m-rent-days').value)||0;
-        if(!days||days<1){ toast('Enter number of days','ty'); return; }
-        const total=parseFloat((days*(window._rentDailyRate||0)).toFixed(2));
-        const u=window.CU;
-        if(getAvailableBalance(u)<total){ toast(`Insufficient balance. Available: $${fmt(getAvailableBalance(u))}`,'tr'); return; }
-        closeModal('m-rent-duration');
-        window._currentShipFee=0;
-        await executeAssetPayment(window._currentAssetId,window._currentAsset,'rent',total,0,'');
+    function calcRentTotal(){ const days=parseFloat(document.getElementById('m-rent-days').value)||0,rate=window._rentDailyRate||0; if(days>0&&rate>0){ document.getElementById('m-rent-preview').style.display='block'; document.getElementById('m-rent-daily').textContent='$'+fmt(rate)+'/day'; document.getElementById('m-rent-total').textContent='$'+fmt(days*rate); } }
+    async function confirmRent(){ const days=parseFloat(document.getElementById('m-rent-days').value)||0; if(!days||days<1){ toast('Enter number of days','ty'); return; } const total=parseFloat((days*(window._rentDailyRate||0)).toFixed(2)),u=window.CU; if(getAvailableBalance(u)<total){ toast(`Insufficient balance. Available: $${fmt(getAvailableBalance(u))}`,'tr'); return; } closeModal('m-rent-duration'); window._currentShipFee=0; await executeAssetPayment(window._currentAssetId,window._currentAsset,'rent',total,0,''); }
+
+    // ═══ AUTO-EXPIRE RENTALS ═══
+    async function checkExpiredRentals(){
+        const u=window.CU; if(!u) return;
+        try {
+            const snap=await db.collection('user_assets').where('uid','==',u.uid).where('mode','==','rent').get();
+            const now=Date.now();
+            for(const doc of snap.docs){
+                const ua=doc.data();
+                if(ua.status==='active'&&ua.rentEndDate){
+                    const endMs=new Date(ua.rentEndDate).getTime();
+                    if(now>endMs){
+                        await doc.ref.update({status:'expired'});
+                        // Restore asset status
+                        if(ua.assetId) await db.collection('assets').doc(ua.assetId).update({status:'available'});
+                        await db.collection('userNotifs').add({uid:u.uid,msg:`⏰ Your rental of "${ua.assetName}" has expired and been removed from your assets.`,read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+                    }
+                }
+            }
+        } catch(e){ console.warn('Rental expiry check failed',e); }
     }
 
     // ═══ CONTRACT ═══
-    async function createAssetContract(assetId,asset,mode,amount,txId,userAssetId,party2Type,party2Uid,party2Name){
+    async function createAssetContract(assetId,asset,mode,amount,txId,userAssetId,party2Type,party2Uid,party2Name,shipFee,shippingAddress){
         const u=window.CU;
         const contractId='CON-'+Math.random().toString(36).substr(2,8).toUpperCase();
         const now=new Date();
@@ -19080,15 +19175,14 @@ Prize: $${fmt(prize)}`);
         await db.collection('contracts').add({
             contractId,txId,userAssetId,
             uid:u.uid,userName:u.name,userEmail:u.email,
-            party2Type:party2Type||'starlife',
-            party2Uid:party2Uid||null,
-            party2Name:party2Name||'Starlife Assets',
-            assetId,assetName:asset.name,assetType:asset.type,
-            assetLocation:asset.location||'',mode,amount,
+            party2Type:party2Type||'starlife',party2Uid:party2Uid||null,party2Name:party2Name||'Starlife Assets',
+            assetId,assetName:asset.name,assetType:asset.type,assetLocation:asset.location||'',
+            mode,amount,
+            shipFee:shipFee||0,shippingAddress:shippingAddress||'',
             startDate:now.toISOString(),endDate:end.toISOString(),
-            status:'pending',
-            userSignature:null,
+            status:'pending',userSignature:null,sellerSignature:null,
             starlifeSignature:'STARLIFE_AUTO_SIGN',
+            requiresSellerSig:party2Type==='member',
             createdAt:firebase.firestore.FieldValue.serverTimestamp()
         });
         return contractId;
@@ -19098,34 +19192,26 @@ Prize: $${fmt(prize)}`);
         try {
             const snap=await db.collection('contracts').doc(contractDocId).get();
             if(!snap.exists){ toast('Contract not found','ty'); return; }
-            const c=snap.data();
-            window._activeContractDocId=contractDocId;
-            window._activeContractData=c;
+            const c=snap.data(); window._activeContractDocId=contractDocId; window._activeContractData=c;
             document.getElementById('m-contract-body').innerHTML=buildContractHtml(c);
-            const isSigned=!!c.userSignature;
-            document.getElementById('m-contract-sig-section').style.display=isSigned?'none':'block';
-            document.getElementById('m-contract-signed-note').style.display=isSigned?'block':'none';
+            const isBuyerSigned=!!c.userSignature;
+            const needsBuyerSig=!isBuyerSigned;
+            document.getElementById('m-contract-sig-section').style.display=needsBuyerSig?'block':'none';
+            document.getElementById('m-contract-signed-note').style.display=isBuyerSigned?'block':'none';
             openModal('m-contract');
-            if(!isSigned) initSigPad();
+            if(needsBuyerSig) initSigPad();
         } catch(e){ toast('Error: '+e.message,'tr'); }
     }
 
-    // Admin: view contract with signature
     async function adminViewContract(contractDocId){
         try {
             const snap=await db.collection('contracts').doc(contractDocId).get();
             if(!snap.exists){ toast('Contract not found','ty'); return; }
             const c=snap.data();
             document.getElementById('m-admin-contract-body').innerHTML=buildContractHtml(c);
-            const sigDisplay=document.getElementById('m-admin-sig-display');
-            const noSig=document.getElementById('m-admin-no-sig');
-            if(c.userSignature){
-                document.getElementById('m-admin-sig-img').src=c.userSignature;
-                document.getElementById('m-admin-sig-meta').textContent='Signed by: '+c.userName+' · '+(c.signedAt?new Date(c.signedAt.seconds*1000).toLocaleString():fmtD(c.createdAt));
-                sigDisplay.style.display='block'; noSig.style.display='none';
-            } else {
-                sigDisplay.style.display='none'; noSig.style.display='block';
-            }
+            const sigDisplay=document.getElementById('m-admin-sig-display'),noSig=document.getElementById('m-admin-no-sig');
+            if(c.userSignature){ document.getElementById('m-admin-sig-img').src=c.userSignature; document.getElementById('m-admin-sig-meta').textContent='Signed by: '+c.userName+' · '+(c.signedAt?new Date(c.signedAt.seconds*1000).toLocaleString():fmtD(c.createdAt)); sigDisplay.style.display='block'; noSig.style.display='none'; }
+            else { sigDisplay.style.display='none'; noSig.style.display='block'; }
             openModal('m-admin-contract');
         } catch(e){ toast('Error: '+e.message,'tr'); }
     }
@@ -19135,63 +19221,56 @@ Prize: $${fmt(prize)}`);
         const start=c.startDate?new Date(c.startDate).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}):'—';
         const end=c.endDate?new Date(c.endDate).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}):'—';
         const isP2P=c.party2Type==='member';
+        const maskedEmail=maskEmail(c.userEmail);
+        const shipSection=c.shippingAddress?`<div class="c-line"></div><h3>SHIPPING / DELIVERY</h3><p><strong>Delivery Address:</strong> ${c.shippingAddress}<br><strong>Shipping Fee:</strong> $${fmt(c.shipFee||0)}<br><strong>Delivery Status:</strong> ${c.deliveryStatus||'Pending'}</p>`:'';
         return `
         <h2>ASSET ${(c.mode||'').toUpperCase()} AGREEMENT</h2>
         <p style="text-align:center;font-size:.78rem;color:#555">Contract ID: <strong>${c.contractId||c.txId||'—'}</strong> &nbsp;|&nbsp; Date: <strong>${now}</strong></p>
-        ${isP2P?`<p style="text-align:center;background:#fff3cd;color:#856404;padding:6px 10px;border-radius:6px;font-size:.74rem;margin:6px 0">⚠️ Member-to-Member Transaction. Starlife Advert is not a party to this agreement and bears no liability for the asset condition, delivery, or disputes between members. Starlife Advert collects a 10% platform fee only.</p>`:''}
+        ${isP2P?`<p style="text-align:center;background:#fff3cd;color:#856404;padding:6px 10px;border-radius:6px;font-size:.74rem;margin:6px 0">⚠️ Member-to-Member Transaction. Starlife Advert collects a 10% platform fee only and bears no liability for asset condition, delivery, or disputes.</p>`:''}
         <div class="c-line"></div>
         <h3>1. PARTIES</h3>
-        <p><strong>${isP2P?'Buyer/Renter (Member)':'Buyer/Renter'}:</strong> ${c.userName||'—'} (${c.userEmail||'—'})</p>
-        <p><strong>${isP2P?'Seller/Lessor (Member)':'Seller/Lessor'}:</strong> ${c.party2Name||'Starlife Assets'}</p>
-        ${isP2P?`<p><strong>Platform Facilitator:</strong> Starlife Advert (10% fee only — not a contracting party)</p>`:''}
+        <p><strong>Buyer/Renter:</strong> ${c.userName||'—'}<br><strong>Contact:</strong> ${maskedEmail}</p>
+        <p><strong>${isP2P?'Seller (Member)':'Seller/Lessor'}:</strong> ${isP2P?(c.party2Name||'Member Seller'):('Starlife Assets')}${isP2P?`<br><strong>Seller Contact:</strong> ${maskEmail(c.party2Email||'')}`:''}</p>
+        ${isP2P?`<p><strong>Platform Facilitator:</strong> Starlife Advert (10% fee only)</p>`:''}
         <div class="c-line"></div>
         <h3>2. ASSET DESCRIPTION</h3>
         <p><strong>Name:</strong> ${c.assetName||'—'}<br><strong>Type:</strong> ${(c.assetType||'').toUpperCase()}<br><strong>Location:</strong> ${c.assetLocation||'—'}</p>
         <div class="c-line"></div>
         <h3>3. AGREEMENT TERMS</h3>
-        <p><strong>Mode:</strong> ${(c.mode||'').toUpperCase()}<br><strong>Amount Paid:</strong> $${fmt(c.amount||0)}<br><strong>Period:</strong> ${start} to ${end}</p>
+        <p><strong>Mode:</strong> ${(c.mode||'').toUpperCase()}<br><strong>Amount Paid:</strong> $${fmt(c.amount||0)}${c.shipFee>0?`<br><strong>Shipping Fee:</strong> $${fmt(c.shipFee)}`:''}${c.shippingAddress?`<br><strong>Delivery To:</strong> ${c.shippingAddress}`:''}<br><strong>Period:</strong> ${start} to ${end}</p>
+        ${shipSection}
         <div class="c-line"></div>
         <h3>4. OBLIGATIONS</h3>
-        <p>The Buyer/Renter agrees to use the asset lawfully. Any damage beyond normal wear is the Buyer/Renter's responsibility.</p>
+        <p>The Buyer/Renter agrees to use the asset lawfully. Damage beyond normal wear is Buyer/Renter's responsibility. Rental payments are due on schedule.</p>
         <div class="c-line"></div>
         <h3>5. OWNERSHIP CLAUSE</h3>
-        <p>${c.mode==='buy'?'Ownership transfers to Buyer upon full payment.':c.mode==='installment'?'Ownership transfers upon completion of all installment payments. Asset remains with Seller until then.':'Asset remains property of Seller. Renter has usage rights for the agreed period only.'}</p>
+        <p>${c.mode==='buy'?'Ownership transfers to Buyer upon full payment confirmation.':c.mode==='installment'?'Ownership transfers upon completion of all installment payments.':'Asset remains property of Seller. Renter has usage rights for the agreed period only.'}</p>
         <div class="c-line"></div>
-        <h3>6. DEFAULT CLAUSE</h3>
-        <p>Failure to meet payment obligations results in termination and forfeiture of amounts paid.</p>
+        <h3>6. DEFAULT & CANCELLATION</h3>
+        <p>Cancellation within 24 hours of payment entitles Buyer to a 60% refund; Seller retains 40%. After 24 hours, all payments are non-refundable. Rental non-payment results in automatic removal from Buyer's assets.</p>
         <div class="c-line"></div>
         <h3>7. TERMINATION</h3>
-        <p>Either party may terminate with 7 days written notice. No refund of amounts paid on termination by Buyer.</p>
+        <p>Either party may terminate with 7 days written notice. No refund after the 24-hour cancellation window.</p>
         <div class="c-line"></div>
         <h3>8. SIGNATURES</h3>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:8px">
             <div>
                 <div style="font-weight:700;font-size:.78rem">Buyer/Renter</div>
-                <div class="c-sig">${c.userSignature?`<img src="${c.userSignature}" style="height:30px">`:''}</div>
+                <div class="c-sig">${c.userSignature?`<img src="${c.userSignature}" style="height:30px">`:'<em style="font-size:.7rem;color:#999">Awaiting signature</em>'}</div>
                 <div style="font-size:.72rem">${c.userName||'—'}</div>
+                <div style="font-size:.7rem;color:#888">${maskedEmail}</div>
             </div>
             <div>
-                <div style="font-weight:700;font-size:.78rem">${isP2P?'Seller (Member — Auto-Signed)':'Starlife Advert (Auto-Signed)'}</div>
-                <div class="c-sig" style="display:flex;align-items:center;padding:4px 0"><em style="color:#555;font-size:.75rem">✅ ${c.party2Name||'Starlife Advert'}</em></div>
-                <div style="font-size:.72rem">Authorized by System</div>
+                <div style="font-weight:700;font-size:.78rem">${isP2P?'Seller (Member)':'Starlife Advert'}</div>
+                <div class="c-sig">${isP2P?(c.sellerSignature?`<img src="${c.sellerSignature}" style="height:30px">`:'<em style="font-size:.7rem;color:#999">Awaiting seller signature</em>'):`<em style="color:#555;font-size:.75rem">✅ Starlife Advert</em>`}</div>
+                <div style="font-size:.72rem">${isP2P?(c.party2Name||'Member Seller'):'Authorized by System'}</div>
             </div>
         </div>`;
     }
 
-    // ═══ SIGNATURE PAD ═══
-    let _sigDrawing=false, _sigCtx=null;
-    function initSigPad(){
-        const canvas=document.getElementById('sig-canvas'); if(!canvas) return;
-        _sigCtx=canvas.getContext('2d');
-        _sigCtx.strokeStyle='#111'; _sigCtx.lineWidth=2; _sigCtx.lineCap='round';
-        const rect=canvas.getBoundingClientRect();
-        canvas.width=rect.width||480; canvas.height=100;
-        _sigCtx.fillStyle='#fff'; _sigCtx.fillRect(0,0,canvas.width,canvas.height);
-        const gp=(e)=>{ const r=canvas.getBoundingClientRect(),s=e.touches?e.touches[0]:e; return{x:s.clientX-r.left,y:s.clientY-r.top}; };
-        canvas.onmousedown=canvas.ontouchstart=(e)=>{ e.preventDefault(); _sigDrawing=true; const p=gp(e); _sigCtx.beginPath(); _sigCtx.moveTo(p.x,p.y); };
-        canvas.onmousemove=canvas.ontouchmove=(e)=>{ e.preventDefault(); if(!_sigDrawing)return; const p=gp(e); _sigCtx.lineTo(p.x,p.y); _sigCtx.stroke(); };
-        canvas.onmouseup=canvas.ontouchend=()=>{ _sigDrawing=false; };
-    }
+    // ═══ SIGNATURE PAD (BUYER) ═══
+    let _sigDrawing=false,_sigCtx=null;
+    function initSigPad(){ const canvas=document.getElementById('sig-canvas'); if(!canvas) return; _sigCtx=canvas.getContext('2d'); _sigCtx.strokeStyle='#111'; _sigCtx.lineWidth=2; _sigCtx.lineCap='round'; const rect=canvas.getBoundingClientRect(); canvas.width=rect.width||480; canvas.height=100; _sigCtx.fillStyle='#fff'; _sigCtx.fillRect(0,0,canvas.width,canvas.height); const gp=(e)=>{ const r=canvas.getBoundingClientRect(),s=e.touches?e.touches[0]:e; return{x:s.clientX-r.left,y:s.clientY-r.top}; }; canvas.onmousedown=canvas.ontouchstart=(e)=>{ e.preventDefault(); _sigDrawing=true; const p=gp(e); _sigCtx.beginPath(); _sigCtx.moveTo(p.x,p.y); }; canvas.onmousemove=canvas.ontouchmove=(e)=>{ e.preventDefault(); if(!_sigDrawing)return; const p=gp(e); _sigCtx.lineTo(p.x,p.y); _sigCtx.stroke(); }; canvas.onmouseup=canvas.ontouchend=()=>{ _sigDrawing=false; }; }
     function clearSig(){ const c=document.getElementById('sig-canvas'); if(c&&_sigCtx){ _sigCtx.fillStyle='#fff'; _sigCtx.fillRect(0,0,c.width,c.height); } }
     async function signContract(){
         const canvas=document.getElementById('sig-canvas'); if(!canvas){ toast('Signature pad not ready','ty'); return; }
@@ -19200,32 +19279,130 @@ Prize: $${fmt(prize)}`);
         const bctx=blank.getContext('2d'); bctx.fillStyle='#fff'; bctx.fillRect(0,0,blank.width,blank.height);
         if(data===blank.toDataURL('image/png')){ toast('Please draw your signature first','ty'); return; }
         try {
-            await db.collection('contracts').doc(window._activeContractDocId).update({userSignature:data,status:'active',signedAt:firebase.firestore.FieldValue.serverTimestamp()});
+            const isP2P=window._activeContractData?.party2Type==='member';
+            const newStatus=isP2P?(window._activeContractData?.sellerSignature?'active':'pending_seller'):'active';
+            await db.collection('contracts').doc(window._activeContractDocId).update({userSignature:data,status:newStatus,signedAt:firebase.firestore.FieldValue.serverTimestamp()});
             document.getElementById('m-contract-sig-section').style.display='none';
             document.getElementById('m-contract-signed-note').style.display='block';
-            const c={...window._activeContractData,userSignature:data,status:'active'};
+            document.getElementById('m-contract-signed-note').innerHTML=isP2P&&!window._activeContractData?.sellerSignature?'✅ You signed. Waiting for seller to sign.':'✅ Contract fully signed by both parties.';
+            const c={...window._activeContractData,userSignature:data,status:newStatus};
             document.getElementById('m-contract-body').innerHTML=buildContractHtml(c);
-            toast('✅ Contract signed successfully!');
+            toast('✅ Contract signed!');
+            // Notify seller for P2P
+            if(isP2P&&window._activeContractData?.party2Uid){
+                await db.collection('userNotifs').add({uid:window._activeContractData.party2Uid,msg:`✍️ Buyer signed the contract for "${window._activeContractData.assetName}". Please sign your part.`,read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+            }
+        } catch(e){ toast('Error: '+e.message,'tr'); }
+    }
+
+    // ═══ SELLER SIGNATURE (P2P) ═══
+    let _sellerSigCtx=null,_sellerSigDrawing=false;
+    async function openSellerSignModal(contractDocId){
+        try {
+            const snap=await db.collection('contracts').doc(contractDocId).get();
+            if(!snap.exists){ toast('Contract not found','ty'); return; }
+            const c=snap.data();
+            document.getElementById('m-seller-sign-contract-body').innerHTML=buildContractHtml(c);
+            document.getElementById('m-seller-sign-contract-id').value=contractDocId;
+            openModal('m-seller-sign');
+            setTimeout(()=>{
+                const canvas=document.getElementById('seller-sig-canvas'); if(!canvas) return;
+                _sellerSigCtx=canvas.getContext('2d'); _sellerSigCtx.strokeStyle='#111'; _sellerSigCtx.lineWidth=2; _sellerSigCtx.lineCap='round';
+                const rect=canvas.getBoundingClientRect(); canvas.width=rect.width||480; canvas.height=90;
+                _sellerSigCtx.fillStyle='#fff'; _sellerSigCtx.fillRect(0,0,canvas.width,canvas.height);
+                const gp=(e)=>{ const r=canvas.getBoundingClientRect(),s=e.touches?e.touches[0]:e; return{x:s.clientX-r.left,y:s.clientY-r.top}; };
+                canvas.onmousedown=canvas.ontouchstart=(e)=>{ e.preventDefault(); _sellerSigDrawing=true; const p=gp(e); _sellerSigCtx.beginPath(); _sellerSigCtx.moveTo(p.x,p.y); };
+                canvas.onmousemove=canvas.ontouchmove=(e)=>{ e.preventDefault(); if(!_sellerSigDrawing)return; const p=gp(e); _sellerSigCtx.lineTo(p.x,p.y); _sellerSigCtx.stroke(); };
+                canvas.onmouseup=canvas.ontouchend=()=>{ _sellerSigDrawing=false; };
+            },200);
+        } catch(e){ toast('Error: '+e.message,'tr'); }
+    }
+    function clearSellerSig(){ const c=document.getElementById('seller-sig-canvas'); if(c&&_sellerSigCtx){ _sellerSigCtx.fillStyle='#fff'; _sellerSigCtx.fillRect(0,0,c.width,c.height); } }
+    async function submitSellerSignature(){
+        const canvas=document.getElementById('seller-sig-canvas'); if(!canvas){ toast('Signature pad not ready','ty'); return; }
+        const data=canvas.toDataURL('image/png');
+        const blank=document.createElement('canvas'); blank.width=canvas.width; blank.height=canvas.height;
+        const bctx=blank.getContext('2d'); bctx.fillStyle='#fff'; bctx.fillRect(0,0,blank.width,blank.height);
+        if(data===blank.toDataURL('image/png')){ toast('Please draw your signature','ty'); return; }
+        const contractId=document.getElementById('m-seller-sign-contract-id').value;
+        try {
+            const snap=await db.collection('contracts').doc(contractId).get();
+            const c=snap.data();
+            await db.collection('contracts').doc(contractId).update({sellerSignature:data,status:'active',sellerSignedAt:firebase.firestore.FieldValue.serverTimestamp()});
+            // Notify buyer
+            if(c.uid) await db.collection('userNotifs').add({uid:c.uid,msg:`✅ Seller signed the contract for "${c.assetName}". Contract is now fully active.`,read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+            closeModal('m-seller-sign');
+            toast('✅ Contract signed as seller!');
+            loadMyP2PListings();
+        } catch(e){ toast('Error: '+e.message,'tr'); }
+    }
+
+    // ═══ CANCEL CONTRACT ═══
+    function openCancelContractModal(contractDocId,uaId,assetName,amount,createdAtSeconds){
+        const hrs=Math.round((Date.now()-createdAtSeconds*1000)/3600000);
+        if(hrs>CANCEL_WINDOW_HOURS){ toast(`❌ Cancellation window has closed. Only available within ${CANCEL_WINDOW_HOURS} hours of purchase.`,'tr',5000); return; }
+        const buyerRefund=parseFloat((amount*CANCEL_BUYER_PCT).toFixed(2));
+        const sellerKeep=parseFloat((amount*(1-CANCEL_BUYER_PCT)).toFixed(2));
+        document.getElementById('m-cancel-contract-doc-id').value=contractDocId;
+        document.getElementById('m-cancel-ua-id').value=uaId;
+        document.getElementById('m-cancel-contract-info').innerHTML=`<div><strong>Asset:</strong> ${assetName}</div><div style="margin-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:rgba(0,230,118,.08);border-radius:8px;padding:8px;text-align:center"><div style="font-size:.7rem;color:var(--t3)">Your Refund (60%)</div><div style="font-weight:700;color:var(--g)">$${fmt(buyerRefund)}</div></div><div style="background:rgba(255,82,82,.08);border-radius:8px;padding:8px;text-align:center"><div style="font-size:.7rem;color:var(--t3)">Seller Retains (40%)</div><div style="font-weight:700;color:var(--red)">$${fmt(sellerKeep)}</div></div></div><div style="font-size:.72rem;color:var(--t3);margin-top:8px">Time since purchase: ${hrs}h ${60-hrs>=0?`· ${CANCEL_WINDOW_HOURS-hrs}h remaining`:''}</div>`;
+        document.getElementById('m-cancel-reason').value='';
+        document.getElementById('m-cancel-details').value='';
+        openModal('m-cancel-contract');
+    }
+
+    async function confirmCancelContract(){
+        const reason=document.getElementById('m-cancel-reason').value;
+        const details=document.getElementById('m-cancel-details').value.trim();
+        if(!reason){ toast('Please select a cancellation reason','ty'); return; }
+        if(!details||details.length<10){ toast('Please provide more detail (min 10 characters)','ty'); return; }
+        const contractDocId=document.getElementById('m-cancel-contract-doc-id').value;
+        const uaId=document.getElementById('m-cancel-ua-id').value;
+        try {
+            const cSnap=await db.collection('contracts').doc(contractDocId).get();
+            if(!cSnap.exists){ toast('Contract not found','ty'); return; }
+            const c=cSnap.data();
+            // Check 24h window
+            if(!isWithin24h(c.createdAt)){ toast('Cancellation window has expired','tr'); closeModal('m-cancel-contract'); return; }
+            const u=window.CU;
+            const amount=c.amount||0;
+            const buyerRefund=parseFloat((amount*CANCEL_BUYER_PCT).toFixed(2));
+            const sellerKeep=parseFloat((amount*(1-CANCEL_BUYER_PCT)).toFixed(2));
+            const batch=db.batch();
+            // Refund buyer
+            batch.update(db.collection('users').doc(u.uid),{balance:firebase.firestore.FieldValue.increment(buyerRefund)});
+            // Update contract
+            batch.update(db.collection('contracts').doc(contractDocId),{status:'cancelled',cancelReason:reason,cancelDetails:details,cancelledAt:firebase.firestore.FieldValue.serverTimestamp(),buyerRefund,sellerKeep});
+            // Update user_asset
+            if(uaId) batch.update(db.collection('user_assets').doc(uaId),{status:'cancelled'});
+            // Restore asset
+            if(c.assetId) batch.update(db.collection('assets').doc(c.assetId),{status:'available'});
+            // Cancel shipping if pending
+            const shipSnap=await db.collection('shipping').where('txId','==',c.txId).limit(1).get();
+            if(!shipSnap.empty) batch.update(shipSnap.docs[0].ref,{status:'cancelled'});
+            await batch.commit();
+            // Credit seller their 40% (if P2P)
+            if(c.party2Type==='member'&&c.party2Uid){
+                await db.collection('users').doc(c.party2Uid).update({balance:firebase.firestore.FieldValue.increment(sellerKeep)});
+                await db.collection('userNotifs').add({uid:c.party2Uid,msg:`⚠️ Contract for "${c.assetName}" was cancelled. You received $${fmt(sellerKeep)} (40% retention).`,read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+            }
+            // Log
+            logAct(u.uid,`Contract cancelled: ${c.assetName} — Refund: $${fmt(buyerRefund)}`,buyerRefund,'❌','cancel');
+            tg(`❌ <b>Contract Cancelled</b>\nUser: ${u.name}\nAsset: ${c.assetName}\nRefund: $${fmt(buyerRefund)}\nReason: ${reason}\nDetails: ${details}`);
+            window.CU.balance=(u.balance||0)+buyerRefund;
+            if(typeof updateUI==='function') updateUI();
+            closeModal('m-cancel-contract');
+            toast(`✅ Contract cancelled. $${fmt(buyerRefund)} refunded to your balance.`);
+            loadMyOwnedAssets();
         } catch(e){ toast('Error: '+e.message,'tr'); }
     }
 
     // ═══ RECEIPTS ═══
-    async function viewReceiptByTxId(txId){
-        try {
-            const snap=await db.collection('receipts').where('txId','==',txId).limit(1).get();
-            if(snap.empty){ toast('Receipt not found','ty'); return; }
-            showReceiptModal(snap.docs[0].data());
-        } catch(e){ toast('Error: '+e.message,'tr'); }
-    }
-    async function viewReceiptById(docId){
-        try {
-            const snap=await db.collection('receipts').doc(docId).get();
-            if(!snap.exists){ toast('Receipt not found','ty'); return; }
-            showReceiptModal(snap.data());
-        } catch(e){ toast('Error: '+e.message,'tr'); }
-    }
+    async function viewReceiptByTxId(txId){ try { const snap=await db.collection('receipts').where('txId','==',txId).limit(1).get(); if(snap.empty){ toast('Receipt not found','ty'); return; } showReceiptModal(snap.docs[0].data()); } catch(e){ toast('Error: '+e.message,'tr'); } }
+    async function viewReceiptById(docId){ try { const snap=await db.collection('receipts').doc(docId).get(); if(!snap.exists){ toast('Receipt not found','ty'); return; } showReceiptModal(snap.data()); } catch(e){ toast('Error: '+e.message,'tr'); } }
     function showReceiptModal(r){
         const p2p=r.isP2P?`<div class="receipt-row"><span>Paid to Seller</span><span style="color:var(--gold)">$${fmt((r.amountPaid||0)*0.9)}</span></div><div class="receipt-row"><span>Platform Fee (10%)</span><span style="color:var(--red)">$${fmt((r.amountPaid||0)*0.1)}</span></div>`:'';
+        const shipRows=r.shipFee>0?`<div class="receipt-row"><span>Asset Price</span><span>$${fmt((r.amountPaid||0)-(r.shipFee||0))}</span></div><div class="receipt-row"><span>Shipping Fee</span><span style="color:var(--gold)">$${fmt(r.shipFee)}</span></div>${r.shippingAddress?`<div class="receipt-row"><span>Delivery To</span><span style="font-size:.75rem;max-width:160px;text-align:right">${r.shippingAddress}</span></div>`:''}`:'';
         document.getElementById('m-receipt-body').innerHTML=`
         <div style="text-align:center;margin-bottom:14px">
             <div style="font-size:2rem;margin-bottom:4px">${assetIcon(r.assetType)}</div>
@@ -19234,50 +19411,58 @@ Prize: $${fmt(prize)}`);
         </div>
         <div class="receipt-row"><span>Receipt No.</span><span style="font-family:'JetBrains Mono',monospace;font-size:.75rem">${r.txId||'—'}</span></div>
         <div class="receipt-row"><span>Date</span><span>${r.dateTime?new Date(r.dateTime).toLocaleString():fmtD(r.createdAt)}</span></div>
-        <div class="receipt-row"><span>From</span><span>${r.sender||r.userName||'—'}</span></div>
-        <div class="receipt-row"><span>To</span><span>${r.receiver||'Starlife Assets'}</span></div>
+        <div class="receipt-row"><span>Buyer</span><span>${r.sender||r.userName||'—'}</span></div>
+        <div class="receipt-row"><span>Seller</span><span>${r.receiver||'Starlife Assets'}</span></div>
         <div class="receipt-row"><span>Payment Type</span><span style="text-transform:capitalize">${r.paymentType||'—'}</span></div>
-        ${r.shipFee>0?`<div class="receipt-row"><span>Shipping Fee</span><span style="color:var(--gold)">$${fmt(r.shipFee)}</span></div>`:''}
-        ${p2p}
+        ${shipRows}${p2p}
         <div class="receipt-row receipt-total"><span>Total Paid</span><span>$${fmt(r.amountPaid||0)}</span></div>
-        <div style="text-align:center;margin-top:14px;font-size:.7rem;color:var(--t3)">✅ Payment confirmed by Starlife Advert</div>`;
+        <div style="text-align:center;margin-top:14px;font-size:.7rem;color:var(--t3)">✅ Confirmed by Starlife Advert</div>`;
         openModal('m-receipt');
     }
-    function printReceipt(){
-        const content=document.getElementById('m-receipt-body').innerHTML;
-        const w=window.open('','_blank','width=500,height=700');
-        w.document.write(`<html><head><title>Receipt</title><style>body{font-family:sans-serif;padding:24px;color:#111}.receipt-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #eee}.receipt-total{font-weight:700}</style></head><body>${content}</body></html>`);
-        w.document.close(); w.print();
-    }
+    function printReceipt(){ const content=document.getElementById('m-receipt-body').innerHTML; const w=window.open('','_blank','width=500,height=700'); w.document.write(`<html><head><title>Receipt</title><style>body{font-family:sans-serif;padding:24px;color:#111}.receipt-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #eee}.receipt-total{font-weight:700}</style></head><body>${content}</body></html>`); w.document.close(); w.print(); }
 
     // ═══ MY OWNED ASSETS ═══
     async function loadMyOwnedAssets(){
         const el=document.getElementById('ma-owned-list'); if(!el) return;
         el.innerHTML='<div class="es">Loading…</div>';
         const u=window.CU; if(!u) return;
+        await checkExpiredRentals();
         try {
             const snap=await db.collection('user_assets').where('uid','==',u.uid).get();
             const docs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
             if(!docs.length){ el.innerHTML='<div class="es"><div class="ei">📦</div>No assets yet</div>'; return; }
-            el.innerHTML=docs.map(ua=>{
+            el.innerHTML=docs.filter(ua=>ua.status!=='expired'&&ua.status!=='cancelled').map(ua=>{
                 const pct=ua.installmentTotal>0?Math.min(100,Math.round((ua.installmentPaid/ua.installmentTotal)*100)):100;
                 const bar=ua.mode==='installment'?`<div style="margin:8px 0 4px"><div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--t3);margin-bottom:4px"><span>Paid: $${fmt(ua.installmentPaid||0)}</span><span>Total: $${fmt(ua.installmentTotal||0)}</span></div><div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%"></div></div><div style="font-size:.7rem;color:var(--t3)">${pct}% complete</div></div>`:'';
                 const instBtn=ua.mode==='installment'&&pct<100?`<button class="btn btn-gold btn-sm" onclick="openInstallmentPayment('${ua.id}')">💳 Pay Installment</button>`:'';
-                const listBtn=`<button class="btn btn-sky btn-sm" onclick="openP2PListModal('${ua.id}','${(ua.assetName||'').replace(/'/g,'&#39;')}','${ua.assetType||''}')">📢 List for Sale/Rent</button>`;
+                const listBtn=(ua.status==='active'||ua.status==='installment_active')?`<button class="btn btn-sky btn-sm" onclick="openP2PListModal('${ua.id}','${(ua.assetName||'').replace(/'/g,'&#39;')}','${ua.assetType||''}')">📢 List</button>`:'';
+                const cancelBtn=ua.createdAt&&isWithin24h(ua.createdAt)?`<button class="btn btn-d btn-sm" onclick="openCancelByUaId('${ua.id}')">❌ Cancel</button>`:'';
+                const shipBadge=ua.shippingAddress?`<div style="font-size:.7rem;color:var(--sky);margin-top:3px">📦 Deliver to: ${ua.shippingAddress.substring(0,30)}${ua.shippingAddress.length>30?'…':''}</div>`:'';
+                const rentExpiry=ua.mode==='rent'&&ua.rentEndDate?`<div style="font-size:.7rem;color:var(--gold);margin-top:2px">⏰ Expires: ${new Date(ua.rentEndDate).toLocaleDateString()}</div>`:'';
                 return `<div class="my-asset-row">
                     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
                         <div><div style="font-weight:700">${assetIcon(ua.assetType)} ${ua.assetName||'Asset'}</div>
-                        <div style="font-size:.74rem;color:var(--t3);text-transform:capitalize">${ua.mode||'owned'} · ${fmtD(ua.createdAt)}</div></div>
-                        <span class="badge ${ua.status==='active'?'bg':ua.status==='installment_active'?'bgold':'br'}">${ua.status||'active'}</span>
+                        <div style="font-size:.74rem;color:var(--t3);text-transform:capitalize">${ua.mode||'owned'} · $${fmt(ua.amount||0)} · ${fmtD(ua.createdAt)}</div>
+                        ${shipBadge}${rentExpiry}</div>
+                        ${deliveryStatusBadge(ua.status)}
                     </div>${bar}
                     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
-                        ${instBtn}${listBtn}
+                        ${instBtn}${listBtn}${cancelBtn}
                         <button class="btn btn-gh btn-sm" onclick="viewReceiptByTxId('${ua.txId}')">🧾 Receipt</button>
                         <button class="btn btn-gh btn-sm" onclick="viewContractByTxId('${ua.txId}')">📄 Contract</button>
                     </div>
                 </div>`;
-            }).join('');
+            }).join('')||'<div class="es">No active assets</div>';
         } catch(e){ el.innerHTML=`<div class="es" style="color:var(--red)">${e.message}</div>`; }
+    }
+
+    async function openCancelByUaId(uaId){
+        const snap=await db.collection('user_assets').doc(uaId).get();
+        if(!snap.exists) return;
+        const ua=snap.data();
+        const cSnap=await db.collection('contracts').where('txId','==',ua.txId).limit(1).get();
+        if(cSnap.empty){ toast('Contract not found','ty'); return; }
+        openCancelContractModal(cSnap.docs[0].id,uaId,ua.assetName,ua.amount,(ua.createdAt?.seconds||Math.floor(Date.now()/1000)));
     }
 
     async function loadMyRentingAssets(){
@@ -19289,11 +19474,16 @@ Prize: $${fmt(prize)}`);
             if(snap.empty){ el.innerHTML='<div class="es"><div class="ei">🔑</div>No active rentals</div>'; return; }
             el.innerHTML=snap.docs.map(d=>{
                 const ua=d.data();
+                const expiry=ua.rentEndDate?`<div style="font-size:.72rem;color:${new Date(ua.rentEndDate)<new Date()?'var(--red)':'var(--gold)'};margin-top:2px">⏰ ${new Date(ua.rentEndDate)<new Date()?'EXPIRED':'Expires'}: ${new Date(ua.rentEndDate).toLocaleDateString()}</div>`:'';
                 return `<div class="my-asset-row">
-                    <div style="font-weight:700">${assetIcon(ua.assetType)} ${ua.assetName}</div>
-                    <div style="font-size:.74rem;color:var(--t3)">Rented · $${fmt(ua.amount)} · ${fmtD(ua.createdAt)}</div>
-                    <div style="display:flex;gap:6px;margin-top:8px">
-                        <button class="btn btn-sky btn-sm" onclick="openP2PListModal('${d.id}','${(ua.assetName||'').replace(/'/g,'&#39;')}','${ua.assetType||''}')">📢 Sub-rent/Sell</button>
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                        <div><div style="font-weight:700">${assetIcon(ua.assetType)} ${ua.assetName}</div>
+                        <div style="font-size:.74rem;color:var(--t3)">Rented · $${fmt(ua.amount)} · ${fmtD(ua.createdAt)}</div>
+                        ${expiry}</div>
+                        ${deliveryStatusBadge(ua.status)}
+                    </div>
+                    <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+                        <button class="btn btn-sky btn-sm" onclick="openP2PListModal('${d.id}','${(ua.assetName||'').replace(/'/g,'&#39;')}','${ua.assetType||''}')">📢 Sub-rent</button>
                         <button class="btn btn-gh btn-sm" onclick="viewReceiptByTxId('${ua.txId}')">🧾 Receipt</button>
                         <button class="btn btn-gh btn-sm" onclick="viewContractByTxId('${ua.txId}')">📄 Contract</button>
                     </div>
@@ -19310,15 +19500,51 @@ Prize: $${fmt(prize)}`);
             const snap=await db.collection('contracts').where('uid','==',u.uid).get();
             const docs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
             if(!docs.length){ el.innerHTML='<div class="es"><div class="ei">📄</div>No contracts yet</div>'; return; }
-            el.innerHTML=docs.map(c=>`
-                <div class="my-asset-row">
+            el.innerHTML=docs.map(c=>{
+                const bothSigned=c.userSignature&&(c.party2Type!=='member'||c.sellerSignature);
+                const needsSellerSig=c.party2Type==='member'&&c.userSignature&&!c.sellerSignature;
+                return `<div class="my-asset-row">
                     <div style="display:flex;justify-content:space-between;align-items:flex-start">
-                        <div><div style="font-weight:700">📄 ${c.assetName||'Contract'}</div>
-                        <div style="font-size:.74rem;color:var(--t3);text-transform:capitalize">${c.mode||'—'} · ${fmtD(c.createdAt)}</div></div>
-                        <span class="badge ${c.userSignature?'bg':'bgold'}">${c.userSignature?'Signed':'Pending'}</span>
+                        <div><div style="font-weight:700">📄 ${c.assetName||'Contract'}${c.isP2P?' 🤝':''}</div>
+                        <div style="font-size:.74rem;color:var(--t3);text-transform:capitalize">${c.mode||'—'} · $${fmt(c.amount||0)} · ${fmtD(c.createdAt)}</div>
+                        ${c.status==='cancelled'?'<div style="font-size:.7rem;color:var(--red)">❌ Cancelled</div>':''}
+                        ${needsSellerSig?'<div style="font-size:.7rem;color:var(--gold)">⏳ Awaiting seller signature</div>':''}</div>
+                        <span class="badge ${bothSigned?'bg':c.status==='cancelled'?'br':'bgold'}">${bothSigned?'Fully Signed':c.status==='cancelled'?'Cancelled':c.userSignature?'Partial':'Unsigned'}</span>
                     </div>
-                    <div style="display:flex;gap:6px;margin-top:8px">
+                    <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
                         <button class="btn btn-p btn-sm" onclick="viewContract('${c.id}')">${c.userSignature?'📄 View':'✍️ Sign'}</button>
+                    </div>
+                </div>`;
+            }).join('');
+        } catch(e){ el.innerHTML=`<div class="es" style="color:var(--red)">${e.message}</div>`; }
+    }
+
+    // Also load contracts where user is seller (P2P)
+    async function loadMyP2PListings(){
+        const el=document.getElementById('ma-listings-list'); if(!el) return;
+        el.innerHTML='<div class="es">Loading…</div>';
+        const u=window.CU; if(!u) return;
+        try {
+            const snap=await db.collection('p2p_listings').where('sellerUid','==',u.uid).get();
+            // Also check for contracts needing seller signature
+            const contractSnap=await db.collection('contracts').where('party2Uid','==',u.uid).where('requiresSellerSig','==',true).get();
+            const pendingSig=contractSnap.docs.filter(d=>!d.data().sellerSignature);
+            let sigHtml='';
+            if(pendingSig.length>0){
+                sigHtml=`<div style="background:rgba(255,213,79,.08);border:1px solid rgba(255,213,79,.25);border-radius:10px;padding:12px;margin-bottom:12px">
+                    <div style="font-weight:700;font-size:.85rem;color:var(--gold);margin-bottom:8px">✍️ Contracts Awaiting Your Signature</div>
+                    ${pendingSig.map(d=>{const c=d.data(); return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)"><div><div style="font-weight:600;font-size:.85rem">${c.assetName||'Asset'}</div><div style="font-size:.72rem;color:var(--t3)">${c.userName||'Buyer'} · $${fmt(c.amount||0)}</div></div><button class="btn btn-p btn-sm" onclick="openSellerSignModal('${d.id}')">✍️ Sign</button></div>`;}).join('')}
+                </div>`;
+            }
+            if(snap.empty&&!pendingSig.length){ el.innerHTML=sigHtml+'<div class="es"><div class="ei">📢</div>No listings yet</div>'; return; }
+            const docs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+            el.innerHTML=sigHtml+docs.map(l=>`
+                <div class="my-asset-row" style="display:flex;justify-content:space-between;align-items:flex-start">
+                    <div><div style="font-weight:700">${assetIcon(l.assetType)} ${l.title||l.assetName}</div>
+                    <div style="font-size:.74rem;color:var(--t3)">${l.priceBuy>0?'Buy: $'+fmt(l.priceBuy)+' ':''}${l.priceRent>0?'Rent: $'+fmt(l.priceRent)+'/day ':''} · ${fmtD(l.createdAt)}</div></div>
+                    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+                        <span class="badge ${l.status==='active'?'bg':l.status==='sold'?'br':'bgold'}">${l.status||'active'}</span>
+                        ${l.status==='active'?`<button class="btn btn-d btn-sm" onclick="cancelP2PListing('${l.id}')">Remove</button>`:''}
                     </div>
                 </div>`).join('');
         } catch(e){ el.innerHTML=`<div class="es" style="color:var(--red)">${e.message}</div>`; }
@@ -19335,25 +19561,19 @@ Prize: $${fmt(prize)}`);
             el.innerHTML=docs.map(r=>`
                 <div class="my-asset-row" style="display:flex;justify-content:space-between;align-items:center">
                     <div><div style="font-weight:700">${assetIcon(r.assetType)} ${r.assetName||'Asset'}</div>
-                    <div style="font-size:.74rem;color:var(--t3);text-transform:capitalize">${r.paymentType||'—'} · $${fmt(r.amountPaid||0)} · ${fmtD(r.createdAt)}</div></div>
+                    <div style="font-size:.74rem;color:var(--t3);text-transform:capitalize">${r.paymentType||'—'} · $${fmt(r.amountPaid||0)} · ${fmtD(r.createdAt)}</div>
+                    ${r.shippingAddress?`<div style="font-size:.7rem;color:var(--sky)">📦 ${r.shippingAddress.substring(0,35)}</div>`:''}</div>
                     <button class="btn btn-gh btn-sm" onclick="viewReceiptById('${r.id}')">🧾 View</button>
                 </div>`).join('');
         } catch(e){ el.innerHTML=`<div class="es" style="color:var(--red)">${e.message}</div>`; }
     }
 
-    async function viewContractByTxId(txId){
-        try {
-            const snap=await db.collection('contracts').where('txId','==',txId).limit(1).get();
-            if(snap.empty){ toast('Contract not found','ty'); return; }
-            viewContract(snap.docs[0].id);
-        } catch(e){ toast('Error: '+e.message,'tr'); }
-    }
+    async function viewContractByTxId(txId){ try { const snap=await db.collection('contracts').where('txId','==',txId).limit(1).get(); if(snap.empty){ toast('Contract not found','ty'); return; } viewContract(snap.docs[0].id); } catch(e){ toast('Error: '+e.message,'tr'); } }
 
-    // ═══ INSTALLMENT PAYMENT ═══
+    // ═══ INSTALLMENT ═══
     async function openInstallmentPayment(uaDocId){
         try {
-            const snap=await db.collection('user_assets').doc(uaDocId).get();
-            if(!snap.exists){ toast('Record not found','ty'); return; }
+            const snap=await db.collection('user_assets').doc(uaDocId).get(); if(!snap.exists){ toast('Record not found','ty'); return; }
             const ua=snap.data();
             const remaining=(ua.installmentTotal||0)-(ua.installmentPaid||0);
             const monthly=ua.amount||0;
@@ -19381,17 +19601,7 @@ Prize: $${fmt(prize)}`);
     // ═══════════════════════════════════════
     // P2P MEMBER-TO-MEMBER MARKETPLACE
     // ═══════════════════════════════════════
-
-    function openP2PListModal(uaId, assetName, assetType){
-        document.getElementById('p2p-list-ua-id').value=uaId;
-        document.getElementById('p2p-list-asset-name').value=assetName;
-        document.getElementById('p2p-list-asset-type').value=assetType;
-        document.getElementById('p2p-list-title').value='';
-        document.getElementById('p2p-list-desc').value='';
-        document.getElementById('p2p-list-price-buy').value='';
-        document.getElementById('p2p-list-price-rent').value='';
-        openModal('m-p2p-list-asset');
-    }
+    function openP2PListModal(uaId,assetName,assetType){ document.getElementById('p2p-list-ua-id').value=uaId; document.getElementById('p2p-list-asset-name').value=assetName; document.getElementById('p2p-list-asset-type').value=assetType; document.getElementById('p2p-list-title').value=''; document.getElementById('p2p-list-desc').value=''; document.getElementById('p2p-list-price-buy').value=''; document.getElementById('p2p-list-price-rent').value=''; openModal('m-p2p-list-asset'); }
 
     async function submitP2PListing(){
         const uaId=document.getElementById('p2p-list-ua-id').value;
@@ -19405,24 +19615,13 @@ Prize: $${fmt(prize)}`);
         if(priceBuy<=0&&priceRent<=0){ toast('Set at least one price','ty'); return; }
         const u=window.CU;
         try {
-            // Fetch user's asset to get images
             const uaSnap=await db.collection('user_assets').doc(uaId).get();
             const ua=uaSnap.exists?uaSnap.data():{};
-            // Get original asset images
             let images=[];
-            if(ua.assetId){
-                const aSnap=await db.collection('assets').doc(ua.assetId).get();
-                if(aSnap.exists) images=aSnap.data().images||[];
-            }
+            if(ua.assetId){ const aSnap=await db.collection('assets').doc(ua.assetId).get(); if(aSnap.exists) images=aSnap.data().images||[]; }
             await db.collection('p2p_listings').add({
-                sellerUid:u.uid,
-                // Identity hidden from display — only stored for transactions
-                userAssetId:uaId,
-                assetName,assetType,
-                title,description:desc,
-                priceBuy,priceRent,
-                images,
-                status:'active',
+                sellerUid:u.uid,sellerName:u.name,
+                userAssetId:uaId,assetName,assetType,title,description:desc,priceBuy,priceRent,images,status:'active',
                 createdAt:firebase.firestore.FieldValue.serverTimestamp()
             });
             closeModal('m-p2p-list-asset');
@@ -19437,42 +19636,17 @@ Prize: $${fmt(prize)}`);
         try {
             const ft=document.getElementById('p2p-filter-type')?.value;
             const fm=document.getElementById('p2p-filter-mode')?.value;
-            // Simple query — no composite index needed
             const snap=await db.collection('p2p_listings').get();
             let docs=snap.docs.map(d=>({id:d.id,...d.data()}));
-            // Filter in JS to avoid needing Firestore indexes
             docs=docs.filter(l=>l.status==='active');
             if(ft) docs=docs.filter(l=>l.assetType===ft);
             if(fm==='buy') docs=docs.filter(l=>l.priceBuy>0);
             if(fm==='rent') docs=docs.filter(l=>l.priceRent>0);
-            // Exclude own listings
-            const uid=window.CU?.uid;
-            docs=docs.filter(l=>l.sellerUid!==uid);
+            const uid=window.CU?.uid; docs=docs.filter(l=>l.sellerUid!==uid);
             docs.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
             if(!docs.length){ el.innerHTML='<div class="es"><div class="ei">🤝</div>No member listings found</div>'; return; }
-            el.innerHTML=docs.map(l=>{
-                const imgHtml=(l.images&&l.images[0])
-                    ?`<img src="${l.images[0]}" style="width:100%;height:100%;object-fit:cover">`
-                    :`<div class="asset-img-placeholder">${assetIcon(l.assetType)}</div>`;
-                return `<div class="asset-card" onclick="openP2PDetail('${l.id}')">
-                    <div class="asset-img-wrap">${imgHtml}
-                        <div class="asset-type-badge" style="background:#FFD54F;color:#000">👤 MEMBER</div>
-                    </div>
-                    <div class="asset-body">
-                        <div class="asset-name">${l.title||l.assetName||'Listing'}</div>
-                        <div class="asset-loc" style="color:var(--gold);font-size:.72rem">Member · ${assetIcon(l.assetType)} ${(l.assetType||'').toUpperCase()}</div>
-                        <div class="asset-prices">
-                            ${l.priceBuy>0?`<div class="asset-price-box"><div class="asset-price-lbl">Buy</div><div class="asset-price-val">$${fmt(l.priceBuy)}</div></div>`:''}
-                            ${l.priceRent>0?`<div class="asset-price-box"><div class="asset-price-lbl">Rent/Day</div><div class="asset-price-val" style="color:var(--sky)">$${fmt(l.priceRent)}</div></div>`:''}
-                        </div>
-                        <div style="font-size:.68rem;color:var(--t3)">+10% Starlife fee</div>
-                    </div>
-                </div>`;
-            }).join('');
-        } catch(e){
-            const el2=document.getElementById('asset-p2p-list');
-            if(el2) el2.innerHTML=`<div class="es" style="color:var(--red)">Error: ${e.message}</div>`;
-        }
+            el.innerHTML=docs.map(l=>{ const imgHtml=(l.images&&l.images[0])?`<img src="${l.images[0]}" style="width:100%;height:100%;object-fit:cover">`:`<div class="asset-img-placeholder">${assetIcon(l.assetType)}</div>`; return `<div class="asset-card" onclick="openP2PDetail('${l.id}')"><div class="asset-img-wrap">${imgHtml}<div class="asset-type-badge" style="background:#FFD54F;color:#000">👤 MEMBER</div></div><div class="asset-body"><div class="asset-name">${l.title||l.assetName||'Listing'}</div><div class="asset-loc" style="color:var(--gold);font-size:.72rem">Member · ${assetIcon(l.assetType)} ${(l.assetType||'').toUpperCase()}</div><div style="font-size:.74rem;color:var(--t2);margin-bottom:6px">Listed by: ${l.sellerName||'Member'}</div><div class="asset-prices">${l.priceBuy>0?`<div class="asset-price-box"><div class="asset-price-lbl">Buy</div><div class="asset-price-val">$${fmt(l.priceBuy)}</div></div>`:''} ${l.priceRent>0?`<div class="asset-price-box"><div class="asset-price-lbl">Rent/Day</div><div class="asset-price-val" style="color:var(--sky)">$${fmt(l.priceRent)}</div></div>`:''}</div><div style="font-size:.68rem;color:var(--t3)">+10% Starlife fee</div></div></div>`; }).join('');
+        } catch(e){ const el2=document.getElementById('asset-p2p-list'); if(el2)el2.innerHTML=`<div class="es" style="color:var(--red)">Error: ${e.message}</div>`; }
     }
 
     async function openP2PDetail(listingId){
@@ -19481,15 +19655,13 @@ Prize: $${fmt(prize)}`);
             const snap=await db.collection('p2p_listings').doc(listingId).get();
             if(!snap.exists){ toast('Listing not found','ty'); return; }
             const l=snap.data(); window._currentP2PListing=l;
-            // Slider
-            _p2pSlideIdx=0; _p2pSlideImages=l.images||[];
-            buildP2PSlider(l.images);
+            _p2pSlideIdx=0; _p2pSlideImages=l.images||[]; buildP2PSlider(l.images);
             document.getElementById('m-p2p-title').textContent=l.title||l.assetName||'Listing';
             document.getElementById('m-p2p-asset-name').textContent=assetIcon(l.assetType)+' '+(l.assetName||'—');
             document.getElementById('m-p2p-desc').textContent=l.description||'';
             document.getElementById('m-p2p-listing-id').value=listingId;
             let ph='';
-            if(l.priceBuy>0) ph+=`<div class="asset-price-box"><div class="asset-price-lbl">Buy</div><div class="asset-price-val">$${fmt(l.priceBuy)}</div></div><div class="asset-price-box"><div class="asset-price-lbl">You Pay (+10%)</div><div class="asset-price-val" style="color:var(--gold)">$${fmt((l.priceBuy*1.10).toFixed(2))}</div></div>`;
+            if(l.priceBuy>0) ph+=`<div class="asset-price-box"><div class="asset-price-lbl">Buy</div><div class="asset-price-val">$${fmt(l.priceBuy)}</div></div><div class="asset-price-box"><div class="asset-price-lbl">You Pay (+10%)</div><div class="asset-price-val" style="color:var(--gold)">$${fmt(parseFloat((l.priceBuy*1.10).toFixed(2)))}</div></div>`;
             if(l.priceRent>0) ph+=`<div class="asset-price-box"><div class="asset-price-lbl">Rent/Day</div><div class="asset-price-val" style="color:var(--sky)">$${fmt(l.priceRent)}</div></div>`;
             document.getElementById('m-p2p-prices').innerHTML=ph;
             document.getElementById('m-p2p-btn-buy').style.display=l.priceBuy>0?'flex':'none';
@@ -19501,161 +19673,67 @@ Prize: $${fmt(prize)}`);
     async function doP2PAction(mode){
         const listingId=document.getElementById('m-p2p-listing-id').value;
         const l=window._currentP2PListing; if(!l) return;
-        if(mode==='rent'){
-            document.getElementById('m-p2p-rent-name').textContent=l.title||l.assetName;
-            document.getElementById('m-p2p-rent-days').value='';
-            document.getElementById('m-p2p-rent-preview').style.display='none';
-            window._p2pRentDailyRate=l.priceRent;
-            openModal('m-p2p-rent-dur'); return;
-        }
+        if(mode==='rent'){ document.getElementById('m-p2p-rent-name').textContent=l.title||l.assetName; document.getElementById('m-p2p-rent-days').value=''; document.getElementById('m-p2p-rent-preview').style.display='none'; window._p2pRentDailyRate=l.priceRent; openModal('m-p2p-rent-dur'); return; }
         const u=window.CU; if(!u){ toast('Please login','ty'); return; }
         const baseAmount=l.priceBuy;
         const fee=parseFloat((baseAmount*P2P_FEE_RATE).toFixed(2));
         const totalAmount=parseFloat((baseAmount+fee).toFixed(2));
         if(getAvailableBalance(u)<totalAmount){ toast(`Insufficient balance. Available: $${fmt(getAvailableBalance(u))}`,'tr'); return; }
-        if(!confirm(`Buy "${l.title||l.assetName}" for $${fmt(baseAmount)} + $${fmt(fee)} fee = $${fmt(totalAmount)} total?\n\n⚠️ This is a member-to-member transaction.`)) return;
+        if(!confirm(`Buy "${l.title||l.assetName}" for $${fmt(baseAmount)} + $${fmt(fee)} fee = $${fmt(totalAmount)}?\n\n⚠️ Member-to-member transaction.`)) return;
         closeModal('m-p2p-buy');
         await executeP2PPayment(listingId,l,'buy',baseAmount,fee,totalAmount);
     }
 
-    function calcP2PRentTotal(){
-        const days=parseFloat(document.getElementById('m-p2p-rent-days').value)||0;
-        const rate=window._p2pRentDailyRate||0;
-        if(days>0&&rate>0){
-            const sub=parseFloat((days*rate).toFixed(2));
-            const fee=parseFloat((sub*P2P_FEE_RATE).toFixed(2));
-            const total=parseFloat((sub+fee).toFixed(2));
-            document.getElementById('m-p2p-rent-preview').style.display='block';
-            document.getElementById('m-p2p-daily').textContent='$'+fmt(rate)+'/day';
-            document.getElementById('m-p2p-subtotal').textContent='$'+fmt(sub);
-            document.getElementById('m-p2p-fee').textContent='$'+fmt(fee);
-            document.getElementById('m-p2p-total').textContent='$'+fmt(total);
-        }
-    }
-    async function confirmP2PRent(){
-        const days=parseFloat(document.getElementById('m-p2p-rent-days').value)||0;
-        if(!days||days<1){ toast('Enter number of days','ty'); return; }
-        const rate=window._p2pRentDailyRate||0;
-        const sub=parseFloat((days*rate).toFixed(2));
-        const fee=parseFloat((sub*P2P_FEE_RATE).toFixed(2));
-        const total=parseFloat((sub+fee).toFixed(2));
-        const u=window.CU;
-        if(getAvailableBalance(u)<total){ toast(`Insufficient balance. Available: $${fmt(getAvailableBalance(u))}`,'tr'); return; }
-        closeModal('m-p2p-rent-dur'); closeModal('m-p2p-buy');
-        await executeP2PPayment(window._currentP2PListingId,window._currentP2PListing,'rent',sub,fee,total);
-    }
+    function calcP2PRentTotal(){ const days=parseFloat(document.getElementById('m-p2p-rent-days').value)||0,rate=window._p2pRentDailyRate||0; if(days>0&&rate>0){ const sub=parseFloat((days*rate).toFixed(2)),fee=parseFloat((sub*P2P_FEE_RATE).toFixed(2)),total=parseFloat((sub+fee).toFixed(2)); document.getElementById('m-p2p-rent-preview').style.display='block'; document.getElementById('m-p2p-daily').textContent='$'+fmt(rate)+'/day'; document.getElementById('m-p2p-subtotal').textContent='$'+fmt(sub); document.getElementById('m-p2p-fee').textContent='$'+fmt(fee); document.getElementById('m-p2p-total').textContent='$'+fmt(total); } }
+    async function confirmP2PRent(){ const days=parseFloat(document.getElementById('m-p2p-rent-days').value)||0; if(!days||days<1){ toast('Enter number of days','ty'); return; } const rate=window._p2pRentDailyRate||0,sub=parseFloat((days*rate).toFixed(2)),fee=parseFloat((sub*P2P_FEE_RATE).toFixed(2)),total=parseFloat((sub+fee).toFixed(2)),u=window.CU; if(getAvailableBalance(u)<total){ toast(`Insufficient balance. Available: $${fmt(getAvailableBalance(u))}`,'tr'); return; } closeModal('m-p2p-rent-dur'); closeModal('m-p2p-buy'); await executeP2PPayment(window._currentP2PListingId,window._currentP2PListing,'rent',sub,fee,total); }
 
     async function executeP2PPayment(listingId,l,mode,baseAmount,fee,totalAmount){
         const u=window.CU;
-        const sellerNet=parseFloat((baseAmount-0).toFixed(2)); // seller gets base, fee is on top
         try {
             const txId=genAssetTxId();
-            // Get seller uid
             const sellerUid=l.sellerUid;
             const batch=db.batch();
-            // Deduct from buyer
             batch.update(db.collection('users').doc(u.uid),{balance:firebase.firestore.FieldValue.increment(-totalAmount)});
-            // Credit seller (base amount only — buyer pays fee on top)
             batch.update(db.collection('users').doc(sellerUid),{balance:firebase.firestore.FieldValue.increment(baseAmount)});
-            // Record receipt for buyer
             const rcRef=db.collection('receipts').doc();
-            batch.set(rcRef,{
-                uid:u.uid,userName:u.name,userEmail:u.email,
-                assetId:listingId,assetName:l.assetName,assetType:l.assetType,
-                amountPaid:totalAmount,paymentType:mode,isP2P:true,
-                shipFee:0,destination:'',
-                sender:u.name,receiver:'Member Seller',txId,
-                dateTime:new Date().toISOString(),
-                createdAt:firebase.firestore.FieldValue.serverTimestamp()
-            });
-            // Record receipt for seller
-            batch.set(db.collection('receipts').doc(),{
-                uid:sellerUid,userName:'Member Seller',
-                assetId:listingId,assetName:l.assetName,assetType:l.assetType,
-                amountPaid:baseAmount,paymentType:mode+'_p2p_earned',isP2P:true,
-                shipFee:0,destination:'',
-                sender:'Member Buyer',receiver:'You',txId,
-                dateTime:new Date().toISOString(),
-                createdAt:firebase.firestore.FieldValue.serverTimestamp()
-            });
-            // Platform fee record
-            batch.set(db.collection('platformFees').doc(),{
-                type:'p2p_asset',amt:fee,uid:u.uid,
-                userName:u.name,txId,
-                createdAt:firebase.firestore.FieldValue.serverTimestamp()
-            });
-            // Create user_asset for buyer
+            batch.set(rcRef,{uid:u.uid,userName:u.name,userEmail:u.email,assetId:listingId,assetName:l.assetName,assetType:l.assetType,amountPaid:totalAmount,paymentType:mode,isP2P:true,shipFee:0,shippingAddress:'',sender:u.name,receiver:l.sellerName||'Member Seller',txId,dateTime:new Date().toISOString(),createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+            batch.set(db.collection('receipts').doc(),{uid:sellerUid,userName:l.sellerName||'Seller',assetId:listingId,assetName:l.assetName,assetType:l.assetType,amountPaid:baseAmount,paymentType:mode+'_p2p_earned',isP2P:true,shipFee:0,shippingAddress:'',sender:u.name,receiver:'You',txId,dateTime:new Date().toISOString(),createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+            batch.set(db.collection('platformFees').doc(),{type:'p2p_asset',amt:fee,uid:u.uid,userName:u.name,txId,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
             const uaRef=db.collection('user_assets').doc();
-            batch.set(uaRef,{
-                uid:u.uid,userName:u.name,userEmail:u.email,
-                assetId:listingId,assetName:l.assetName,assetType:l.assetType,
-                mode,amount:totalAmount,txId,status:'active',isP2P:true,
-                installmentPaid:0,installmentTotal:0,installmentMonths:0,
-                createdAt:firebase.firestore.FieldValue.serverTimestamp()
-            });
-            // Mark listing as sold/rented if buy
+            batch.set(uaRef,{uid:u.uid,userName:u.name,userEmail:u.email,assetId:listingId,assetName:l.assetName,assetType:l.assetType,mode,amount:totalAmount,txId,status:'active',isP2P:true,installmentPaid:0,installmentTotal:0,installmentMonths:0,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
             if(mode==='buy') batch.update(db.collection('p2p_listings').doc(listingId),{status:'sold'});
             await batch.commit();
-            // Create P2P contract for BUYER
-            window._contractCreateUid=u.uid; window._contractCreateName=u.name; window._contractCreateEmail=u.email;
+            // Contract with BOTH names shown, masked emails
             await db.collection('contracts').add({
                 contractId:'P2P-'+txId,txId,userAssetId:uaRef.id,
                 uid:u.uid,userName:u.name,userEmail:u.email,
-                party2Type:'member',party2Uid:sellerUid,party2Name:'Member Seller (Identity Protected)',
-                assetId:listingId,assetName:l.assetName,assetType:l.assetType,
-                assetLocation:'Member Listed Asset',mode,amount:totalAmount,
-                startDate:new Date().toISOString(),
-                endDate:new Date(Date.now()+(mode==='rent'?30:365)*24*3600*1000).toISOString(),
-                status:'pending',userSignature:null,starlifeSignature:'STARLIFE_AUTO_SIGN',
-                isP2P:true,
+                party2Type:'member',party2Uid:sellerUid,party2Name:l.sellerName||'Member Seller',party2Email:'',
+                assetId:listingId,assetName:l.assetName,assetType:l.assetType,assetLocation:'Member Listed Asset',
+                mode,amount:totalAmount,shipFee:0,shippingAddress:'',
+                startDate:new Date().toISOString(),endDate:new Date(Date.now()+(mode==='rent'?30:365)*24*3600*1000).toISOString(),
+                status:'pending',userSignature:null,sellerSignature:null,starlifeSignature:'STARLIFE_AUTO_SIGN',
+                isP2P:true,requiresSellerSig:true,
                 createdAt:firebase.firestore.FieldValue.serverTimestamp()
             });
-            // Notify seller
-            await db.collection('userNotifs').add({uid:sellerUid,msg:`💰 Your listing "${l.assetName}" was ${mode==='buy'?'sold':'rented'}! $${fmt(baseAmount)} credited to your balance.`,read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-            logAct(u.uid,`P2P ${mode}: ${l.assetName} — Total: $${fmt(totalAmount)} (Fee: $${fmt(fee)})`,-totalAmount,'🤝','p2p_asset');
-            tg(`🤝 <b>P2P Asset ${mode.toUpperCase()}</b>\nBuyer: ${u.name}\nAsset: ${l.assetName}\nTotal: $${fmt(totalAmount)}\nSeller gets: $${fmt(baseAmount)}\nFee: $${fmt(fee)}\nTxID: ${txId}`);
+            await db.collection('userNotifs').add({uid:sellerUid,msg:`💰 Your listing "${l.assetName}" was ${mode==='buy'?'sold':'rented'}! $${fmt(baseAmount)} credited. Please sign the contract.`,read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+            logAct(u.uid,`P2P ${mode}: ${l.assetName} — Total: $${fmt(totalAmount)}`,-totalAmount,'🤝','p2p_asset');
+            tg(`🤝 <b>P2P ${mode.toUpperCase()}</b>\nBuyer: ${u.name}\nSeller: ${l.sellerName||'Member'}\nAsset: ${l.assetName}\nTotal: $${fmt(totalAmount)}\nFee: $${fmt(fee)}\nTxID: ${txId}`);
             window.CU.balance=(u.balance||0)-totalAmount;
             if(typeof updateUI==='function') updateUI();
-            toast(`✅ ${mode==='buy'?'Purchase':'Rental'} complete! $${fmt(baseAmount)} paid to seller. Contract generated.`);
+            toast(`✅ ${mode==='buy'?'Purchase':'Rental'} complete! Both parties must sign the contract.`);
             setTimeout(()=>viewReceiptByTxId(txId),600);
         } catch(e){ toast('Error: '+e.message,'tr'); }
     }
 
-    async function loadMyP2PListings(){
-        const el=document.getElementById('ma-listings-list'); if(!el) return;
-        el.innerHTML='<div class="es">Loading…</div>';
-        const u=window.CU; if(!u) return;
-        try {
-            const snap=await db.collection('p2p_listings').where('sellerUid','==',u.uid).get();
-            if(snap.empty){ el.innerHTML='<div class="es"><div class="ei">📢</div>No listings yet. Go to "Owned" to list an asset.</div>'; return; }
-            const docs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
-            el.innerHTML=docs.map(l=>`
-                <div class="my-asset-row" style="display:flex;justify-content:space-between;align-items:flex-start">
-                    <div>
-                        <div style="font-weight:700">${assetIcon(l.assetType)} ${l.title||l.assetName}</div>
-                        <div style="font-size:.74rem;color:var(--t3)">${l.priceBuy>0?'Buy: $'+fmt(l.priceBuy):''} ${l.priceRent>0?'Rent: $'+fmt(l.priceRent)+'/day':''} · ${fmtD(l.createdAt)}</div>
-                    </div>
-                    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-                        <span class="badge ${l.status==='active'?'bg':l.status==='sold'?'br':'bgold'}">${l.status||'active'}</span>
-                        <button class="btn btn-d btn-sm" onclick="cancelP2PListing('${l.id}')">Remove</button>
-                    </div>
-                </div>`).join('');
-        } catch(e){ el.innerHTML=`<div class="es" style="color:var(--red)">${e.message}</div>`; }
-    }
+    async function cancelP2PListing(id){ if(!confirm('Remove this listing?')) return; await db.collection('p2p_listings').doc(id).update({status:'removed'}); toast('Listing removed'); loadMyP2PListings(); }
 
-    async function cancelP2PListing(id){
-        if(!confirm('Remove this listing?')) return;
-        await db.collection('p2p_listings').doc(id).update({status:'removed'});
-        toast('Listing removed');
-        loadMyP2PListings();
-    }
-
-    // ═══ ADMIN ASSET FUNCTIONS ═══
+    // ═══ ADMIN ASSETS ═══
     window._adminAssetImages=[];
     async function adminSaveAsset(){
         const editId=document.getElementById('aasset-edit-id').value;
         const name=document.getElementById('aasset-name').value.trim();
         if(!name){ toast('Enter asset name','ty'); return; }
+        const stockVal=document.getElementById('aasset-stock').value;
         const data={
             name,type:document.getElementById('aasset-type').value,
             physical:document.getElementById('aasset-physical').value==='true',
@@ -19665,6 +19743,8 @@ Prize: $${fmt(prize)}`);
             priceRent:parseFloat(document.getElementById('aasset-price-rent').value)||0,
             priceInstall:parseFloat(document.getElementById('aasset-price-install').value)||0,
             installMonths:parseInt(document.getElementById('aasset-install-months').value)||12,
+            stock:stockVal?parseInt(stockVal):null,
+            visitOption:document.getElementById('aasset-visit').value,
             status:document.getElementById('aasset-status').value,
             images:window._adminAssetImages||[],
             updatedAt:firebase.firestore.FieldValue.serverTimestamp()
@@ -19676,110 +19756,56 @@ Prize: $${fmt(prize)}`);
             adminResetAssetForm(); loadAdminAssets('all');
         } catch(e){ toast('Error: '+e.message,'tr'); }
     }
-    function adminResetAssetForm(){
-        ['aasset-edit-id','aasset-name','aasset-location','aasset-desc','aasset-price-buy','aasset-price-rent','aasset-price-install','aasset-install-months'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-        window._adminAssetImages=[]; renderAdminAssetImgGrid();
-    }
-    function adminAssetImgSelected(input){
-        const file=input.files[0]; if(!file) return;
-        if(file.size>1.5*1024*1024){ toast('Image too large. Max 1.5MB','ty'); return; }
-        if(window._adminAssetImages.length>=3){ toast('Max 3 images','ty'); return; }
-        const reader=new FileReader();
-        reader.onload=e=>{
-            const img=new Image();
-            img.onload=()=>{
-                const cv=document.createElement('canvas');
-                const MAX=800; let w=img.width,h=img.height;
-                if(w>MAX){h=Math.round(h*MAX/w);w=MAX;} if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
-                cv.width=w; cv.height=h;
-                cv.getContext('2d').drawImage(img,0,0,w,h);
-                window._adminAssetImages.push(cv.toDataURL('image/jpeg',0.75));
-                renderAdminAssetImgGrid(); input.value='';
-            };
-            img.src=e.target.result;
-        };
-        reader.readAsDataURL(file);
-    }
-    function renderAdminAssetImgGrid(){
-        const grid=document.getElementById('aasset-img-grid'); if(!grid) return;
-        const imgs=window._adminAssetImages||[];
-        let html=imgs.map((src,i)=>`<div class="asset-img-thumb"><img src="${src}"><button class="rm-img" onclick="adminRemoveAssetImg(${i})">✕</button></div>`).join('');
-        if(imgs.length<3) html+=`<div class="asset-img-add" onclick="document.getElementById('aasset-img-input').click()">+</div>`;
-        grid.innerHTML=html;
-    }
+    function adminResetAssetForm(){ ['aasset-edit-id','aasset-name','aasset-location','aasset-desc','aasset-price-buy','aasset-price-rent','aasset-price-install','aasset-install-months','aasset-stock'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; }); window._adminAssetImages=[]; renderAdminAssetImgGrid(); }
+    function adminAssetImgSelected(input){ const file=input.files[0]; if(!file) return; if(file.size>1.5*1024*1024){ toast('Image too large. Max 1.5MB','ty'); return; } if(window._adminAssetImages.length>=3){ toast('Max 3 images','ty'); return; } const reader=new FileReader(); reader.onload=e=>{ const img=new Image(); img.onload=()=>{ const cv=document.createElement('canvas'); const MAX=800; let w=img.width,h=img.height; if(w>MAX){h=Math.round(h*MAX/w);w=MAX;} if(h>MAX){w=Math.round(w*MAX/h);h=MAX;} cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h); window._adminAssetImages.push(cv.toDataURL('image/jpeg',0.75)); renderAdminAssetImgGrid(); input.value=''; }; img.src=e.target.result; }; reader.readAsDataURL(file); }
+    function renderAdminAssetImgGrid(){ const grid=document.getElementById('aasset-img-grid'); if(!grid) return; const imgs=window._adminAssetImages||[]; let html=imgs.map((src,i)=>`<div class="asset-img-thumb"><img src="${src}"><button class="rm-img" onclick="adminRemoveAssetImg(${i})">✕</button></div>`).join(''); if(imgs.length<3) html+=`<div class="asset-img-add" onclick="document.getElementById('aasset-img-input').click()">+</div>`; grid.innerHTML=html; }
     function adminRemoveAssetImg(i){ window._adminAssetImages.splice(i,1); renderAdminAssetImgGrid(); }
 
     async function loadAdminAssets(status){
         const el=document.getElementById('at-assets-list'); if(!el) return;
         el.innerHTML='<div class="es">Loading…</div>';
         try {
-            let q=db.collection('assets');
-            if(status&&status!=='all') q=q.where('status','==',status);
-            const snap=await q.get();
-            if(snap.empty){ el.innerHTML='<div class="es">No assets found</div>'; return; }
-            el.innerHTML=snap.docs.map(d=>{
-                const a=d.data();
+            const snap=await db.collection('assets').get();
+            let docs=snap.docs.map(d=>({id:d.id,...d.data()}));
+            if(status&&status!=='all') docs=docs.filter(a=>a.status===status);
+            if(!docs.length){ el.innerHTML='<div class="es">No assets found</div>'; return; }
+            el.innerHTML=docs.map(d=>{ const a=d.data?d:({data:()=>d,id:d.id}); const ad=typeof d.data==='function'?d.data():d; const did=d.id||ad.id;
                 return `<div class="arow"><div class="ar-top">
-                    <div><div class="ar-name">${assetIcon(a.type)} ${a.name||'—'}</div>
-                    <div class="ar-sub">${a.type||'—'} · ${a.location||'—'} · Buy:$${fmt(a.priceBy||0)} Rent:$${fmt(a.priceRent||0)}/day</div></div>
-                    <span class="badge ${a.status==='available'?'bg':a.status==='rented'?'bsky':'br'}">${a.status||'—'}</span></div>
+                    <div><div class="ar-name">${assetIcon(ad.type)} ${ad.name||'—'} ${ad.stock!==null&&ad.stock!==undefined?`<span class="badge bsky" style="font-size:.65rem">${ad.stock} in stock</span>`:''}</div>
+                    <div class="ar-sub">${ad.type||'—'} · ${ad.location||'—'} · Buy:$${fmt(ad.priceBy||0)} Rent:$${fmt(ad.priceRent||0)}/day · Visit: ${ad.visitOption||'none'}</div></div>
+                    <span class="badge ${ad.status==='available'?'bg':ad.status==='rented'?'bsky':'br'}">${ad.status||'—'}</span></div>
                     <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-                        <button class="btn btn-gh btn-sm" onclick="adminEditAsset('${d.id}')">✏️ Edit</button>
-                        <button class="btn btn-d btn-sm" onclick="adminDeleteAsset('${d.id}','${(a.name||'').replace(/'/g,'')}')">🗑 Delete</button>
-                        <button class="btn btn-sky btn-sm" onclick="adminToggleAssetStatus('${d.id}','${a.status}')">⏻ Toggle</button>
-                    </div>
-                </div>`;
+                        <button class="btn btn-gh btn-sm" onclick="adminEditAsset('${did}')">✏️ Edit</button>
+                        <button class="btn btn-d btn-sm" onclick="adminDeleteAsset('${did}','${(ad.name||'').replace(/'/g,'')}')">🗑 Delete</button>
+                        <button class="btn btn-sky btn-sm" onclick="adminToggleAssetStatus('${did}','${ad.status}')">⏻ Toggle</button>
+                    </div></div>`;
             }).join('');
         } catch(e){ el.innerHTML=`<div class="es" style="color:var(--red)">${e.message}</div>`; }
     }
-    async function adminEditAsset(id){
-        const snap=await db.collection('assets').doc(id).get(); if(!snap.exists) return;
-        const a=snap.data();
-        document.getElementById('aasset-edit-id').value=id;
-        document.getElementById('aasset-name').value=a.name||'';
-        document.getElementById('aasset-type').value=a.type||'house';
-        document.getElementById('aasset-physical').value=a.physical?'true':'false';
-        document.getElementById('aasset-location').value=a.location||'';
-        document.getElementById('aasset-desc').value=a.description||'';
-        document.getElementById('aasset-price-buy').value=a.priceBy||'';
-        document.getElementById('aasset-price-rent').value=a.priceRent||'';
-        document.getElementById('aasset-price-install').value=a.priceInstall||'';
-        document.getElementById('aasset-install-months').value=a.installMonths||'';
-        document.getElementById('aasset-status').value=a.status||'available';
-        window._adminAssetImages=[...(a.images||[])]; renderAdminAssetImgGrid();
-        document.getElementById('aasset-name').scrollIntoView({behavior:'smooth'});
-        toast('Asset loaded for editing ✓');
-    }
-    async function adminDeleteAsset(id,name){
-        if(!confirm(`Delete asset "${name}"?`)) return;
-        await db.collection('assets').doc(id).delete();
-        toast('Asset deleted'); loadAdminAssets('all');
-    }
-    async function adminToggleAssetStatus(id,current){
-        const next=current==='available'?'inactive':current==='inactive'?'available':current;
-        await db.collection('assets').doc(id).update({status:next});
-        toast('Status: '+next); loadAdminAssets('all');
-    }
+    async function adminEditAsset(id){ const snap=await db.collection('assets').doc(id).get(); if(!snap.exists) return; const a=snap.data(); document.getElementById('aasset-edit-id').value=id; document.getElementById('aasset-name').value=a.name||''; document.getElementById('aasset-type').value=a.type||'house'; document.getElementById('aasset-physical').value=a.physical?'true':'false'; document.getElementById('aasset-location').value=a.location||''; document.getElementById('aasset-desc').value=a.description||''; document.getElementById('aasset-price-buy').value=a.priceBy||''; document.getElementById('aasset-price-rent').value=a.priceRent||''; document.getElementById('aasset-price-install').value=a.priceInstall||''; document.getElementById('aasset-install-months').value=a.installMonths||''; document.getElementById('aasset-stock').value=a.stock!=null?a.stock:''; document.getElementById('aasset-visit').value=a.visitOption||'none'; document.getElementById('aasset-status').value=a.status||'available'; window._adminAssetImages=[...(a.images||[])]; renderAdminAssetImgGrid(); document.getElementById('aasset-name').scrollIntoView({behavior:'smooth'}); toast('Asset loaded for editing ✓'); }
+    async function adminDeleteAsset(id,name){ if(!confirm(`Delete asset "${name}"?`)) return; await db.collection('assets').doc(id).delete(); toast('Asset deleted'); loadAdminAssets('all'); }
+    async function adminToggleAssetStatus(id,current){ const next=current==='available'?'inactive':current==='inactive'?'available':current; await db.collection('assets').doc(id).update({status:next}); toast('Status: '+next); loadAdminAssets('all'); }
 
     async function loadAdminContracts(status){
         const el=document.getElementById('at-contracts-list'); if(!el) return;
         el.innerHTML='<div class="es">Loading…</div>';
         try {
-            let q=db.collection('contracts');
-            if(status==='pending') q=q.where('status','==','pending');
-            if(status==='active') q=q.where('status','==','active');
-            const snap=await q.get();
-            if(snap.empty){ el.innerHTML='<div class="es">No contracts</div>'; return; }
-            const docs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
-            el.innerHTML=docs.map(c=>`
-                <div class="arow"><div class="ar-top">
-                    <div><div class="ar-name">📄 ${c.assetName||'—'} — ${(c.mode||'').toUpperCase()}${c.isP2P?' 🤝 P2P':''}</div>
-                    <div class="ar-sub">${c.userName||'—'} · $${fmt(c.amount||0)} · ${fmtD(c.createdAt)}</div></div>
-                    <span class="badge ${c.userSignature?'bg':'bgold'}">${c.userSignature?'Signed':'Unsigned'}</span>
+            const snap=await db.collection('contracts').get();
+            let docs=snap.docs.map(d=>({id:d.id,...d.data()}));
+            if(status==='pending') docs=docs.filter(c=>c.status==='pending'||c.status==='pending_seller');
+            if(status==='active') docs=docs.filter(c=>c.status==='active');
+            docs.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+            if(!docs.length){ el.innerHTML='<div class="es">No contracts</div>'; return; }
+            el.innerHTML=docs.map(c=>{
+                const bothSigned=c.userSignature&&(c.party2Type!=='member'||c.sellerSignature);
+                return `<div class="arow"><div class="ar-top">
+                    <div><div class="ar-name">📄 ${c.assetName||'—'} — ${(c.mode||'').toUpperCase()}${c.isP2P?' 🤝 P2P':''} ${c.status==='cancelled'?'<span class="badge br">Cancelled</span>':''}</div>
+                    <div class="ar-sub">${c.userName||'—'} (${maskEmail(c.userEmail)}) · $${fmt(c.amount||0)} · ${fmtD(c.createdAt)}${c.shippingAddress?' · 📦 '+c.shippingAddress.substring(0,25):''}</div></div>
+                    <span class="badge ${bothSigned?'bg':c.status==='cancelled'?'br':'bgold'}">${bothSigned?'Fully Signed':c.status==='cancelled'?'Cancelled':c.userSignature?'Partial':'Unsigned'}</span>
                 </div>
-                <div style="margin-top:8px">
-                    <button class="btn btn-sky btn-sm" onclick="adminViewContract('${c.id}')">👁 View Contract + Signature</button>
-                </div></div>`).join('');
+                <div style="margin-top:8px"><button class="btn btn-sky btn-sm" onclick="adminViewContract('${c.id}')">👁 View + Signatures</button></div>
+                </div>`;
+            }).join('');
         } catch(e){ el.innerHTML=`<div class="es" style="color:var(--red)">${e.message}</div>`; }
     }
 
@@ -19787,26 +19813,52 @@ Prize: $${fmt(prize)}`);
         const el=document.getElementById('at-shipping-list'); if(!el) return;
         el.innerHTML='<div class="es">Loading…</div>';
         try {
-            const snap=await db.collection('shipping').orderBy('createdAt','desc').limit(50).get();
-            if(snap.empty){ el.innerHTML='<div class="es">No shipping orders</div>'; return; }
-            el.innerHTML=snap.docs.map(d=>{
-                const s=d.data();
-                return `<div class="arow"><div class="ar-top">
-                    <div><div class="ar-name">🚚 ${s.assetName||'—'}</div>
-                    <div class="ar-sub">${s.userName||'—'} · ${s.origin||'—'} → ${s.destination||'—'} · Fee: $${fmt(s.fee||0)} · Size: ${s.size||'—'}</div></div>
-                    <span class="badge ${s.status==='delivered'?'bg':s.status==='shipped'?'bsky':'bgold'}">${s.status||'pending'}</span>
-                </div>
-                <div style="display:flex;gap:6px;margin-top:8px">
-                    <button class="btn btn-sky btn-sm" onclick="adminUpdateShipping('${d.id}','shipped')">Mark Shipped</button>
-                    <button class="btn btn-p btn-sm" onclick="adminUpdateShipping('${d.id}','delivered')">Mark Delivered</button>
-                </div></div>`;
-            }).join('');
+            const snap=await db.collection('shipping').get();
+            const docs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+            if(!docs.length){ el.innerHTML='<div class="es">No shipping orders</div>'; return; }
+            el.innerHTML=docs.map(s=>`<div class="arow"><div class="ar-top">
+                <div><div class="ar-name">🚚 ${s.assetName||'—'}</div>
+                <div class="ar-sub">${s.userName||'—'} · ${s.origin||'—'} → ${s.destination||'—'} · Fee: $${fmt(s.fee||0)} · ${s.size||'—'}</div></div>
+                <span class="badge ${s.status==='delivered'?'bg':s.status==='shipping'?'bsky':s.status==='cancelled'?'br':'bgold'}">${s.status||'pending'}</span>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+                <button class="btn btn-sky btn-sm" onclick="adminUpdateShipping('${s.id}','shipping')">Mark Shipping</button>
+                <button class="btn btn-p btn-sm" onclick="adminUpdateShipping('${s.id}','delivered')">Mark Delivered</button>
+            </div></div>`).join('');
         } catch(e){ el.innerHTML=`<div class="es" style="color:var(--red)">${e.message}</div>`; }
     }
     async function adminUpdateShipping(id,status){
         await db.collection('shipping').doc(id).update({status,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+        // Update user_asset delivery status
+        const sSnap=await db.collection('shipping').doc(id).get();
+        if(sSnap.exists){
+            const s=sSnap.data();
+            const uaSnap=await db.collection('user_assets').where('txId','==',s.txId).limit(1).get();
+            if(!uaSnap.empty) await uaSnap.docs[0].ref.update({status:status==='delivered'?'active':status,deliveryStatus:status});
+            if(s.uid) await db.collection('userNotifs').add({uid:s.uid,msg:`📦 Your "${s.assetName}" delivery status updated to: ${status==='delivered'?'✅ Delivered':'🚚 Shipping'}`,read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+        }
         toast('Shipping: '+status); loadAdminShipping();
     }
+
+    // Also load admin receipts
+    async function loadAdminReceipts(){
+        const el=document.getElementById('at-receipts-list'); if(!el) return;
+        el.innerHTML='<div class="es">Loading…</div>';
+        try {
+            const snap=await db.collection('receipts').get();
+            const docs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0)).slice(0,100);
+            if(!docs.length){ el.innerHTML='<div class="es">No receipts</div>'; return; }
+            el.innerHTML=docs.map(r=>`<div class="arow"><div class="ar-top">
+                <div><div class="ar-name">${assetIcon(r.assetType)} ${r.assetName||'—'} ${r.isP2P?'🤝':''}</div>
+                <div class="ar-sub">${r.userName||'—'} (${maskEmail(r.userEmail)}) · $${fmt(r.amountPaid||0)} · ${(r.paymentType||'').replace('_',' ')} · ${fmtD(r.createdAt)}</div>
+                ${r.shippingAddress?`<div style="font-size:.7rem;color:var(--sky)">📦 ${r.shippingAddress}</div>`:''}</div>
+                <span class="badge bg">$${fmt(r.amountPaid||0)}</span>
+            </div>
+            <button class="btn btn-gh btn-sm" style="margin-top:6px" onclick="adminViewReceipt('${r.id}')">🧾 View</button>
+            </div>`).join('');
+        } catch(e){ el.innerHTML=`<div class="es" style="color:var(--red)">${e.message}</div>`; }
+    }
+    function adminViewReceipt(id){ viewReceiptById(id); }
 
     // ═══ PATCH ADMIN TABS ═══
     (function patchAdminTabs(){
@@ -19816,18 +19868,15 @@ Prize: $${fmt(prize)}`);
             setTimeout(()=>{
                 const wrap=document.getElementById('admin-tabs-wrap'); if(!wrap) return;
                 if(document.getElementById('atbtn-assets')) return;
-                const btn=document.createElement('div');
-                btn.id='atbtn-assets'; btn.className='itab'; btn.textContent='🏪 Assets';
-                btn.onclick=()=>{ if(typeof atab==='function') atab(btn,'at-assets'); loadAdminAssets('all'); loadAdminContracts('all'); loadAdminShipping(); };
+                const btn=document.createElement('div'); btn.id='atbtn-assets'; btn.className='itab'; btn.textContent='🏪 Assets';
+                btn.onclick=()=>{ if(typeof atab==='function') atab(btn,'at-assets'); loadAdminAssets('all'); loadAdminContracts('all'); loadAdminShipping(); loadAdminReceipts(); };
                 wrap.appendChild(btn);
             },300);
         };
     })();
 
-    // Register all new functions as safe stubs
-    ['openAssetDetail','loadAssetMarket','loadMyAssets','loadMyOwnedAssets','loadMyRentingAssets','loadMyContracts','loadMyReceipts','loadMyP2PListings','viewContract','signContract','clearSig','doAssetAction','confirmRent','calcRentTotal','calcAssetShipping','confirmShipping','adminSaveAsset','adminResetAssetForm','adminEditAsset','adminDeleteAsset','adminToggleAssetStatus','loadAdminAssets','loadAdminContracts','loadAdminShipping','adminUpdateShipping','printReceipt','openInstallmentPayment','viewReceiptByTxId','viewReceiptById','viewContractByTxId','adminAssetImgSelected','adminRemoveAssetImg','adminViewContract','loadP2PMarketplace','openP2PDetail','doP2PAction','calcP2PRentTotal','confirmP2PRent','submitP2PListing','openP2PListModal','cancelP2PListing','slideAsset','slideP2P','goSlide'].forEach(n=>{
-        window['_real_'+n]=window[n];
-    });
+    // Register stubs
+    ['openAssetDetail','loadAssetMarket','loadMyAssets','loadMyOwnedAssets','loadMyRentingAssets','loadMyContracts','loadMyReceipts','loadMyP2PListings','viewContract','signContract','clearSig','doAssetAction','confirmRent','calcRentTotal','calcAssetShipping','confirmShipping','adminSaveAsset','adminResetAssetForm','adminEditAsset','adminDeleteAsset','adminToggleAssetStatus','loadAdminAssets','loadAdminContracts','loadAdminShipping','adminUpdateShipping','printReceipt','openInstallmentPayment','viewReceiptByTxId','viewReceiptById','viewContractByTxId','adminAssetImgSelected','adminRemoveAssetImg','adminViewContract','loadP2PMarketplace','openP2PDetail','doP2PAction','calcP2PRentTotal','confirmP2PRent','submitP2PListing','openP2PListModal','cancelP2PListing','slideAsset','slideP2P','goSlide','openVisitSchedule','selectVisitTransport','confirmVisitSchedule','openCancelContractModal','confirmCancelContract','openCancelByUaId','openSellerSignModal','clearSellerSig','submitSellerSignature','loadAdminReceipts','adminViewReceipt'].forEach(n=>{ window['_real_'+n]=window[n]; });
     </script>
 </body>
 

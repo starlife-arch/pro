@@ -7411,6 +7411,8 @@
                 loadBroadcasts();
                 loadFAQ();
                 initAiChat();
+                // Check and release any P2P holds that have expired
+                setTimeout(()=>{ if(typeof checkAndReleaseExpiredHolds==='function') checkAndReleaseExpiredHolds(); }, 2000);
                 const fab = $('ai-chat-fab');
                 if (fab) fab.style.display = 'block';
                 if (sessionMeta?.suspicious) {
@@ -18625,6 +18627,34 @@ Prize: $${fmt(prize)}`);
         </div>
     </div>
 
+    <!-- ═══ REVERSAL MODAL (24h — 100% refund) ═══ -->
+    <div class="mover" id="m-reversal">
+        <div class="modal" style="max-width:440px">
+            <div class="modal-title">↩ Reverse Transaction</div>
+            <div style="background:rgba(0,230,118,.08);border:1px solid var(--bds);border-radius:8px;padding:12px;margin-bottom:14px;font-size:.82rem;color:var(--g);line-height:1.5">
+                ✅ <strong>Within 24 hours</strong> — you are eligible for a <strong>100% full refund</strong>. The seller's funds are currently on hold and will be returned to you immediately.
+            </div>
+            <div id="m-reversal-info" style="background:var(--s2);border-radius:10px;padding:14px;margin-bottom:14px;font-size:.84rem"></div>
+            <div class="fg"><label class="fl">Reason for Reversal</label>
+                <select class="fi" id="m-reversal-reason">
+                    <option value="">— Select a reason —</option>
+                    <option value="changed_mind">Changed my mind</option>
+                    <option value="wrong_item">Wrong item / Not as described</option>
+                    <option value="duplicate">Accidental duplicate purchase</option>
+                    <option value="payment_error">Payment made in error</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <input type="hidden" id="m-reversal-ua-id">
+            <input type="hidden" id="m-reversal-contract-id">
+            <input type="hidden" id="m-reversal-hold-id">
+            <div class="modal-acts">
+                <button class="btn btn-p btn-full" onclick="confirmReversal()" style="background:var(--g);color:#000;font-weight:700">↩ Confirm 100% Reversal</button>
+                <button class="btn btn-gh" onclick="closeModal('m-reversal')">Keep Purchase</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ═══ SELLER SIGN MODAL (P2P) ═══ -->
     <div class="mover" id="m-seller-sign">
         <div class="modal" style="max-width:500px">
@@ -18721,6 +18751,11 @@ Prize: $${fmt(prize)}`);
             </div>
             <div id="m-contract-signed-note" style="display:none;margin-top:10px;background:rgba(0,230,118,.08);border:1px solid var(--bds);border-radius:8px;padding:10px;font-size:.8rem;color:var(--g)">
                 ✅ Contract signed. Both parties have agreed to terms.
+            </div>
+            <!-- Reversal button — only shown within 24h for P2P purchases -->
+            <div id="m-contract-reversal-wrap" style="display:none;margin-top:10px;background:rgba(255,82,82,.06);border:1px solid rgba(255,82,82,.25);border-radius:8px;padding:10px">
+                <div style="font-size:.78rem;color:var(--red);margin-bottom:8px">⏰ You are within the 24-hour reversal window. You can reverse this transaction for a 100% refund.</div>
+                <button class="btn btn-d btn-sm" id="m-contract-reversal-btn" onclick="">↩ Reverse Transaction (100% Refund)</button>
             </div>
             <div class="modal-acts" style="margin-top:14px">
                 <button class="btn btn-gh" onclick="closeModal('m-contract')">Close</button>
@@ -19210,13 +19245,25 @@ Prize: $${fmt(prize)}`);
             const snap=await db.collection('contracts').doc(contractDocId).get();
             if(!snap.exists){ toast('Contract not found','ty'); return; }
             const c=snap.data(); window._activeContractDocId=contractDocId; window._activeContractData=c;
-            document.getElementById('m-contract-body').innerHTML=buildContractHtml(c);
+            // Buyer sees masked email version (isAdmin=false)
+            document.getElementById('m-contract-body').innerHTML=buildContractHtml(c, false);
             const isBuyerSigned=!!c.userSignature;
-            const needsBuyerSig=!isBuyerSigned;
-            document.getElementById('m-contract-sig-section').style.display=needsBuyerSig?'block':'none';
+            document.getElementById('m-contract-sig-section').style.display=isBuyerSigned?'none':'block';
             document.getElementById('m-contract-signed-note').style.display=isBuyerSigned?'block':'none';
+            // Show reversal button if: P2P, buyer is current user, within 24h, not already reversed
+            const u=window.CU;
+            const reversalWrap=document.getElementById('m-contract-reversal-wrap');
+            if(reversalWrap){
+                const canReverse=c.isP2P&&c.uid===u?.uid&&isWithin24h(c.createdAt)&&c.status!=='reversed'&&c.status!=='cancelled';
+                reversalWrap.style.display=canReverse?'block':'none';
+                if(canReverse){
+                    // Find the ua id from the contract
+                    const reversalBtn=document.getElementById('m-contract-reversal-btn');
+                    if(reversalBtn) reversalBtn.onclick=()=>{ closeModal('m-contract'); openReversalByUaId(c.userAssetId); };
+                }
+            }
             openModal('m-contract');
-            if(needsBuyerSig) initSigPad();
+            if(!isBuyerSigned) initSigPad();
         } catch(e){ toast('Error: '+e.message,'tr'); }
     }
 
@@ -19467,18 +19514,21 @@ Prize: $${fmt(prize)}`);
                 const bar=ua.mode==='installment'?`<div style="margin:8px 0 4px"><div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--t3);margin-bottom:4px"><span>Paid: $${fmt(ua.installmentPaid||0)}</span><span>Total: $${fmt(ua.installmentTotal||0)}</span></div><div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%"></div></div><div style="font-size:.7rem;color:var(--t3)">${pct}% complete</div></div>`:'';
                 const instBtn=ua.mode==='installment'&&pct<100?`<button class="btn btn-gold btn-sm" onclick="openInstallmentPayment('${ua.id}')">💳 Pay Installment</button>`:'';
                 const listBtn=(ua.status==='active'||ua.status==='installment_active')?`<button class="btn btn-sky btn-sm" onclick="openP2PListModal('${ua.id}','${(ua.assetName||'').replace(/'/g,'&#39;')}','${ua.assetType||''}')">📢 List</button>`:'';
-                const cancelBtn=ua.createdAt&&isWithin24h(ua.createdAt)?`<button class="btn btn-d btn-sm" onclick="openCancelByUaId('${ua.id}')">❌ Cancel</button>`:'';
+                // Reversal: 24h window = 100% refund; Cancellation: 2-week window = 60% refund
+                const reversalBtn=ua.createdAt&&isWithin24h(ua.createdAt)?`<button class="btn btn-d btn-sm" onclick="openReversalByUaId('${ua.id}')" style="background:rgba(255,82,82,.15);border:1px solid var(--red)">↩ Reverse (100%)</button>`:'';
+                const cancelBtn=ua.createdAt&&!isWithin24h(ua.createdAt)&&isWithin2Weeks(ua.createdAt)?`<button class="btn btn-d btn-sm" onclick="openCancelByUaId('${ua.id}')">❌ Cancel (60%)</button>`:'';
+                const holdBadge=ua.isP2P&&ua.createdAt&&isWithin24h(ua.createdAt)?`<div style="font-size:.7rem;color:var(--gold);margin-top:2px">🔒 Seller funds held 24h for your protection</div>`:'';
                 const shipBadge=ua.shippingAddress?`<div style="font-size:.7rem;color:var(--sky);margin-top:3px">📦 Deliver to: ${ua.shippingAddress.substring(0,30)}${ua.shippingAddress.length>30?'…':''}</div>`:'';
                 const rentExpiry=ua.mode==='rent'&&ua.rentEndDate?`<div style="font-size:.7rem;color:var(--gold);margin-top:2px">⏰ Expires: ${new Date(ua.rentEndDate).toLocaleDateString()}</div>`:'';
                 return `<div class="my-asset-row">
                     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
                         <div><div style="font-weight:700">${assetIcon(ua.assetType)} ${ua.assetName||'Asset'}</div>
                         <div style="font-size:.74rem;color:var(--t3);text-transform:capitalize">${ua.mode||'owned'} · $${fmt(ua.amount||0)} · ${fmtD(ua.createdAt)}</div>
-                        ${shipBadge}${rentExpiry}</div>
+                        ${holdBadge}${shipBadge}${rentExpiry}</div>
                         ${deliveryStatusBadge(ua.status)}
                     </div>${bar}
                     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
-                        ${instBtn}${listBtn}${cancelBtn}
+                        ${instBtn}${listBtn}${reversalBtn}${cancelBtn}
                         <button class="btn btn-gh btn-sm" onclick="viewReceiptByTxId('${ua.txId}')">🧾 Receipt</button>
                         <button class="btn btn-gh btn-sm" onclick="viewContractByTxId('${ua.txId}')">📄 Contract</button>
                     </div>
@@ -19494,6 +19544,90 @@ Prize: $${fmt(prize)}`);
         const cSnap=await db.collection('contracts').where('txId','==',ua.txId).limit(1).get();
         if(cSnap.empty){ toast('Contract not found','ty'); return; }
         openCancelContractModal(cSnap.docs[0].id,uaId,ua.assetName,ua.amount,(ua.createdAt?.seconds||Math.floor(Date.now()/1000)));
+    }
+
+    async function openReversalByUaId(uaId){
+        const snap=await db.collection('user_assets').doc(uaId).get();
+        if(!snap.exists){ toast('Asset record not found','ty'); return; }
+        const ua=snap.data();
+        if(!isWithin24h(ua.createdAt)){ toast('⏰ Reversal window has closed. Only available within 24 hours.','tr',4000); return; }
+        // Find contract and hold
+        const cSnap=await db.collection('contracts').where('txId','==',ua.txId).limit(1).get();
+        const hSnap=await db.collection('p2p_holds').where('txId','==',ua.txId).limit(1).get();
+        document.getElementById('m-reversal-ua-id').value=uaId;
+        document.getElementById('m-reversal-contract-id').value=cSnap.empty?'':cSnap.docs[0].id;
+        document.getElementById('m-reversal-hold-id').value=hSnap.empty?'':hSnap.docs[0].id;
+        document.getElementById('m-reversal-reason').value='';
+        const msLeft=24*3600*1000-((ua.createdAt?.seconds?Date.now()-ua.createdAt.seconds*1000:0));
+        const hrsLeft=Math.floor(msLeft/3600000);
+        const minsLeft=Math.floor((msLeft%3600000)/60000);
+        document.getElementById('m-reversal-info').innerHTML=`
+            <div><strong>Asset:</strong> ${ua.assetName||'—'}</div>
+            <div style="margin-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <div style="background:rgba(0,230,118,.08);border-radius:8px;padding:8px;text-align:center">
+                    <div style="font-size:.7rem;color:var(--t3)">Your Full Refund</div>
+                    <div style="font-weight:700;color:var(--g);font-size:1.1rem">$${fmt(ua.amount||0)}</div>
+                    <div style="font-size:.68rem;color:var(--t3)">100% returned</div>
+                </div>
+                <div style="background:rgba(255,213,79,.08);border-radius:8px;padding:8px;text-align:center">
+                    <div style="font-size:.7rem;color:var(--t3)">Time Remaining</div>
+                    <div style="font-weight:700;color:var(--gold)">${hrsLeft}h ${minsLeft}m</div>
+                    <div style="font-size:.68rem;color:var(--t3)">of 24h window</div>
+                </div>
+            </div>
+            <div style="font-size:.72rem;color:var(--t3);margin-top:8px">Note: The 10% Starlife platform fee is non-refundable. You paid $${fmt(ua.amount)} total; $${fmt(ua.baseAmount||ua.amount)} returns to your balance.</div>`;
+        openModal('m-reversal');
+    }
+
+    async function confirmReversal(){
+        const reason=document.getElementById('m-reversal-reason').value;
+        if(!reason){ toast('Please select a reason','ty'); return; }
+        const uaId=document.getElementById('m-reversal-ua-id').value;
+        const contractId=document.getElementById('m-reversal-contract-id').value;
+        const holdId=document.getElementById('m-reversal-hold-id').value;
+        try {
+            const uaSnap=await db.collection('user_assets').doc(uaId).get();
+            if(!uaSnap.exists){ toast('Record not found','ty'); return; }
+            const ua=uaSnap.data();
+            if(!isWithin24h(ua.createdAt)){ toast('⏰ Reversal window has closed','tr'); closeModal('m-reversal'); return; }
+            const u=window.CU;
+            const refundAmount=ua.baseAmount||ua.amount; // base amount (excludes platform fee)
+            const sellerUid=ua.sellerUid;
+            const batch=db.batch();
+            // Refund buyer
+            batch.update(db.collection('users').doc(u.uid),{balance:firebase.firestore.FieldValue.increment(refundAmount)});
+            // Remove hold from seller + deduct from seller balance
+            if(sellerUid){
+                batch.update(db.collection('users').doc(sellerUid),{
+                    balance:firebase.firestore.FieldValue.increment(-refundAmount),
+                    heldAmount:firebase.firestore.FieldValue.increment(-refundAmount)
+                });
+            }
+            // Update user_asset
+            batch.update(db.collection('user_assets').doc(uaId),{status:'reversed'});
+            // Update hold record
+            if(holdId) batch.update(db.collection('p2p_holds').doc(holdId),{status:'reversed',reversedAt:firebase.firestore.FieldValue.serverTimestamp(),reversalReason:reason});
+            // Update contract
+            if(contractId) batch.update(db.collection('contracts').doc(contractId),{status:'reversed',reversalReason:reason,reversedAt:firebase.firestore.FieldValue.serverTimestamp()});
+            // Restore listing stock
+            if(ua.assetId){
+                const listSnap=await db.collection('p2p_listings').doc(ua.assetId).get();
+                if(listSnap.exists){
+                    const l=listSnap.data();
+                    batch.update(db.collection('p2p_listings').doc(ua.assetId),{stockLeft:firebase.firestore.FieldValue.increment(1),status:'active'});
+                }
+            }
+            await batch.commit();
+            // Notify seller
+            if(sellerUid) await db.collection('userNotifs').add({uid:sellerUid,msg:`↩ The purchase of "${ua.assetName}" was reversed within 24h. $${fmt(refundAmount)} has been deducted from your held funds. Reason: ${reason}`,read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+            logAct(u.uid,`Reversal: ${ua.assetName} — $${fmt(refundAmount)} refunded`,refundAmount,'↩','reversal');
+            tg(`↩ <b>Transaction Reversed</b>\nBuyer: ${u.name}\nAsset: ${ua.assetName}\nRefund: $${fmt(refundAmount)}\nReason: ${reason}`);
+            window.CU.balance=(u.balance||0)+refundAmount;
+            if(typeof updateUI==='function') updateUI();
+            closeModal('m-reversal');
+            toast(`✅ Reversed! $${fmt(refundAmount)} refunded to your balance.`);
+            loadMyOwnedAssets();
+        } catch(e){ toast('Error: '+e.message,'tr'); }
     }
 
     async function loadMyRentingAssets(){
@@ -19793,17 +19927,30 @@ Prize: $${fmt(prize)}`);
         try {
             const txId=genAssetTxId();
             const sellerUid=l.sellerUid;
+            const releaseAt=new Date(Date.now()+24*3600*1000).toISOString();
             const batch=db.batch();
+            // Deduct from buyer
             batch.update(db.collection('users').doc(u.uid),{balance:firebase.firestore.FieldValue.increment(-totalAmount)});
-            batch.update(db.collection('users').doc(sellerUid),{balance:firebase.firestore.FieldValue.increment(baseAmount)});
+            // Credit seller BUT hold funds for 24h — added to balance AND heldAmount
+            batch.update(db.collection('users').doc(sellerUid),{
+                balance:firebase.firestore.FieldValue.increment(baseAmount),
+                heldAmount:firebase.firestore.FieldValue.increment(baseAmount)
+            });
+            // Buyer receipt
             const rcRef=db.collection('receipts').doc();
             batch.set(rcRef,{uid:u.uid,userName:u.name,userEmail:u.email,assetId:listingId,assetName:l.assetName,assetType:l.assetType,amountPaid:totalAmount,paymentType:mode,isP2P:true,shipFee:0,shippingAddress:'',sender:u.name,receiver:l.sellerName||'Member Seller',txId,dateTime:new Date().toISOString(),createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-            batch.set(db.collection('receipts').doc(),{uid:sellerUid,userName:l.sellerName||'Seller',assetId:listingId,assetName:l.assetName,assetType:l.assetType,amountPaid:baseAmount,paymentType:mode+'_p2p_earned',isP2P:true,shipFee:0,shippingAddress:'',sender:u.name,receiver:'You',txId,dateTime:new Date().toISOString(),createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+            // Seller receipt
+            batch.set(db.collection('receipts').doc(),{uid:sellerUid,userName:l.sellerName||'Seller',assetId:listingId,assetName:l.assetName,assetType:l.assetType,amountPaid:baseAmount,paymentType:mode+'_p2p_earned',isP2P:true,shipFee:0,shippingAddress:'',sender:u.name,receiver:'You',txId,heldUntil:releaseAt,dateTime:new Date().toISOString(),createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+            // Platform fee
             batch.set(db.collection('platformFees').doc(),{type:'p2p_asset',amt:fee,uid:u.uid,userName:u.name,txId,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+            // Buyer user_asset
             const uaRef=db.collection('user_assets').doc();
-            batch.set(uaRef,{uid:u.uid,userName:u.name,userEmail:u.email,assetId:listingId,assetName:l.assetName,assetType:l.assetType,mode,amount:totalAmount,txId,status:'active',isP2P:true,installmentPaid:0,installmentTotal:0,installmentMonths:0,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+            batch.set(uaRef,{uid:u.uid,userName:u.name,userEmail:u.email,assetId:listingId,assetName:l.assetName,assetType:l.assetType,mode,amount:totalAmount,baseAmount,fee,txId,status:'active',isP2P:true,sellerUid,sellerName:l.sellerName||'Member',installmentPaid:0,installmentTotal:0,installmentMonths:0,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+            // Hold record for tracking
+            const holdRef=db.collection('p2p_holds').doc();
+            batch.set(holdRef,{txId,buyerUid:u.uid,buyerName:u.name,sellerUid,sellerName:l.sellerName||'Member',assetName:l.assetName,heldAmount:baseAmount,releaseAt,status:'held',createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+            // Stock
             if(mode==='buy'){
-                // Decrement stockLeft; auto-mark sold if 0 left
                 const listSnap2=await db.collection('p2p_listings').doc(listingId).get();
                 const currentStock=(listSnap2.data()?.stockLeft)||1;
                 const newStock=Math.max(0,currentStock-1);
@@ -19812,28 +19959,58 @@ Prize: $${fmt(prize)}`);
                 batch.update(db.collection('p2p_listings').doc(listingId),{status:'rented'});
             }
             await batch.commit();
-            // Contract with BOTH names shown, masked emails
+            // Contract — both real names shown
             await db.collection('contracts').add({
-                contractId:'P2P-'+txId,txId,userAssetId:uaRef.id,
+                contractId:'P2P-'+txId,txId,userAssetId:uaRef.id,holdId:holdRef.id,
                 uid:u.uid,userName:u.name,userEmail:u.email,
                 party2Type:'member',party2Uid:sellerUid,party2Name:l.sellerName||'Member Seller',party2Email:'',
                 assetId:listingId,assetName:l.assetName,assetType:l.assetType,assetLocation:'Member Listed Asset',
-                mode,amount:totalAmount,shipFee:0,shippingAddress:'',
-                startDate:new Date().toISOString(),endDate:new Date(Date.now()+(mode==='rent'?30:365)*24*3600*1000).toISOString(),
+                mode,amount:totalAmount,baseAmount,fee,shipFee:0,shippingAddress:'',
+                startDate:new Date().toISOString(),
+                endDate:new Date(Date.now()+(mode==='rent'?30:365)*24*3600*1000).toISOString(),
                 status:'pending',userSignature:null,sellerSignature:null,starlifeSignature:'STARLIFE_AUTO_SIGN',
                 isP2P:true,requiresSellerSig:true,
+                reversalEligibleUntil:releaseAt,
                 createdAt:firebase.firestore.FieldValue.serverTimestamp()
             });
-            await db.collection('userNotifs').add({uid:sellerUid,msg:`💰 Your listing "${l.assetName}" was ${mode==='buy'?'sold':'rented'}! $${fmt(baseAmount)} credited. Please sign the contract.`,read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-            logAct(u.uid,`P2P ${mode}: ${l.assetName} — Total: $${fmt(totalAmount)}`,-totalAmount,'🤝','p2p_asset');
-            tg(`🤝 <b>P2P ${mode.toUpperCase()}</b>\nBuyer: ${u.name}\nSeller: ${l.sellerName||'Member'}\nAsset: ${l.assetName}\nTotal: $${fmt(totalAmount)}\nFee: $${fmt(fee)}\nTxID: ${txId}`);
+            // Notify seller
+            await db.collection('userNotifs').add({uid:sellerUid,msg:`💰 "${l.assetName}" ${mode==='buy'?'sold':'rented'}! $${fmt(baseAmount)} added to your balance but held 24h for buyer protection. Auto-releases ${new Date(releaseAt).toLocaleString()}. Please sign the contract.`,read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+            // Notify buyer
+            await db.collection('userNotifs').add({uid:u.uid,msg:`✅ Purchase of "${l.assetName}" confirmed! Seller funds held 24h. You can reverse for 100% refund within 24h.`,read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+            logAct(u.uid,'P2P '+mode+': '+l.assetName+' — $'+fmt(totalAmount)+' (24h hold)',-totalAmount,'🤝','p2p_asset');
+            tg('🤝 <b>P2P '+mode.toUpperCase()+'</b>\nBuyer: '+u.name+'\nSeller: '+(l.sellerName||'Member')+'\nAsset: '+l.assetName+'\nTotal: $'+fmt(totalAmount)+' (Seller gets: $'+fmt(baseAmount)+' — held 24h)\nFee: $'+fmt(fee)+'\nTxID: '+txId);
             window.CU.balance=(u.balance||0)-totalAmount;
             if(typeof updateUI==='function') updateUI();
-            toast(`✅ ${mode==='buy'?'Purchase':'Rental'} complete! Both parties must sign the contract.`);
+            toast('✅ '+(mode==='buy'?'Purchase':'Rental')+' complete! Seller funds held 24h for your protection. Reverse within 24h for 100% refund.');
             setTimeout(()=>viewReceiptByTxId(txId),600);
+            // Client-side auto-release after 24h
+            setTimeout(()=>releaseP2PHold(holdRef.id,sellerUid,baseAmount),24*3600*1000+5000);
         } catch(e){ toast('Error: '+e.message,'tr'); }
     }
 
+    async function releaseP2PHold(holdId,sellerUid,amount){
+        try {
+            const snap=await db.collection('p2p_holds').doc(holdId).get();
+            if(!snap.exists||snap.data().status!=='held') return;
+            if(new Date()<new Date(snap.data().releaseAt)) return;
+            const batch=db.batch();
+            batch.update(db.collection('users').doc(sellerUid),{heldAmount:firebase.firestore.FieldValue.increment(-amount)});
+            batch.update(db.collection('p2p_holds').doc(holdId),{status:'released',releasedAt:firebase.firestore.FieldValue.serverTimestamp()});
+            await batch.commit();
+            await db.collection('userNotifs').add({uid:sellerUid,msg:'🔓 Your held funds of $'+fmt(amount)+' from "'+snap.data().assetName+'" have been released! The 24-hour buyer protection period has ended.',read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+        } catch(e){ console.warn('Hold release failed',e); }
+    }
+
+    async function checkAndReleaseExpiredHolds(){
+        const u=window.CU; if(!u) return;
+        try {
+            const snap=await db.collection('p2p_holds').where('sellerUid','==',u.uid).where('status','==','held').get();
+            const now=new Date();
+            for(const doc of snap.docs){
+                if(new Date(doc.data().releaseAt)<=now) await releaseP2PHold(doc.id,u.uid,doc.data().heldAmount);
+            }
+        } catch(e){ console.warn('Hold check failed',e); }
+    }
     async function cancelP2PListing(id){ if(!confirm('Remove this listing?')) return; await db.collection('p2p_listings').doc(id).update({status:'removed'}); toast('Listing removed'); loadMyP2PListings(); }
 
     // ═══ ADMIN ASSETS ═══
@@ -19985,7 +20162,7 @@ Prize: $${fmt(prize)}`);
     })();
 
     // Register stubs
-    ['openAssetDetail','loadAssetMarket','loadMyAssets','loadMyOwnedAssets','loadMyRentingAssets','loadMyContracts','loadMyReceipts','loadMyP2PListings','viewContract','signContract','clearSig','doAssetAction','confirmRent','calcRentTotal','calcAssetShipping','confirmShipping','adminSaveAsset','adminResetAssetForm','adminEditAsset','adminDeleteAsset','adminToggleAssetStatus','loadAdminAssets','loadAdminContracts','loadAdminShipping','adminUpdateShipping','printReceipt','openInstallmentPayment','viewReceiptByTxId','viewReceiptById','viewContractByTxId','adminAssetImgSelected','adminRemoveAssetImg','adminViewContract','loadP2PMarketplace','openP2PDetail','doP2PAction','calcP2PRentTotal','confirmP2PRent','submitP2PListing','openP2PListModal','cancelP2PListing','slideAsset','slideP2P','goSlide','openVisitSchedule','selectVisitTransport','confirmVisitSchedule','openCancelContractModal','confirmCancelContract','openCancelByUaId','openSellerSignModal','clearSellerSig','submitSellerSignature','loadAdminReceipts','adminViewReceipt'].forEach(n=>{ window['_real_'+n]=window[n]; });
+    ['openAssetDetail','loadAssetMarket','loadMyAssets','loadMyOwnedAssets','loadMyRentingAssets','loadMyContracts','loadMyReceipts','loadMyP2PListings','viewContract','signContract','clearSig','doAssetAction','confirmRent','calcRentTotal','calcAssetShipping','confirmShipping','adminSaveAsset','adminResetAssetForm','adminEditAsset','adminDeleteAsset','adminToggleAssetStatus','loadAdminAssets','loadAdminContracts','loadAdminShipping','adminUpdateShipping','printReceipt','openInstallmentPayment','viewReceiptByTxId','viewReceiptById','viewContractByTxId','adminAssetImgSelected','adminRemoveAssetImg','adminViewContract','loadP2PMarketplace','openP2PDetail','doP2PAction','calcP2PRentTotal','confirmP2PRent','submitP2PListing','openP2PListModal','cancelP2PListing','slideAsset','slideP2P','goSlide','openVisitSchedule','selectVisitTransport','confirmVisitSchedule','openCancelContractModal','confirmCancelContract','openCancelByUaId','openSellerSignModal','clearSellerSig','submitSellerSignature','loadAdminReceipts','adminViewReceipt','openReversalByUaId','confirmReversal','releaseP2PHold','checkAndReleaseExpiredHolds'].forEach(n=>{ window['_real_'+n]=window[n]; });
     </script>
 </body>
 

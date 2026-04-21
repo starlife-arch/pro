@@ -6455,6 +6455,40 @@
                     <div id="bc-history"></div>
                 </div>
             </div>
+
+            <div class="card" style="margin-top:14px">
+                <h3 style="margin-bottom:12px">📧 Email Broadcast</h3>
+                <div class="fg">
+                    <label class="fl">Subject</label>
+                    <input class="fi" id="bc-email-subject" placeholder="e.g. Important Update">
+                </div>
+                <div class="fg">
+                    <label class="fl">Message</label>
+                    <textarea class="fi" id="bc-email-message" rows="5" placeholder="Write your message here..."></textarea>
+                </div>
+                <div class="fg">
+                    <label class="fl">Recipients</label>
+                    <select class="fi" id="bc-email-recipient-type">
+                        <option value="all">All Users</option>
+                        <option value="selected">Selected Users (Member IDs/UIDs)</option>
+                        <option value="single">Single User (Member ID/UID)</option>
+                    </select>
+                </div>
+                <div class="fg">
+                    <label class="fl">API Token</label>
+                    <input class="fi" id="bc-email-token" placeholder="Enter EMAIL_API_TOKEN" type="password">
+                </div>
+                <div id="bc-email-selected-input" style="display:none" class="fg">
+                    <label class="fl">Member IDs / UIDs (comma separated)</label>
+                    <input class="fi" id="bc-email-member-ids" placeholder="e.g. USER-1234, USER-5678">
+                </div>
+                <div id="bc-email-single-input" style="display:none" class="fg">
+                    <label class="fl">Member ID / UID</label>
+                    <input class="fi" id="bc-email-single-id" placeholder="e.g. USER-1234">
+                </div>
+                <button class="btn btn-p btn-full" onclick="sendBroadcastEmail(this)">Send Email Broadcast</button>
+                <div id="bc-email-result" style="margin-top:12px; font-size:.85rem;"></div>
+            </div>
         </div>
 
         <!-- ADS TAB -->
@@ -11827,6 +11861,86 @@ Message: ${message}`);
             $('bc-title').value = ''; $('bc-msg').value = ''; if ($('bc-schedule')) $('bc-schedule').value = '';
             loadAdminBroadcasts();
         }
+
+        async function sendBroadcastEmail(buttonEl) {
+            const subject = $('bc-email-subject')?.value.trim();
+            const message = $('bc-email-message')?.value.trim();
+            const recipientType = $('bc-email-recipient-type')?.value || 'all';
+            const apiToken = $('bc-email-token')?.value.trim();
+
+            if (!subject || !message) {
+                toast('Enter subject and message', 'ty');
+                return;
+            }
+            if (!apiToken) {
+                toast('Enter API token', 'ty');
+                return;
+            }
+
+            let recipientsParam;
+            if (recipientType === 'all') {
+                recipientsParam = 'all';
+            } else if (recipientType === 'selected') {
+                const raw = $('bc-email-member-ids')?.value || '';
+                const ids = raw.split(',').map(s => s.trim()).filter(Boolean);
+                if (!ids.length) {
+                    toast('Enter at least one Member ID/UID', 'ty');
+                    return;
+                }
+                recipientsParam = ids;
+            } else {
+                const singleId = $('bc-email-single-id')?.value.trim();
+                if (!singleId) {
+                    toast('Enter a Member ID/UID', 'ty');
+                    return;
+                }
+                recipientsParam = `single:${singleId}`;
+            }
+
+            const btn = buttonEl || document.querySelector('#at-broadcast button[onclick*="sendBroadcastEmail"]');
+            const originalText = btn ? btn.textContent : '';
+            if (btn) {
+                btn.textContent = 'Sending...';
+                btn.disabled = true;
+            }
+
+            try {
+                const res = await fetch('/.netlify/functions/broadcast-email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-token': apiToken
+                    },
+                    body: JSON.stringify({ subject, message, recipients: recipientsParam })
+                });
+
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.error || 'Broadcast failed');
+
+                $('bc-email-result').innerHTML = `
+      <div style="background:rgba(0,230,118,.1);border:1px solid var(--g);border-radius:8px;padding:10px">
+        ✅ Sent: ${data.sent} / ${data.totalRecipients}<br>
+        ❌ Failed: ${data.failed}<br>
+        ${data.errors?.length ? 'Errors: ' + data.errors.map(e => e.email).join(', ') : ''}
+      </div>`;
+                toast(`Email broadcast sent to ${data.sent} users`);
+            } catch (err) {
+                $('bc-email-result').innerHTML = `<div style="color:var(--red)">❌ ${err.message}</div>`;
+                toast(err.message, 'tr');
+            } finally {
+                if (btn) {
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                }
+            }
+        }
+
+        document.getElementById('bc-email-recipient-type')?.addEventListener('change', function (e) {
+            const val = e.target.value;
+            if ($('bc-email-selected-input')) $('bc-email-selected-input').style.display = val === 'selected' ? 'block' : 'none';
+            if ($('bc-email-single-input')) $('bc-email-single-input').style.display = val === 'single' ? 'block' : 'none';
+        });
+
         async function processScheduledBroadcasts(showToast) {
             try {
                 const snap = await db.collection('broadcasts').where('status', '==', 'scheduled').get();

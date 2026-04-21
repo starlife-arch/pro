@@ -3,8 +3,8 @@ const { getDb, admin } = require('./_lib/firebase');
 
 const DAILY_LIMIT = 300;
 const RATE_LIMIT_MS = 300;
-const FROM = process.env.MAIL_FROM || 'Starlife Advert <notifications@notify.starlifeadvert.com>';
-const REPLY_TO = process.env.MAIL_REPLY_TO || 'support@starlifeadvert.com';
+const FROM = process.env.MAIL_FROM || 'Starlife Advert <noreply@example.com>';
+const REPLY_TO = process.env.MAIL_REPLY_TO || 'support@example.com';
 
 const transporter = nodemailer.createTransport({
   host: 'smtp-relay.brevo.com',

@@ -1,23 +1,24 @@
 // netlify/functions/send-email-proxy.js
-// Frontend calls this endpoint — no token needed from the browser.
-// This function adds the token server-side before forwarding to send-email.
+// Called by the frontend for transactional emails (welcome, deposit, withdrawal, etc.)
+// The frontend sends NO token — this function injects it server-side from the env var.
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
+    return { statusCode: 405, body: JSON.stringify({ error: 'Method Not Allowed' }) };
   }
 
   try {
     const body = JSON.parse(event.body || '{}');
 
-    // Forward to the internal send-email function with the real token
+    const siteUrl = process.env.URL || 'http://localhost:8888';
+
     const response = await fetch(
-      `${process.env.URL}/.netlify/functions/send-email`,
+      `${siteUrl}/.netlify/functions/send-email`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-token': process.env.EMAIL_API_TOKEN
+          'x-api-token': process.env.EMAIL_API_TOKEN || ''
         },
         body: JSON.stringify(body)
       }
@@ -31,6 +32,9 @@ exports.handler = async (event) => {
     };
   } catch (err) {
     console.error('send-email-proxy error:', err);
-    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: err.message })
+    };
   }
 };

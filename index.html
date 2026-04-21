@@ -3724,15 +3724,10 @@
                             📋</span></div>
                 </div>
                 <div class="dep-method" style="border-color:rgba(64,196,255,.28)">
-                    <div class="dm-name" style="color:var(--sky)">₿ USDT</div>
-                    <div class="dm-detail"><span style="font-size:.8rem;color:var(--t2)">Network</span><span
-                            style="font-size:.85rem;font-weight:600">BEP20 or TRC20</span></div>
-                    <div class="dm-detail"><span style="font-size:.8rem;color:var(--t2)">BEP20 Address</span><span
-                            class="dm-val" onclick="copyText('0xa95bd74fae59521e8405e14b54b0d07795643812','Address copied!')"
-                            style="font-size:.75rem;color:var(--sky)">0xa95bd74fae59521e8405e14b54b0d07795643812 📋</span></div>
-                    <div class="dm-detail"><span style="font-size:.8rem;color:var(--t2)">TRC20 Address</span><span
-                            class="dm-val" onclick="copyText('TMeEHzo9pMigvV5op88zkAQEc3ZUEfzBJ6','Address copied!')"
-                            style="font-size:.75rem;color:var(--sky)">TMeEHzo9pMigvV5op88zkAQEc3ZUEfzBJ6 📋</span></div>
+                  <div class="dm-name" style="color:var(--sky)">₿ USDT</div>
+                  <div class="dm-detail"><span style="font-size:.8rem;color:var(--t2)">Network</span><span style="font-size:.85rem;font-weight:600">BEP20 or TRC20</span></div>
+                  <div class="dm-detail"><span style="font-size:.8rem;color:var(--t2)">BEP20 Address</span><span class="dm-val" onclick="copyText('0xa95bd74fae59521e8405e14b54b0d07795643812','Address copied!')" style="font-size:.75rem;color:var(--sky)">0xa95bd74fae59521e8405e14b54b0d07795643812 📋</span></div>
+                  <div class="dm-detail"><span style="font-size:.8rem;color:var(--t2)">TRC20 Address</span><span class="dm-val" onclick="copyText('TMeEHzo9pMigvV5op88zkAQEc3ZUEfzBJ6','Address copied!')" style="font-size:.75rem;color:var(--sky)">TMeEHzo9pMigvV5op88zkAQEc3ZUEfzBJ6 📋</span></div>
                 </div>
                 <div class="div"></div>
                 <h3 style="margin-bottom:12px">Submit Proof of Payment</h3>
@@ -7303,17 +7298,6 @@
             }
             catch (e) { console.warn('TG error', e); }
         }
-        function sendTransactionalEmail(payload) {
-            if (!payload || !payload.type || !payload.to) return;
-            fetch('/.netlify/functions/send-email', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-token': 'StarlifeEmailSecret2025'
-                },
-                body: JSON.stringify(payload)
-            }).catch(err => console.error('Transactional email error:', err));
-        }
         firebase.initializeApp(FIREBASE_CONFIG);
         const auth = firebase.auth();
         const db = firebase.firestore();
@@ -7526,13 +7510,9 @@
                     }
                 }
                 await db.collection('users').doc(uid).set({ name, email, phone, balance: 1, tokenBalance: 0, purchasedGiftCoinBalance: 0, receivedGiftCoinBalance: 0, giftCoinBalance: 0, paidDMPriceCoins: 10, paidDMChargingOn: false, paidDMBlocked: false, paidDMEarningsCoins: 0, paidDMPlatformShareCoins: 0, totalInvested: 0, totalEarned: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, shareholderDistributed: 0, surveyPoints: 0, surveysCompleted: 0, surveysSkipped: 0, referralCode: rc, referredBy, referrals: [], privileges: { ...DEFAULT_USER_PRIVILEGES }, isBanned: false, isAdmin: false, firstStakeAt: null, loanDefaultCount: 0, createdAt: FS().serverTimestamp() });
+                sendTransactionalEmail('welcome', email, { name: name });
                 toast('Account created! Welcome bonus added 🎉');
                 tg(`🆕 <b>New Member</b>\nName: ${name}\nEmail: ${email}\nPhone: ${phone || '—'}\nRef: ${ref || 'none'}`);
-                sendTransactionalEmail({
-                    type: 'welcome',
-                    to: email,
-                    name
-                });
             } catch (e) {
                 let errMsg = 'Registration failed — please try again';
                 if (e.code === 'auth/email-already-in-use') {
@@ -8318,17 +8298,9 @@
             await logAct(u.uid, `Withdrawal requested $${fmt(amt)} via ${method} (${txId})`, -amt, '💳', 'withdrawal');
             await db.collection('adminNotifs').add({ type: 'withdrawal', msg: `Withdrawal $${fmt(amt)} by ${u.name} — ${method} — ${txId}`, uid: u.uid, txId, read: false, createdAt: FS().serverTimestamp() });
             tg(`💳 <b>Withdrawal Request</b>\nUser: ${u.name} (${u.email})\nAmount: $${fmt(amt)}\nNet: $${fmt(net)}\nMethod: ${method}\nDetails: ${details}\nTxID: ${txId}`);
-            sendTransactionalEmail({
-                type: 'withdrawal_pending',
-                to: u.email,
-                name: u.name,
-                amount: `$${fmt(amt)}`,
-                method,
-                transactionId: txId,
-                status: 'Pending Review'
-            });
             window.CU.balance = (window.CU.balance || 0) - amt;
             updateUI();
+            sendTransactionalEmail('withdrawal_pending', u.email, { name: u.name, amount: amt, method: method, transactionId: txId });
             toast('Withdrawal submitted ✓ Balance updated');
             $('wd-amt').value = ''; $('wd-details').value = ''; $('wd-prev').style.display = 'none';
             loadWithdrawals();
@@ -8345,18 +8317,10 @@
             if (!amt || amt <= 0) return toast('Enter amount', 'ty');
             if (!ref) return toast('Enter your transaction reference', 'ty');
             await db.collection('deposits').add({ uid: u.uid, userName: u.name, userEmail: u.email, method, amount: amt, ref, status: 'pending', promoCode: window._appliedPromo?.code || null, promoId: window._appliedPromo?.id || null, promoType: window._appliedPromo?.type || null, promoValue: window._appliedPromo?.value || null, promoMinDeposit: window._appliedPromo?.minDeposit || 0, promoDepositScope: window._appliedPromo?.depositScope || null, promoAppliedAt: window._appliedPromo ? FS().serverTimestamp() : null, promoBonusApplied: false, createdAt: FS().serverTimestamp() });
+            sendTransactionalEmail('deposit_pending', u.email, { name: u.name, amount: amt, method: method, transactionId: ref });
             await db.collection('adminNotifs').add({ type: 'deposit', msg: `Deposit $${amt} from ${u.name} via ${method}`, uid: u.uid, read: false, createdAt: FS().serverTimestamp() });
             logAct(u.uid, `Deposit submitted $${fmt(amt)} via ${method}`, 0, '📥', 'deposit');
             tg(`📥 <b>Deposit Proof</b>\nUser: ${u.name} (${u.email})\nAmount: $${fmt(amt)}\nMethod: ${method}\nRef: ${ref}`);
-            sendTransactionalEmail({
-                type: 'deposit_pending',
-                to: u.email,
-                name: u.name,
-                amount: `$${fmt(amt)}`,
-                method,
-                transactionId: ref,
-                status: 'Pending Review'
-            });
             toast('Payment proof submitted! Admin will verify shortly ✓');
             $('dep-amt').value = ''; $('dep-ref').value = '';
         }
@@ -10902,22 +10866,11 @@
         async function adminApproveWd(id, uid, amount) {
             // Balance already deducted when user submitted — just mark as paid
             await db.collection('withdrawals').doc(id).update({ status: 'paid', paidAt: FS().serverTimestamp() });
+            const wdApSnap = await db.collection('withdrawals').doc(id).get();
+            const wdAp = wdApSnap.data() || {};
+            sendTransactionalEmail('withdrawal_approved', wdAp.userEmail || '', { name: wdAp.userName || '', amount: amount, method: wdAp.method || '', transactionId: id });
             await db.collection('userNotifs').add({ uid, msg: `Your withdrawal of $${fmt(amount)} has been processed and paid!`, read: false, createdAt: FS().serverTimestamp() });
             logAct(uid, `Withdrawal marked paid $${fmt(amount)}`, 0, '💳', 'withdrawal');
-            db.collection('withdrawals').doc(id).get().then(wdSnap => {
-                const wd = wdSnap.data() || {};
-                return db.collection('users').doc(uid).get().then(uSnap => ({ wd, user: uSnap.data() || {} }));
-            }).then(({ wd, user }) => {
-                sendTransactionalEmail({
-                    type: 'withdrawal_approved',
-                    to: user.email || wd.userEmail || '',
-                    name: user.name || wd.userName || 'Member',
-                    amount: `$${fmt(amount)}`,
-                    method: wd.method || 'N/A',
-                    transactionId: wd.txId || id,
-                    status: 'Approved'
-                });
-            }).catch(err => console.error('withdrawal_approved email error:', err));
             toast('Withdrawal marked as paid ✓'); loadAdminAll(); loadAdminWd('pending');
         }
 
@@ -10927,22 +10880,11 @@
             batch.update(db.collection('withdrawals').doc(id), { status: 'rejected', rejectedAt: FS().serverTimestamp() });
             batch.update(db.collection('users').doc(uid), { balance: FS().increment(amount) });
             await batch.commit();
+            const wdRjSnap = await db.collection('withdrawals').doc(id).get();
+            const wdRj = wdRjSnap.data() || {};
+            sendTransactionalEmail('withdrawal_rejected', wdRj.userEmail || '', { name: wdRj.userName || '', amount: amount, method: wdRj.method || '', transactionId: id });
             await db.collection('userNotifs').add({ uid, msg: `Your withdrawal of $${fmt(amount)} was rejected and refunded to your balance.`, read: false, createdAt: FS().serverTimestamp() });
             logAct(uid, `Withdrawal rejected — $${fmt(amount)} refunded`, amount, '💳', 'withdrawal');
-            db.collection('withdrawals').doc(id).get().then(wdSnap => {
-                const wd = wdSnap.data() || {};
-                return db.collection('users').doc(uid).get().then(uSnap => ({ wd, user: uSnap.data() || {} }));
-            }).then(({ wd, user }) => {
-                sendTransactionalEmail({
-                    type: 'withdrawal_rejected',
-                    to: user.email || wd.userEmail || '',
-                    name: user.name || wd.userName || 'Member',
-                    amount: `$${fmt(amount)}`,
-                    method: wd.method || 'N/A',
-                    transactionId: wd.txId || id,
-                    status: 'Rejected'
-                });
-            }).catch(err => console.error('withdrawal_rejected email error:', err));
             toast('Withdrawal rejected & balance refunded'); loadAdminAll(); loadAdminWd();
         }
 
@@ -11328,18 +11270,15 @@
 
         async function banUser(id, ban) {
             if (!isSuperAdmin()) return toast('Only Super Admin can ban users', 'tr');
-            const reason = ban ? (prompt('Optional suspension reason:') || '').trim() : '';
+            const banUserSnap = await db.collection('users').doc(id).get();
+            const banUserData = banUserSnap.data() || {};
             await db.collection('users').doc(id).update({ isBanned: ban });
-            if (ban) { await db.collection('userNotifs').add({ uid: id, msg: 'Your account has been suspended. Contact support.', read: false, createdAt: FS().serverTimestamp() }); }
-            db.collection('users').doc(id).get().then(snap => {
-                const user = snap.data() || {};
-                sendTransactionalEmail({
-                    type: ban ? 'account_suspended' : 'account_unsuspended',
-                    to: user.email || '',
-                    name: user.name || 'Member',
-                    reason
-                });
-            }).catch(err => console.error('account status email error:', err));
+            if (ban) {
+                sendTransactionalEmail('account_suspended', banUserData.email || '', { name: banUserData.name || '', reason: 'Policy violation' });
+                await db.collection('userNotifs').add({ uid: id, msg: 'Your account has been suspended. Contact support.', read: false, createdAt: FS().serverTimestamp() });
+            } else {
+                sendTransactionalEmail('account_unsuspended', banUserData.email || '', { name: banUserData.name || '' });
+            }
             toast(ban ? 'User banned' : 'User unbanned'); loadAdminAll();
         }
 
@@ -11938,6 +11877,14 @@ Message: ${message}`);
             loadAdminBroadcasts();
         }
 
+        function sendTransactionalEmail(type, to, data) {
+            fetch('/.netlify/functions/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-api-token': '__EMAIL_API_TOKEN__' },
+                body: JSON.stringify({ type, to, data })
+            }).catch(err => console.error('Transactional email failed:', type, err));
+        }
+
         async function sendBroadcastEmail(buttonEl) {
             const subject = $('bc-email-subject')?.value.trim();
             const message = $('bc-email-message')?.value.trim();
@@ -11985,7 +11932,7 @@ Message: ${message}`);
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'x-api-token': apiToken
+                        'x-api-token': '__EMAIL_API_TOKEN__'
                     },
                     body: JSON.stringify({ subject, message, recipients: recipientsParam })
                 });
@@ -16365,6 +16312,7 @@ ${names}${ids.length > 6 ? ' ...' : ''}`;
                 });
                 const depSnap = await db.collection('deposits').doc(id).get();
                 const dep = depSnap.data() || {};
+                sendTransactionalEmail('deposit_approved', dep.userEmail || '', { name: dep.userName || '', amount: amount, method: dep.method || '', transactionId: id });
                 let bonusMsg = '';
                 if (dep.promoCode && !dep.promoBonusApplied) {
                     try {
@@ -16403,18 +16351,6 @@ ${names}${ids.length > 6 ? ' ...' : ''}`;
                 tg(`✅ <b>Deposit Approved</b>
 User: ${uid}
 Amount: $${fmt(amount)}`);
-                db.collection('users').doc(uid).get().then(uSnap => {
-                    const user = uSnap.data() || {};
-                    sendTransactionalEmail({
-                        type: 'deposit_approved',
-                        to: user.email || dep.userEmail || '',
-                        name: user.name || dep.userName || 'Member',
-                        amount: `$${fmt(amount)}`,
-                        method: dep.method || 'N/A',
-                        transactionId: dep.ref || id,
-                        status: 'Approved'
-                    });
-                }).catch(err => console.error('deposit_approved email error:', err));
                 await checkCashbackBonus(uid, amount);
                 toast('Deposit approved ✓ — balance updated' + bonusMsg);
                 loadAdminDeposits();
@@ -16434,22 +16370,11 @@ Amount: $${fmt(amount)}`);
         async function adminRejectDeposit(id, uid, amount) {
             if (!confirm(`Reject this deposit of $${fmt(amount)}?`)) return;
             try {
-                await db.collection('deposits').doc(id).update({ status: 'rejected', rejectedAt: FS().serverTimestamp() });
                 const depSnap = await db.collection('deposits').doc(id).get();
                 const dep = depSnap.data() || {};
+                await db.collection('deposits').doc(id).update({ status: 'rejected', rejectedAt: FS().serverTimestamp() });
+                sendTransactionalEmail('deposit_rejected', dep.userEmail || '', { name: dep.userName || '', amount: amount, method: dep.method || '', transactionId: id });
                 await db.collection('userNotifs').add({ uid, msg: `Your deposit of $${fmt(amount)} was rejected. Please contact support.`, read: false, createdAt: FS().serverTimestamp() });
-                db.collection('users').doc(uid).get().then(uSnap => {
-                    const user = uSnap.data() || {};
-                    sendTransactionalEmail({
-                        type: 'deposit_rejected',
-                        to: user.email || dep.userEmail || '',
-                        name: user.name || dep.userName || 'Member',
-                        amount: `$${fmt(amount)}`,
-                        method: dep.method || 'N/A',
-                        transactionId: dep.ref || id,
-                        status: 'Rejected'
-                    });
-                }).catch(err => console.error('deposit_rejected email error:', err));
                 toast('Deposit rejected');
                 loadAdminDeposits();
             } catch (e) { toast('Error: ' + e.message, 'tr'); }

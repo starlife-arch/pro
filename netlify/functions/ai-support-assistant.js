@@ -322,7 +322,7 @@ STARLIFE KNOWLEDGE BASE (UPDATED DEC 2024):
 - Daily Check-in: +5 points, Spin Wheel, Scratch Card, Lucky Draw, Prize Codes
 
 === SUPPORT ===
-- Email: support@starlifeadvert.com
+- Email: support@example.com
 - Ticket system in Support tab
 `;
 
@@ -423,10 +423,10 @@ function getFallbackReply(userMessage) {
     return { reply: "📅 Daily Check-in gives you +5 points every day! Keep a streak for 7 days (bonus +5) and 30 days (bonus +10). Have you checked in today? 🔥", category: 'rewards' };
   }
   if (lower.includes('agent')) {
-    return { reply: "⭐ Our Agent Program offers monthly salary, secretary allowance, and a company-sponsored office! Performance ranks: Bronze, Silver, Gold, Elite. Interested in becoming an agent? Contact support@starlifeadvert.com 🚀", category: 'agent' };
+    return { reply: "⭐ Our Agent Program offers monthly salary, secretary allowance, and a company-sponsored office! Performance ranks: Bronze, Silver, Gold, Elite. Interested in becoming an agent? Contact support@example.com 🚀", category: 'agent' };
   }
   if (lower.includes('contact') || lower.includes('support') || lower.includes('help')) {
-    return { reply: "📧 Need human support? Email support@starlifeadvert.com or open a ticket from the Support tab. We typically respond within 24 hours. For urgent issues, mention 'urgent' in your message. How can I help you today? 🎧", category: 'support' };
+    return { reply: "📧 Need human support? Email support@example.com or open a ticket from the Support tab. We typically respond within 24 hours. For urgent issues, mention 'urgent' in your message. How can I help you today? 🎧", category: 'support' };
   }
   if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) {
     return { reply: "🌟 Hello there! I'm Emy, your Starlife AI assistant. I'm here to help with investments, withdrawals, shareholder program, loans, and more! What brings you here today? 😊", category: 'greeting' };

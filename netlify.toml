@@ -1,5 +1,2 @@
 [build]
-  command = "sed -i 's|__EMAIL_API_TOKEN__|'\"$EMAIL_API_TOKEN\"'|g' index.html"
-
-[secretsScan]
-  enabled = true
+  command = "echo 'Build complete'"

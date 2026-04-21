@@ -118,7 +118,7 @@ COMMON USER QUESTIONS (quick answers)
 - "What is shareholder earnings?" → Daily share of $2M annual pool based on your stake.
 - "How do I get verified badge?" → Invest $100+ or refer 50+ members (free) or pay $10/month.
 - "What are official roles?" → Admin can assign roles like CEO, Director, Support, Finance, etc. – these appear as badges on profile.
-- "How do I contact support?" → Use the Support tab (create ticket) or email support@starlifeadvert.com.
+- "How do I contact support?" → Use the Support tab (create ticket) or email support@example.com.
 - "Why is my investment not earning?" → Either it's still pending admin approval, or admin stopped earnings manually.
 - "What is held balance?" → Admin can place a hold on part of your balance (e.g., during dispute investigation).
 

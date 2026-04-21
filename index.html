@@ -11878,9 +11878,9 @@ Message: ${message}`);
         }
 
         function sendTransactionalEmail(type, to, data) {
-            fetch('/.netlify/functions/send-email', {
+            fetch('/.netlify/functions/send-email-proxy', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-api-token': '__EMAIL_API_TOKEN__' },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ type, to, data })
             }).catch(err => console.error('Transactional email failed:', type, err));
         }
@@ -11928,11 +11928,10 @@ Message: ${message}`);
             }
 
             try {
-                const res = await fetch('/.netlify/functions/broadcast-email', {
+                const res = await fetch('/.netlify/functions/broadcast-email-proxy', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'x-api-token': '__EMAIL_API_TOKEN__'
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ subject, message, recipients: recipientsParam })
                 });

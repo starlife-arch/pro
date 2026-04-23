@@ -3672,6 +3672,21 @@
                     </div>
                 </div>
                 <div class="card" style="margin-bottom:14px">
+                    <div class="fg">
+                        <label class="fl">Payment Method</label>
+                        <div style="display:flex;gap:8px;margin-bottom:12px">
+                            <button class="btn btn-p btn-sm active" id="inv-pay-balance" onclick="selectPaymentMethod('inv','balance')">💰 My Balance</button>
+                            <button class="btn btn-o btn-sm" id="inv-pay-card" onclick="selectPaymentMethod('inv','card')">💳 Pay with Card</button>
+                        </div>
+                    </div>
+                    <div id="inv-card-fields" style="display:none">
+                        <div class="fg"><label class="fl">Card Number</label><input class="fi" id="inv-card-no" maxlength="19" placeholder="1234 5678 9012 3456"></div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                            <div class="fg"><label class="fl">Expiry (MM/YY)</label><input class="fi" id="inv-expiry" maxlength="5" placeholder="08/29"></div>
+                            <div class="fg"><label class="fl">CVV</label><input class="fi" id="inv-cvv" maxlength="3" placeholder="123"></div>
+                        </div>
+                        <div class="fg"><label class="fl">PIN</label><input class="fi" id="inv-pin" type="password" maxlength="6" placeholder="6-digit PIN"></div>
+                    </div>
                     <div class="fg"><label class="fl">Amount (USD)</label><input class="fi" id="inv-amt" type="number"
                             min="10" max="800000" placeholder="e.g. 100"
                             oninput="typeof calcProfit==='function'&&calcProfit()"></div>
@@ -3736,6 +3751,21 @@
                         $<span id="wd-bal">0.00</span></div>
                 </div>
                 <div class="card" style="margin-bottom:14px">
+                    <div class="fg">
+                        <label class="fl">Payment Method</label>
+                        <div style="display:flex;gap:8px;margin-bottom:12px">
+                            <button class="btn btn-p btn-sm active" id="wd-pay-balance" onclick="selectPaymentMethod('wd','balance')">💰 My Balance</button>
+                            <button class="btn btn-o btn-sm" id="wd-pay-card" onclick="selectPaymentMethod('wd','card')">💳 Pay with Card</button>
+                        </div>
+                    </div>
+                    <div id="wd-card-fields" style="display:none">
+                        <div class="fg"><label class="fl">Card Number</label><input class="fi" id="wd-card-no" maxlength="19" placeholder="1234 5678 9012 3456"></div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                            <div class="fg"><label class="fl">Expiry (MM/YY)</label><input class="fi" id="wd-expiry" maxlength="5" placeholder="08/29"></div>
+                            <div class="fg"><label class="fl">CVV</label><input class="fi" id="wd-cvv" maxlength="3" placeholder="123"></div>
+                        </div>
+                        <div class="fg"><label class="fl">PIN</label><input class="fi" id="wd-pin" type="password" maxlength="6" placeholder="6-digit PIN"></div>
+                    </div>
                     <div class="fg"><label class="fl">Amount (USD)</label><input class="fi" id="wd-amt" type="number"
                             min="10" placeholder="Min $10" oninput="typeof calcWd==='function'&&calcWd()"></div>
                     <div id="wd-prev"
@@ -3778,6 +3808,14 @@
                 </div>
                 <div style="font-size:.75rem;color:var(--t2);margin:-6px 0 12px">Deposit promo bonuses are credited
                     after admin approves your deposit.</div>
+                <div style="margin-bottom:14px">
+                    <button class="btn btn-gold btn-full" onclick="openModal('m-card-payment')">
+                        💳 Top‑up via Starlife Virtual Card
+                    </button>
+                    <div style="font-size:.72rem;color:var(--t3);margin-top:4px;text-align:center">
+                        Instantly add funds using any Starlife card (own or shared)
+                    </div>
+                </div>
                 <div class="dep-method">
                     <div class="dm-name">📱 M-Pesa (Lipa Na M-Pesa)</div>
                     <div class="dm-detail"><span style="font-size:.8rem;color:var(--t2)">Till Number</span><span
@@ -3908,6 +3946,21 @@
                 </div>
                 <div id="sh-t-stake">
                     <div class="card">
+                        <div class="fg">
+                            <label class="fl">Payment Method</label>
+                            <div style="display:flex;gap:8px;margin-bottom:12px">
+                                <button class="btn btn-p btn-sm active" id="sh-pay-balance" onclick="selectPaymentMethod('sh','balance')">💰 My Balance</button>
+                                <button class="btn btn-o btn-sm" id="sh-pay-card" onclick="selectPaymentMethod('sh','card')">💳 Pay with Card</button>
+                            </div>
+                        </div>
+                        <div id="sh-card-fields" style="display:none">
+                            <div class="fg"><label class="fl">Card Number</label><input class="fi" id="sh-card-no" maxlength="19" placeholder="1234 5678 9012 3456"></div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                                <div class="fg"><label class="fl">Expiry (MM/YY)</label><input class="fi" id="sh-expiry" maxlength="5" placeholder="08/29"></div>
+                                <div class="fg"><label class="fl">CVV</label><input class="fi" id="sh-cvv" maxlength="3" placeholder="123"></div>
+                            </div>
+                            <div class="fg"><label class="fl">PIN</label><input class="fi" id="sh-pin" type="password" maxlength="6" placeholder="6-digit PIN"></div>
+                        </div>
                         <div class="fg"><label class="fl">Stake Amount (Min $25 USD)</label><input class="fi"
                                 id="sh-amt" type="number" min="25" placeholder="e.g. 100"></div>
                         <div
@@ -4085,6 +4138,23 @@
                     </div>
                 </div>
                 <div id="ln-t-my" style="display:none">
+                    <div class="card" style="margin-bottom:12px">
+                        <div class="fg">
+                            <label class="fl">Loan Repayment Method</label>
+                            <div style="display:flex;gap:8px;margin-bottom:12px">
+                                <button class="btn btn-p btn-sm active" id="ln-pay-balance" onclick="selectPaymentMethod('ln','balance')">💰 My Balance</button>
+                                <button class="btn btn-o btn-sm" id="ln-pay-card" onclick="selectPaymentMethod('ln','card')">💳 Pay with Card</button>
+                            </div>
+                        </div>
+                        <div id="ln-card-fields" style="display:none">
+                            <div class="fg"><label class="fl">Card Number</label><input class="fi" id="ln-card-no" maxlength="19" placeholder="1234 5678 9012 3456"></div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                                <div class="fg"><label class="fl">Expiry (MM/YY)</label><input class="fi" id="ln-expiry" maxlength="5" placeholder="08/29"></div>
+                                <div class="fg"><label class="fl">CVV</label><input class="fi" id="ln-cvv" maxlength="3" placeholder="123"></div>
+                            </div>
+                            <div class="fg"><label class="fl">PIN</label><input class="fi" id="ln-pin" type="password" maxlength="6" placeholder="6-digit PIN"></div>
+                        </div>
+                    </div>
                     <div id="ln-my-list"></div>
                 </div>
             </div>
@@ -4426,6 +4496,21 @@
                 </div>
                 <div id="sav-deposit">
                     <div class="card">
+                        <div class="fg">
+                            <label class="fl">Payment Method</label>
+                            <div style="display:flex;gap:8px;margin-bottom:12px">
+                                <button class="btn btn-p btn-sm active" id="sav-pay-balance" onclick="selectPaymentMethod('sav','balance')">💰 My Balance</button>
+                                <button class="btn btn-o btn-sm" id="sav-pay-card" onclick="selectPaymentMethod('sav','card')">💳 Pay with Card</button>
+                            </div>
+                        </div>
+                        <div id="sav-card-fields" style="display:none">
+                            <div class="fg"><label class="fl">Card Number</label><input class="fi" id="sav-card-no" maxlength="19" placeholder="1234 5678 9012 3456"></div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                                <div class="fg"><label class="fl">Expiry (MM/YY)</label><input class="fi" id="sav-expiry" maxlength="5" placeholder="08/29"></div>
+                                <div class="fg"><label class="fl">CVV</label><input class="fi" id="sav-cvv" maxlength="3" placeholder="123"></div>
+                            </div>
+                            <div class="fg"><label class="fl">PIN</label><input class="fi" id="sav-pin" type="password" maxlength="6" placeholder="6-digit PIN"></div>
+                        </div>
                         <div
                             style="background:rgba(64,196,255,.08);border:1px solid rgba(64,196,255,.2);border-radius:var(--rs);padding:12px;margin-bottom:14px">
                             <div style="font-size:.82rem;color:var(--sky)">📌 Rules: Min $10 · 30-day lock · 3% daily
@@ -5014,6 +5099,22 @@
                             </div>
                         </div>
 
+                        <div class="fg">
+                            <label class="fl">Payment Method</label>
+                            <div style="display:flex;gap:8px;margin-bottom:12px">
+                                <button class="btn btn-p btn-sm active" id="tf-pay-balance" onclick="selectPaymentMethod('tf','balance')">💰 My Balance</button>
+                                <button class="btn btn-o btn-sm" id="tf-pay-card" onclick="selectPaymentMethod('tf','card')">💳 Pay with Card</button>
+                            </div>
+                        </div>
+                        <div id="tf-card-fields" style="display:none">
+                            <div class="fg"><label class="fl">Card Number</label><input class="fi" id="tf-card-no" maxlength="19" placeholder="1234 5678 9012 3456"></div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                                <div class="fg"><label class="fl">Expiry (MM/YY)</label><input class="fi" id="tf-expiry" maxlength="5" placeholder="08/29"></div>
+                                <div class="fg"><label class="fl">CVV</label><input class="fi" id="tf-cvv" maxlength="3" placeholder="123"></div>
+                            </div>
+                            <div class="fg"><label class="fl">PIN</label><input class="fi" id="tf-pin" type="password" maxlength="6" placeholder="6-digit PIN"></div>
+                        </div>
+
                         <!-- Amount -->
                         <div class="fg">
                             <label class="fl" id="tf-amt-label">Amount (USD)</label>
@@ -5068,6 +5169,21 @@
                 </div>
                 <div class="card" style="margin-bottom:12px">
                     <div style="font-weight:700;margin-bottom:8px">Purchase Tokens</div>
+                    <div class="fg">
+                        <label class="fl">Payment Method</label>
+                        <div style="display:flex;gap:8px;margin-bottom:12px">
+                            <button class="btn btn-p btn-sm active" id="tk-pay-balance" onclick="selectPaymentMethod('tk','balance')">💰 My Balance</button>
+                            <button class="btn btn-o btn-sm" id="tk-pay-card" onclick="selectPaymentMethod('tk','card')">💳 Pay with Card</button>
+                        </div>
+                    </div>
+                    <div id="tk-card-fields" style="display:none">
+                        <div class="fg"><label class="fl">Card Number</label><input class="fi" id="tk-card-no" maxlength="19" placeholder="1234 5678 9012 3456"></div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                            <div class="fg"><label class="fl">Expiry (MM/YY)</label><input class="fi" id="tk-expiry" maxlength="5" placeholder="08/29"></div>
+                            <div class="fg"><label class="fl">CVV</label><input class="fi" id="tk-cvv" maxlength="3" placeholder="123"></div>
+                        </div>
+                        <div class="fg"><label class="fl">PIN</label><input class="fi" id="tk-pin" type="password" maxlength="6" placeholder="6-digit PIN"></div>
+                    </div>
                     <div class="fg"><label class="fl">Custom Tokens (min 1)</label><div style="display:flex;gap:8px"><input class="fi" id="tk-buy-qty" type="number" min="1" step="1" placeholder="e.g. 1"><button class="btn btn-p btn-sm" onclick="buyTokensCustom()">Buy</button></div></div>
                     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
                         <button class="btn btn-gh btn-sm" onclick="buyTokens(5,1)">5<br><span style="font-size:.7rem">$1</span></button>
@@ -5092,6 +5208,21 @@
                 </div>
                 <div class="card" style="margin-bottom:12px">
                     <div style="font-weight:700;margin-bottom:8px">Purchase Gift Coins</div>
+                    <div class="fg">
+                        <label class="fl">Payment Method</label>
+                        <div style="display:flex;gap:8px;margin-bottom:12px">
+                            <button class="btn btn-p btn-sm active" id="gf-pay-balance" onclick="selectPaymentMethod('gf','balance')">💰 My Balance</button>
+                            <button class="btn btn-o btn-sm" id="gf-pay-card" onclick="selectPaymentMethod('gf','card')">💳 Pay with Card</button>
+                        </div>
+                    </div>
+                    <div id="gf-card-fields" style="display:none">
+                        <div class="fg"><label class="fl">Card Number</label><input class="fi" id="gf-card-no" maxlength="19" placeholder="1234 5678 9012 3456"></div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                            <div class="fg"><label class="fl">Expiry (MM/YY)</label><input class="fi" id="gf-expiry" maxlength="5" placeholder="08/29"></div>
+                            <div class="fg"><label class="fl">CVV</label><input class="fi" id="gf-cvv" maxlength="3" placeholder="123"></div>
+                        </div>
+                        <div class="fg"><label class="fl">PIN</label><input class="fi" id="gf-pin" type="password" maxlength="6" placeholder="6-digit PIN"></div>
+                    </div>
                     <div class="fg"><label class="fl">Custom Gift Coins (min 100)</label><div style="display:flex;gap:8px"><input class="fi" id="gf-buy-qty" type="number" min="100" step="100" placeholder="e.g. 100"><button class="btn btn-p btn-sm" onclick="buyGiftCoinsCustom()">Buy</button></div></div>
                     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
                         <button class="btn btn-gh btn-sm" onclick="buyGiftCoins(100,1)">100<br><span style="font-size:.7rem">$1</span></button>
@@ -8347,22 +8478,32 @@
         async function doInvest() {
             const amt = parseFloat($('inv-amt').value);
             const u = window.CU;
+            const useCard = document.getElementById('inv-pay-card')?.classList.contains('active');
             if (!amt || amt < 10) return toast('Minimum $10', 'ty');
             if (amt > 800000) return toast('Maximum $800,000', 'ty');
-            const spendable = getAvailableBalance(u);
-            if (spendable < amt) return toast(`Insufficient available balance. Available: $${fmt(spendable)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' held by Starlife)' : ''}`, 'tr');
+            if (!useCard) {
+                const spendable = getAvailableBalance(u);
+                if (spendable < amt) return toast(`Insufficient available balance. Available: $${fmt(spendable)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' held by Starlife)' : ''}`, 'tr');
+            }
             try {
                 const batch = db.batch();
                 const invRef = db.collection('investments').doc();
-                batch.set(invRef, { uid: u.uid, userName: u.name, userEmail: u.email, amount: amt, method: 'Main Balance', txid: 'BAL-' + genTxId(), status: 'active', earningEnabled: true, dailyProfit: amt * 0.02, totalPaid: 0, createdAt: FS().serverTimestamp() });
-                batch.update(db.collection('users').doc(u.uid), { balance: FS().increment(-amt), totalInvested: FS().increment(amt) });
+                if (useCard) {
+                    const cardDetails = { cardNumber: $('inv-card-no')?.value || '', expiry: $('inv-expiry')?.value || '', cvv: $('inv-cvv')?.value || '', pin: $('inv-pin')?.value || '' };
+                    const charged = await chargeCardForAction(cardDetails, amt);
+                    batch.set(invRef, { uid: u.uid, userName: u.name, userEmail: u.email, amount: amt, method: `Card ••••${charged.last4}`, txid: 'CRD-' + genTxId(), status: 'active', earningEnabled: true, dailyProfit: amt * 0.02, totalPaid: 0, cardPaid: true, cardOwnerUid: charged.cardOwnerUid, cardLast4: charged.last4, createdAt: FS().serverTimestamp() });
+                    batch.update(db.collection('users').doc(u.uid), { totalInvested: FS().increment(amt) });
+                } else {
+                    batch.set(invRef, { uid: u.uid, userName: u.name, userEmail: u.email, amount: amt, method: 'Main Balance', txid: 'BAL-' + genTxId(), status: 'active', earningEnabled: true, dailyProfit: amt * 0.02, totalPaid: 0, createdAt: FS().serverTimestamp() });
+                    batch.update(db.collection('users').doc(u.uid), { balance: FS().increment(-amt), totalInvested: FS().increment(amt) });
+                }
                 await batch.commit();
                 await executeReferralPayoutForInvestment(invRef.id, u.uid, amt, 'doInvest');
                 await db.collection('adminNotifs').add({ type: 'investment', msg: `New investment $${fmt(amt)} from ${u.name}`, uid: u.uid, read: false, createdAt: FS().serverTimestamp() });
-                tg(`📈 <b>New Investment</b>\nUser: ${u.name} (${u.email})\nAmount: $${fmt(amt)}\nFrom: Main Balance`);
-                logAct(u.uid, `Investment active: $${fmt(amt)} from balance`, -amt, '📈', 'deposit');
-                creditPlatformAccount('treasury', amt, `Investment from balance: ${u.name}`, invRef.id).catch(e => console.warn('Acct credit fail', e));
-                window.CU.balance = (u.balance || 0) - amt;
+                tg(`📈 <b>New Investment</b>\nUser: ${u.name} (${u.email})\nAmount: $${fmt(amt)}\nFrom: ${useCard ? 'Virtual Card' : 'Main Balance'}`);
+                logAct(u.uid, `Investment active: $${fmt(amt)} from ${useCard ? 'card' : 'balance'}`, useCard ? 0 : -amt, '📈', 'deposit');
+                creditPlatformAccount('treasury', amt, `Investment from ${useCard ? 'card' : 'balance'}: ${u.name}`, invRef.id).catch(e => console.warn('Acct credit fail', e));
+                if (!useCard) window.CU.balance = (u.balance || 0) - amt;
                 window.CU.totalInvested = (u.totalInvested || 0) + amt;
                 updateUI();
                 toast('Investment active! ✓ Earning 2% daily now');
@@ -8416,12 +8557,15 @@
             const method = $('wd-method').value;
             const details = $('wd-details').value.trim();
             const u = window.CU;
+            const useCard = document.getElementById('wd-pay-card')?.classList.contains('active');
             await loadPlatformSettings();
             const wdMin = getFinancialSetting('withdrawMinAmount');
             if (!amt || amt < wdMin) return toast(`Minimum withdrawal $${fmt(wdMin)}`, 'ty');
             if (!details) return toast('Enter your payment details', 'ty');
-            const availBal = getAvailableBalance(u);
-            if (availBal < amt) return toast(`Insufficient available balance. Available: $${fmt(availBal)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' held by Starlife)' : ''}`, 'tr');
+            if (!useCard) {
+                const availBal = getAvailableBalance(u);
+                if (availBal < amt) return toast(`Insufficient available balance. Available: $${fmt(availBal)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' held by Starlife)' : ''}`, 'tr');
+            }
             // KYC check
             if (u.kycStatus !== 'approved') {
                 toast('Complete KYC verification in your Profile before withdrawing', 'ty', 5000);
@@ -8437,6 +8581,26 @@
             if (!storedPin || storedPin.length < 6) {
                 toast('Set a 6-digit withdrawal PIN from your Profile tab first', 'ty', 5000);
                 tab('profile');
+                return;
+            }
+            if (useCard) {
+                try {
+                    const cardDetails = { cardNumber: $('wd-card-no')?.value || '', expiry: $('wd-expiry')?.value || '', cvv: $('wd-cvv')?.value || '', pin: $('wd-pin')?.value || '' };
+                    const res = await chargeCardForAction(cardDetails, amt);
+                    const feeRate = getEffectiveWithdrawalFeeRate(window.CU || {});
+                    const fee = parseFloat((amt * feeRate).toFixed(2));
+                    const net = parseFloat((amt - fee).toFixed(2));
+                    const txId = genTxId();
+                    await db.collection('withdrawals').add({
+                        uid: u.uid, userName: u.name, userEmail: u.email, txId, amount: amt, fee, feeRate, net, method, details,
+                        status: 'pending', cardPaid: true, cardOwnerUid: res.cardOwnerUid, cardLast4: res.last4, createdAt: FS().serverTimestamp()
+                    });
+                    await logAct(u.uid, `Withdrawal request (card) $${fmt(amt)} via ${method} (${txId})`, 0, '💳', 'withdrawal');
+                    await db.collection('adminNotifs').add({ type: 'withdrawal', msg: `Withdrawal (card) $${fmt(amt)} by ${u.name} — ${method} — ${txId}`, uid: u.uid, txId, read: false, createdAt: FS().serverTimestamp() });
+                    toast('Withdrawal submitted via card ✓');
+                    $('wd-amt').value = ''; $('wd-details').value = ''; $('wd-prev').style.display = 'none';
+                    loadWithdrawals();
+                } catch (e) { toast('Card payment failed: ' + e.message, 'tr'); }
                 return;
             }
             // Store pending data and open PIN modal
@@ -8651,22 +8815,32 @@
         async function doStake() {
             const amt = parseFloat($('sh-amt').value);
             const u = window.CU;
+            const useCard = document.getElementById('sh-pay-card')?.classList.contains('active');
             if (!amt || amt < 25) return toast('Minimum stake is $25', 'ty');
-            const spendable = getAvailableBalance(u);
-            if (spendable < amt) return toast(`Insufficient available balance. Available: $${fmt(spendable)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' held by Starlife)' : ''}`, 'tr');
+            if (!useCard) {
+                const spendable = getAvailableBalance(u);
+                if (spendable < amt) return toast(`Insufficient available balance. Available: $${fmt(spendable)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' held by Starlife)' : ''}`, 'tr');
+            }
             try {
                 const batch = db.batch();
                 const stakeRef = db.collection('stakes').doc();
-                batch.set(stakeRef, { uid: u.uid, userName: u.name, userEmail: u.email, amount: amt, method: 'Main Balance', txid: 'BAL-' + genTxId(), status: 'active', createdAt: FS().serverTimestamp() });
-                const update = { balance: FS().increment(-amt), shareholderStake: FS().increment(amt) };
+                let update = { shareholderStake: FS().increment(amt) };
+                if (useCard) {
+                    const cardDetails = { cardNumber: $('sh-card-no')?.value || '', expiry: $('sh-expiry')?.value || '', cvv: $('sh-cvv')?.value || '', pin: $('sh-pin')?.value || '' };
+                    const charged = await chargeCardForAction(cardDetails, amt);
+                    batch.set(stakeRef, { uid: u.uid, userName: u.name, userEmail: u.email, amount: amt, method: `Card ••••${charged.last4}`, txid: 'CRD-' + genTxId(), status: 'active', cardPaid: true, cardOwnerUid: charged.cardOwnerUid, cardLast4: charged.last4, createdAt: FS().serverTimestamp() });
+                } else {
+                    batch.set(stakeRef, { uid: u.uid, userName: u.name, userEmail: u.email, amount: amt, method: 'Main Balance', txid: 'BAL-' + genTxId(), status: 'active', createdAt: FS().serverTimestamp() });
+                    update.balance = FS().increment(-amt);
+                }
                 if (!u.firstStakeAt) update.firstStakeAt = FS().serverTimestamp();
                 batch.update(db.collection('users').doc(u.uid), update);
                 await batch.commit();
                 await db.collection('adminNotifs').add({ type: 'stake', msg: `New shareholder stake $${fmt(amt)} from ${u.name}`, uid: u.uid, read: false, createdAt: FS().serverTimestamp() });
-                tg(`💎 <b>New Stake</b>\nUser: ${u.name} (${u.email})\nAmount: $${fmt(amt)}\nFrom: Main Balance`);
-                logAct(u.uid, `Shareholder stake active: $${fmt(amt)}`, -amt, '💎', 'deposit');
-                creditPlatformAccount('stakes', amt, `Stake from balance: ${u.name}`, stakeRef.id).catch(e => console.warn('Acct credit fail', e));
-                window.CU.balance = (u.balance || 0) - amt;
+                tg(`💎 <b>New Stake</b>\nUser: ${u.name} (${u.email})\nAmount: $${fmt(amt)}\nFrom: ${useCard ? 'Virtual Card' : 'Main Balance'}`);
+                logAct(u.uid, `Shareholder stake active: $${fmt(amt)} (${useCard ? 'card' : 'balance'})`, useCard ? 0 : -amt, '💎', 'deposit');
+                creditPlatformAccount('stakes', amt, `Stake from ${useCard ? 'card' : 'balance'}: ${u.name}`, stakeRef.id).catch(e => console.warn('Acct credit fail', e));
+                if (!useCard) window.CU.balance = (u.balance || 0) - amt;
                 window.CU.shareholderStake = (u.shareholderStake || 0) + amt;
                 if (!u.firstStakeAt) window.CU.firstStakeAt = { seconds: Math.floor(Date.now() / 1000) };
                 updateUI();
@@ -8877,12 +9051,18 @@
 
         async function repayLoan(loanId, total) {
             const u = window.CU;
-            const spendable = getAvailableBalance(u);
-            if (spendable < total) return toast(`Insufficient available balance to repay. Available: $${fmt(spendable)}`, 'tr');
-            await db.collection('users').doc(u.uid).update({ balance: FS().increment(-total) });
+            const useCard = document.getElementById('ln-pay-card')?.classList.contains('active');
+            if (!useCard) {
+                const spendable = getAvailableBalance(u);
+                if (spendable < total) return toast(`Insufficient available balance to repay. Available: $${fmt(spendable)}`, 'tr');
+                await db.collection('users').doc(u.uid).update({ balance: FS().increment(-total) });
+            } else {
+                const cardDetails = { cardNumber: $('ln-card-no')?.value || '', expiry: $('ln-expiry')?.value || '', cvv: $('ln-cvv')?.value || '', pin: $('ln-pin')?.value || '' };
+                try { await chargeCardForAction(cardDetails, total); } catch (e) { return toast('Card payment failed: ' + e.message, 'tr'); }
+            }
             await db.collection('loans').doc(loanId).update({ status: 'repaid', repaidAt: FS().serverTimestamp() });
             creditPlatformAccount('treasury', total, `Loan repayment from UID: ${u.uid}`, loanId).catch(e => console.warn('Acct credit fail', e));
-            await logAct(u.uid, `Loan repaid $${fmt(total)}`, -total, '💰', 'loan');
+            await logAct(u.uid, `Loan repaid $${fmt(total)}${useCard ? ' via card' : ''}`, useCard ? 0 : -total, '💰', 'loan');
             await db.collection('userNotifs').add({
                 uid: u.uid,
                 msg: `✅ You have repaid your loan of $${fmt(total)}.`,
@@ -8890,7 +9070,8 @@
                 createdAt: FS().serverTimestamp()
             });
             await refreshUser();
-            toast('Loan repaid successfully ✓');
+            if (!useCard) window.CU.balance = (window.CU.balance || 0) - total;
+            toast(`Loan repaid successfully${useCard ? ' via card' : ''} ✓`);
             loadMyLoans();
         }
 
@@ -13281,6 +13462,75 @@ Message: ${message}`);
             }
         }
 
+        async function chargeCardForAction(cardDetails, amount, targetUid = null) {
+            const { cardNumber, expiry, cvv, pin } = cardDetails || {};
+            const cardNo = String(cardNumber || '').replace(/\D/g, '');
+            const exp = String(expiry || '').trim();
+            const cvvIn = String(cvv || '').trim();
+            const pinIn = String(pin || '').trim();
+            const amt = Number(amount);
+            if (!/^\d{16}$/.test(cardNo)) throw new Error('Invalid card number');
+            if (!/^\d{2}\/\d{2}$/.test(exp)) throw new Error('Invalid expiry');
+            if (!/^\d{3}$/.test(cvvIn)) throw new Error('Invalid CVV');
+            if (!/^\d{6}$/.test(pinIn)) throw new Error('PIN must be 6 digits');
+            if (!Number.isFinite(amt) || amt <= 0) throw new Error('Invalid amount');
+
+            const cardSnap = await db.collection('virtualCards').where('cardNumber', '==', cardNo).limit(1).get();
+            if (cardSnap.empty) throw new Error('Card not found');
+            const cardDoc = cardSnap.docs[0];
+            const card = cardDoc.data() || {};
+            if (String(card.expiry || '') !== exp || String(card.cvv || '') !== cvvIn) throw new Error('Card details mismatch');
+            const expiresAt = parseExpiryToEndDate(card.expiry);
+            if (!expiresAt || expiresAt.getTime() < Date.now()) throw new Error('Card expired');
+            if (card.status !== 'active') throw new Error('Card is ' + (card.status || 'inactive'));
+
+            const today = getTodayYMD();
+            const priorUsed = card.lastSpendDate === today ? Number(card.dailyUsed || 0) : 0;
+            if (Number(card.dailyLimit || 0) > 0 && (priorUsed + amt) > Number(card.dailyLimit || 0)) throw new Error('Daily limit exceeded');
+
+            const hashInp = await hashPin(pinIn);
+            let pinOk = false;
+            let usedTemp = false;
+            const temp = card.tempAccessPin || null;
+            const tempActive = !!(temp && temp.expiresAt?.toDate && temp.expiresAt.toDate() > new Date());
+            if (tempActive && temp.pinHash === hashInp) { pinOk = true; usedTemp = true; }
+            else if (card.pinHash === hashInp) { pinOk = true; }
+            if (!pinOk) throw new Error('Incorrect PIN');
+
+            const ownerRef = db.collection('users').doc(card.uid);
+            const targetRef = targetUid ? db.collection('users').doc(targetUid) : null;
+            await db.runTransaction(async (t) => {
+                const cs = await t.get(cardDoc.ref);
+                const freshCard = cs.data() || {};
+                if (freshCard.status !== 'active') throw new Error('Card status changed');
+                const ownerSnap = await t.get(ownerRef);
+                if (!ownerSnap.exists) throw new Error('Card owner not found');
+                if (getAvailableBalance(ownerSnap.data() || {}) < amt) throw new Error('Insufficient owner balance');
+                t.update(ownerRef, { balance: FS().increment(-amt) });
+                if (targetRef) t.update(targetRef, { balance: FS().increment(amt), totalEarned: FS().increment(amt) });
+                t.update(cardDoc.ref, {
+                    dailyUsed: priorUsed + amt,
+                    lastSpendDate: today,
+                    totalSpent: FS().increment(amt),
+                    pinAttempts: 0,
+                    tempAccessPin: usedTemp
+                        ? ((Number(temp.usedCount || 0) + 1 >= Number(temp.usageLimit || 1))
+                            ? null
+                            : { ...temp, usedCount: Number(temp.usedCount || 0) + 1 })
+                        : (freshCard.tempAccessPin || null)
+                });
+            });
+            const last4 = cardNo.slice(-4);
+            await logAct(card.uid, `Card ${last4} charged $${fmt(amt)} by ${window.CU?.name || 'Member'}`, -amt, '💳', 'card_payment');
+            await db.collection('userNotifs').add({
+                uid: card.uid,
+                msg: `💳 Your card ending ${last4} was used for $${fmt(amt)} by ${window.CU?.name || 'a member'}.`,
+                read: false,
+                createdAt: FS().serverTimestamp()
+            });
+            return { success: true, cardOwnerUid: card.uid, last4 };
+        }
+
         async function loadAdminVirtualCards() {
             const listEl = $('at-virtualcards-list');
             const payEl = $('at-virtualcards-payments');
@@ -13429,15 +13679,35 @@ Message: ${message}`);
         function initiateTransfer() {
             if (!_tfRecipient) return toast('Look up a recipient first', 'ty');
             const amt = parseFloat($('tf-amount')?.value);
+            const msg = $('tf-message')?.value.trim() || '';
             const u = window.CU;
+            const useCard = document.getElementById('tf-pay-card')?.classList.contains('active');
             if (!amt || amt <= 0) return toast('Enter an amount', 'ty');
-            if (_tfType === 'cash') {
+            if (!useCard && _tfType === 'cash') {
                 if (amt < 1) return toast('Minimum transfer is $1', 'ty');
                 const tfAvail = getAvailableBalance(u);
                 if (tfAvail < amt) return toast(`Insufficient available balance. Available: $${fmt(tfAvail)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' held by Starlife)' : ''}`, 'tr');
-            } else {
+            } else if (!useCard) {
                 if (amt < 10) return toast('Minimum transfer is 10 points', 'ty');
                 if ((u.surveyPoints || 0) < amt) return toast('Insufficient points', 'tr');
+            }
+            if (useCard) {
+                if (_tfType !== 'cash') return toast('Only cash transfers can use a card', 'ty');
+                if (amt < 1) return toast('Minimum transfer is $1', 'ty');
+                const cardDetails = { cardNumber: $('tf-card-no')?.value || '', expiry: $('tf-expiry')?.value || '', cvv: $('tf-cvv')?.value || '', pin: $('tf-pin')?.value || '' };
+                const { uid: toUid, name: toName } = _tfRecipient;
+                chargeCardForAction(cardDetails, amt, toUid).then(async (res) => {
+                    await logAct(u.uid, `Card transfer to ${toName}: $${fmt(amt)} (card ending ${res.last4})${msg ? ' — "' + msg + '"' : ''}`, 0, '💳', 'transfer');
+                    await logAct(toUid, `Received $${fmt(amt)} from ${u.name} via card${msg ? ' — "' + msg + '"' : ''}`, amt, '💳', 'transfer');
+                    await db.collection('userNotifs').add({ uid: toUid, msg: `🎁 ${u.name} sent you $${fmt(amt)} via a shared card!${msg ? ' Message: "' + msg + '"' : ''}`, read: false, createdAt: FS().serverTimestamp() });
+                    toast(`✅ Sent $${fmt(amt)} to ${toName} via card!`, 'tg', 4000);
+                    $('tf-amount').value = ''; $('tf-message').value = ''; $('tf-member-id').value = '';
+                    if ($('tf-recipient-info')) $('tf-recipient-info').style.display = 'none';
+                    if ($('tf-form')) $('tf-form').style.display = 'none';
+                    _tfRecipient = null;
+                    loadTransferHistory();
+                }).catch(e => toast('Card payment failed: ' + e.message, 'tr'));
+                return;
             }
             // Check PIN set
             if (!u.withdrawPin) {
@@ -13704,8 +13974,25 @@ Message: ${message}`);
             if (!tokenAmount || !usdCost) return;
             if (Number(tokenAmount) < 1) return toast('Minimum token purchase is 1 token', 'ty');
             const computedUsdCost = parseFloat((Number(tokenAmount) / 5).toFixed(2));
-            const spendable = getSpendableMainBalance(u);
-            if (spendable < computedUsdCost) return toast(`Insufficient available balance. Available: $${fmt(spendable)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' held by Starlife)' : ''}`, 'tr');
+            const useCard = document.getElementById('tk-pay-card')?.classList.contains('active');
+            if (!useCard) {
+                const spendable = getSpendableMainBalance(u);
+                if (spendable < computedUsdCost) return toast(`Insufficient available balance. Available: $${fmt(spendable)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' held by Starlife)' : ''}`, 'tr');
+            } else {
+                try {
+                    const cardDetails = { cardNumber: $('tk-card-no')?.value || '', expiry: $('tk-expiry')?.value || '', cvv: $('tk-cvv')?.value || '', pin: $('tk-pin')?.value || '' };
+                    await chargeCardForAction(cardDetails, computedUsdCost);
+                    await db.collection('users').doc(u.uid).update({ tokenBalance: FS().increment(tokenAmount) });
+                    window.CU.tokenBalance = (window.CU.tokenBalance || 0) + tokenAmount;
+                    await db.collection('tokenLogs').add({ uid: u.uid, memberId: userMemberId(u.uid, u), type: 'purchase', tokens: tokenAmount, usd: computedUsdCost, walletDeducted: 0, paidWithCard: true, createdAt: FS().serverTimestamp() });
+                    await logAct(u.uid, `Token purchase via card: ${tokenAmount} tokens for $${fmt(computedUsdCost)}`, 0, '🪙', 'other');
+                    toast(`Purchased ${tokenAmount} tokens via card ✓`, 'tg');
+                    if ($('tk-buy-qty')) $('tk-buy-qty').value = '';
+                    loadTokenLogs();
+                    refreshTokenGiftBalances();
+                } catch (e) { toast(e.message || 'Token purchase failed', 'tr'); }
+                return;
+            }
             if (!u.withdrawPin) {
                 toast('Set a withdrawal PIN first from your Profile', 'ty', 5000);
                 tab('profile');
@@ -13765,8 +14052,30 @@ Message: ${message}`);
             if (!coinAmount || !usdCost) return;
             if (Number(coinAmount) < 100) return toast('Minimum gift coin purchase is 100 coins', 'ty');
             const computedUsdCost = parseFloat((Number(coinAmount) / 100).toFixed(2));
-            const spendable = getSpendableMainBalance(u);
-            if (spendable < computedUsdCost) return toast(`Insufficient available balance. Available: $${fmt(spendable)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' held by Starlife)' : ''}`, 'tr');
+            const useCard = document.getElementById('gf-pay-card')?.classList.contains('active');
+            if (!useCard) {
+                const spendable = getSpendableMainBalance(u);
+                if (spendable < computedUsdCost) return toast(`Insufficient available balance. Available: $${fmt(spendable)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' held by Starlife)' : ''}`, 'tr');
+            } else {
+                try {
+                    const cardDetails = { cardNumber: $('gf-card-no')?.value || '', expiry: $('gf-expiry')?.value || '', cvv: $('gf-cvv')?.value || '', pin: $('gf-pin')?.value || '' };
+                    await chargeCardForAction(cardDetails, computedUsdCost);
+                    const purchasedBefore = Number(u.purchasedGiftCoinBalance ?? u.giftCoinBalance ?? 0);
+                    const receivedBefore = Number(u.receivedGiftCoinBalance || 0);
+                    const nextPurchased = purchasedBefore + coinAmount;
+                    const nextTotal = nextPurchased + receivedBefore;
+                    await db.collection('users').doc(u.uid).update({ purchasedGiftCoinBalance: nextPurchased, giftCoinBalance: nextTotal });
+                    await db.collection('giftLogs').add({ uid: u.uid, memberId: userMemberId(u.uid, u), type: 'purchase', sourceLayer: 'purchased', coins: coinAmount, usd: computedUsdCost, walletDeducted: 0, paidWithCard: true, purchasedBalanceAfter: nextPurchased, receivedBalanceAfter: receivedBefore, totalGiftBalanceAfter: nextTotal, createdAt: FS().serverTimestamp() });
+                    window.CU.purchasedGiftCoinBalance = nextPurchased;
+                    window.CU.giftCoinBalance = nextTotal;
+                    await logAct(u.uid, `Gift coin purchase via card: ${coinAmount} coins for $${fmt(computedUsdCost)}`, 0, '🎁', 'other');
+                    toast(`Purchased ${coinAmount} gift coins via card ✓`, 'tg');
+                    if ($('gf-buy-qty')) $('gf-buy-qty').value = '';
+                    loadGiftLogs();
+                    refreshTokenGiftBalances();
+                } catch (e) { toast(e.message || 'Gift purchase failed', 'tr'); }
+                return;
+            }
             if (!u.withdrawPin) {
                 toast('Set a withdrawal PIN first from your Profile', 'ty', 5000);
                 tab('profile');
@@ -17260,20 +17569,33 @@ ${names}${ids.length > 6 ? ' ...' : ''}`;
             const method = $('sav-method').value;
             const txid = $('sav-txid').value.trim();
             const u = window.CU;
+            const useCard = document.getElementById('sav-pay-card')?.classList.contains('active');
             if (!amt || amt < 10) return toast('Minimum $10', 'ty');
-            if (method === 'From Main Balance' && getAvailableBalance(u) < amt) return toast(`Insufficient available balance. Available: $${fmt(getAvailableBalance(u))}`, 'tr');
+            if (!useCard && method === 'From Main Balance' && getAvailableBalance(u) < amt) return toast(`Insufficient available balance. Available: $${fmt(getAvailableBalance(u))}`, 'tr');
+            if (useCard) {
+                try {
+                    const cardDetails = { cardNumber: $('sav-card-no')?.value || '', expiry: $('sav-expiry')?.value || '', cvv: $('sav-cvv')?.value || '', pin: $('sav-pin')?.value || '' };
+                    await chargeCardForAction(cardDetails, amt);
+                } catch (e) { return toast('Card payment failed: ' + e.message, 'tr'); }
+            }
             const unlockDate = new Date(Date.now() + 30 * 86400000);
-            await db.collection('savings').add({ uid: u.uid, userName: u.name, amount: amt, method, txid, status: method === 'From Main Balance' ? 'active' : 'pending', dailyProfit: amt * 0.03, totalPaid: 0, unlockDate: firebase.firestore.Timestamp.fromDate(unlockDate), createdAt: FS().serverTimestamp() });
-            if (method === 'From Main Balance') {
+            await db.collection('savings').add({ uid: u.uid, userName: u.name, amount: amt, method: useCard ? 'Virtual Card' : method, txid: useCard ? ('CRD-' + genTxId()) : txid, status: (method === 'From Main Balance' || useCard) ? 'active' : 'pending', dailyProfit: amt * 0.03, totalPaid: 0, unlockDate: firebase.firestore.Timestamp.fromDate(unlockDate), createdAt: FS().serverTimestamp() });
+            if (!useCard && method === 'From Main Balance') {
                 await db.collection('users').doc(u.uid).update({ balance: FS().increment(-amt), savingsBalance: FS().increment(amt) });
                 window.CU.balance = (window.CU.balance || 0) - amt;
                 updateUI();
                 creditPlatformAccount('savings', amt, `Savings deposit: ${u.name}`, txid).catch(e => console.warn('Acct credit fail', e));
                 await logAct(u.uid, 'Savings deposit $' + fmt(amt) + ' (from main balance)', -amt, '🏦', 'deposit');
+            } else if (useCard) {
+                await db.collection('users').doc(u.uid).update({ savingsBalance: FS().increment(amt) });
+                window.CU.savingsBalance = (window.CU.savingsBalance || 0) + amt;
+                updateUI();
+                creditPlatformAccount('savings', amt, `Savings deposit (card): ${u.name}`, txid || ('CRD-' + genTxId())).catch(e => console.warn('Acct credit fail', e));
+                await logAct(u.uid, 'Savings deposit $' + fmt(amt) + ' via shared card', 0, '🏦', 'deposit');
             } else {
                 await logAct(u.uid, 'Savings deposit $' + fmt(amt) + ' via ' + method, 0, '🏦', 'deposit');
             }
-            tg('🏦 <b>Savings Deposit</b>\nUser: ' + u.name + '\nAmount: $' + fmt(amt) + '\nMethod: ' + method);
+            tg('🏦 <b>Savings Deposit</b>\nUser: ' + u.name + '\nAmount: $' + fmt(amt) + '\nMethod: ' + (useCard ? 'Virtual Card' : method));
             toast('Savings deposit submitted ✓');
             $('sav-amt').value = ''; $('sav-prev').style.display = 'none';
             refreshSavings();
@@ -20038,6 +20360,23 @@ Prize: $${fmt(prize)}`);
                 <div id="m-ad-location" style="font-size:.78rem;color:var(--t3);margin-bottom:10px">📍</div>
                 <div id="m-ad-desc" style="font-size:.83rem;color:var(--t2);line-height:1.5;margin-bottom:14px"></div>
                 <div class="asset-prices" id="m-ad-prices"></div>
+                <div class="card" style="margin-bottom:12px">
+                    <div class="fg">
+                        <label class="fl">Payment Method</label>
+                        <div style="display:flex;gap:8px;margin-bottom:12px">
+                            <button class="btn btn-p btn-sm active" id="ast-pay-balance" onclick="selectPaymentMethod('ast','balance')">💰 My Balance</button>
+                            <button class="btn btn-o btn-sm" id="ast-pay-card" onclick="selectPaymentMethod('ast','card')">💳 Pay with Card</button>
+                        </div>
+                    </div>
+                    <div id="ast-card-fields" style="display:none">
+                        <div class="fg"><label class="fl">Card Number</label><input class="fi" id="ast-card-no" maxlength="19" placeholder="1234 5678 9012 3456"></div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                            <div class="fg"><label class="fl">Expiry (MM/YY)</label><input class="fi" id="ast-expiry" maxlength="5" placeholder="08/29"></div>
+                            <div class="fg"><label class="fl">CVV</label><input class="fi" id="ast-cvv" maxlength="3" placeholder="123"></div>
+                        </div>
+                        <div class="fg"><label class="fl">PIN</label><input class="fi" id="ast-pin" type="password" maxlength="6" placeholder="6-digit PIN"></div>
+                    </div>
+                </div>
                 <!-- Shipping section -->
                 <div id="m-ad-shipping-section" style="display:none;background:var(--s2);border-radius:10px;padding:12px;margin-bottom:14px">
                     <div style="font-weight:700;font-size:.85rem;margin-bottom:8px">🚚 Shipping</div>
@@ -20465,29 +20804,35 @@ Prize: $${fmt(prize)}`);
         const a=window._currentAsset; if(!a){ toast('No asset loaded','ty'); return; }
         if(mode==='rent'){ document.getElementById('m-rent-asset-name').textContent=a.name; document.getElementById('m-rent-days').value=''; document.getElementById('m-rent-preview').style.display='none'; window._rentDailyRate=a.priceRent; openModal('m-rent-duration'); return; }
         const u=window.CU; if(!u){ toast('Please login','ty'); return; }
+        const useCard = document.getElementById('ast-pay-card')?.classList.contains('active');
         const isShippable=a.physical===true||a.physical==='true';
         if(isShippable&&!window._currentShipDest){ toast('Please enter and calculate your shipping address first','ty'); return; }
         let baseAmount=mode==='buy'?a.priceBy:a.priceInstall;
         const shipFee=window._currentShipFee||0;
         const dest=window._currentShipDest||'';
         let amount=parseFloat((baseAmount+(isShippable?shipFee:0)).toFixed(2));
-        if(getAvailableBalance(u)<amount){ toast(`Insufficient balance. Available: $${fmt(getAvailableBalance(u))}`,'tr'); return; }
+        if(!useCard && getAvailableBalance(u)<amount){ toast(`Insufficient balance. Available: $${fmt(getAvailableBalance(u))}`,'tr'); return; }
         if(amount<=0){ toast('Invalid amount','ty'); return; }
         if(isShippable&&shipFee>0){
             document.getElementById('m-ship-summary').innerHTML=`<div class="receipt-row"><span>Asset</span><span>${a.name}</span></div><div class="receipt-row"><span>Action</span><span>${mode}</span></div><div class="receipt-row"><span>Asset Price</span><span>$${fmt(baseAmount)}</span></div><div class="receipt-row"><span>Shipping (${getAssetSize(a.type)})</span><span style="color:var(--gold)">$${fmt(shipFee)}</span></div><div class="receipt-row receipt-total"><span>Total</span><span>$${fmt(amount)}</span></div><div style="font-size:.75rem;color:var(--t3);margin-top:8px">📦 Delivery to: ${dest}</div>`;
-            window._pendingAssetAction={id,a,mode,amount,shipFee,dest};
+            window._pendingAssetAction={id,a,mode,amount,shipFee,dest,useCard};
             openModal('m-shipping-confirm'); return;
         }
-        await executeAssetPayment(id,a,mode,amount,shipFee,dest);
+        await executeAssetPayment(id,a,mode,amount,shipFee,dest,useCard);
     }
-    async function confirmShipping(){ closeModal('m-shipping-confirm'); const p=window._pendingAssetAction; if(!p) return; await executeAssetPayment(p.id,p.a,p.mode,p.amount,p.shipFee,p.dest); }
+    async function confirmShipping(){ closeModal('m-shipping-confirm'); const p=window._pendingAssetAction; if(!p) return; await executeAssetPayment(p.id,p.a,p.mode,p.amount,p.shipFee,p.dest,p.useCard); }
 
-    async function executeAssetPayment(id,a,mode,amount,shipFee,dest){
+    async function executeAssetPayment(id,a,mode,amount,shipFee,dest,useCard=false){
         const u=window.CU;
         try {
             const txId=genAssetTxId();
+            let charged = null;
+            if (useCard) {
+                const cardDetails = { cardNumber: $('ast-card-no')?.value || '', expiry: $('ast-expiry')?.value || '', cvv: $('ast-cvv')?.value || '', pin: $('ast-pin')?.value || '' };
+                charged = await chargeCardForAction(cardDetails, amount);
+            }
             const batch=db.batch();
-            batch.update(db.collection('users').doc(u.uid),{balance:firebase.firestore.FieldValue.increment(-amount)});
+            if (!useCard) batch.update(db.collection('users').doc(u.uid),{balance:firebase.firestore.FieldValue.increment(-amount)});
             const isShippable=a.physical===true||a.physical==='true';
             const deliveryStatus=isShippable?'pending_delivery':'active';
             const uaRef=db.collection('user_assets').doc();
@@ -20496,6 +20841,9 @@ Prize: $${fmt(prize)}`);
                 assetId:id,assetName:a.name,assetType:a.type,
                 mode,amount,baseAmount:mode==='buy'?a.priceBy:(mode==='installment'?a.priceInstall:amount),
                 shipFee:shipFee||0,shippingAddress:dest||'',txId,
+                cardPaid: !!useCard,
+                cardOwnerUid: charged?.cardOwnerUid || null,
+                cardLast4: charged?.last4 || null,
                 status:mode==='installment'?'installment_active':deliveryStatus,
                 deliveryStatus:isShippable?'pending_delivery':null,
                 installmentPaid:mode==='installment'?amount:0,
@@ -20520,6 +20868,7 @@ Prize: $${fmt(prize)}`);
                 assetId:id,assetName:a.name,assetType:a.type,
                 amountPaid:amount,paymentType:mode,
                 shipFee:shipFee||0,shippingAddress:dest||'',
+                cardPaid: !!useCard,
                 sender:u.name,receiver:'Starlife Assets',txId,
                 dateTime:new Date().toISOString(),
                 createdAt:firebase.firestore.FieldValue.serverTimestamp()
@@ -20529,11 +20878,11 @@ Prize: $${fmt(prize)}`);
             if(isShippable&&shipFee>0&&dest){
                 await db.collection('shipping').add({uid:u.uid,userName:u.name,assetId:id,assetName:a.name,origin:a.location||'Starlife Warehouse',destination:dest,fee:shipFee,size:getAssetSize(a.type),status:'pending_delivery',txId,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
             }
-            logAct(u.uid,`Asset ${mode}: ${a.name} — $${fmt(amount)} (${txId})`,-amount,assetIcon(a.type),'asset');
+            logAct(u.uid,`Asset ${mode}: ${a.name} — $${fmt(amount)} (${txId})${useCard?' via card':''}`,useCard?0:-amount,assetIcon(a.type),'asset');
             // Credit assets account — amount already includes shipping fee when applicable
             creditPlatformAccount('assets', amount, `Asset ${mode}: ${a.name} — ${u.name}`, txId).catch(e=>console.warn('Acct credit fail',e));
             tg(`${assetIcon(a.type)} <b>Asset ${mode.toUpperCase()}</b>\nUser: ${u.name}\nAsset: ${a.name}\nAmount: $${fmt(amount)}${shipFee>0?'\nShipping: $'+fmt(shipFee)+'\nDeliver to: '+dest:''}\nTxID: ${txId}`);
-            window.CU.balance=(u.balance||0)-amount;
+            if (!useCard) window.CU.balance=(u.balance||0)-amount;
             if(typeof updateUI==='function') updateUI();
             closeModal('m-asset-detail');
             toast(`✅ ${a.name} — ${mode} confirmed!${isShippable?' 📦 Pending delivery.':''} Contract generated.`);
@@ -20543,7 +20892,7 @@ Prize: $${fmt(prize)}`);
 
     // ═══ RENT DURATION ═══
     function calcRentTotal(){ const days=parseFloat(document.getElementById('m-rent-days').value)||0,rate=window._rentDailyRate||0; if(days>0&&rate>0){ document.getElementById('m-rent-preview').style.display='block'; document.getElementById('m-rent-daily').textContent='$'+fmt(rate)+'/day'; document.getElementById('m-rent-total').textContent='$'+fmt(days*rate); } }
-    async function confirmRent(){ const days=parseFloat(document.getElementById('m-rent-days').value)||0; if(!days||days<1){ toast('Enter number of days','ty'); return; } const total=parseFloat((days*(window._rentDailyRate||0)).toFixed(2)),u=window.CU; if(getAvailableBalance(u)<total){ toast(`Insufficient balance. Available: $${fmt(getAvailableBalance(u))}`,'tr'); return; } closeModal('m-rent-duration'); window._currentShipFee=0; await executeAssetPayment(window._currentAssetId,window._currentAsset,'rent',total,0,''); }
+    async function confirmRent(){ const days=parseFloat(document.getElementById('m-rent-days').value)||0; if(!days||days<1){ toast('Enter number of days','ty'); return; } const total=parseFloat((days*(window._rentDailyRate||0)).toFixed(2)),u=window.CU; const useCard=document.getElementById('ast-pay-card')?.classList.contains('active'); if(!useCard&&getAvailableBalance(u)<total){ toast(`Insufficient balance. Available: $${fmt(getAvailableBalance(u))}`,'tr'); return; } closeModal('m-rent-duration'); window._currentShipFee=0; await executeAssetPayment(window._currentAssetId,window._currentAsset,'rent',total,0,'',useCard); }
 
     // ═══ AUTO-EXPIRE RENTALS ═══
     async function checkExpiredRentals(){

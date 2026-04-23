@@ -3694,7 +3694,7 @@
                         style="background:rgba(0,200,83,.08);border:1px solid rgba(0,200,83,.2);border-radius:8px;padding:10px;margin-bottom:12px;font-size:.8rem;color:var(--t2)">
                         💡 Investment deducted from your main balance instantly. Admin receives an alert.
                     </div>
-                    <button class="btn btn-p btn-full" onclick="doInvest()">Invest Now →</button>
+                    <div style="display:flex;gap:8px"><button class="btn btn-p btn-full" onclick="doInvest()">Invest Now →</button><button class="btn btn-o btn-sm" onclick="openModal('m-card-payment')">💳 Fund with Card</button></div>
                     <!-- Auto-reinvest toggle -->
                     <div class="toggle-wrap" style="margin-top:12px">
                         <div>
@@ -3758,7 +3758,7 @@
                         </select></div>
                     <div class="fg"><label class="fl">Payment Details</label><textarea class="fi" id="wd-details"
                             placeholder="Phone number, account, wallet address, etc."></textarea></div>
-                    <button class="btn btn-p btn-full" onclick="doWithdraw()">Request Withdrawal →</button>
+                    <div style="display:flex;gap:8px"><button class="btn btn-p btn-full" onclick="doWithdraw()">Request Withdrawal →</button><button class="btn btn-o btn-sm" onclick="openModal('m-card-payment')">💳 Fund with Card</button></div>
                 </div>
                 <div class="sh">
                     <h3>Withdrawal History</h3>
@@ -3914,7 +3914,7 @@
                             style="background:rgba(0,200,83,.08);border:1px solid rgba(0,200,83,.2);border-radius:8px;padding:10px;margin-bottom:12px;font-size:.8rem;color:var(--t2)">
                             💡 Stake deducted from your main balance instantly. Admin receives an alert.
                         </div>
-                        <button class="btn btn-p btn-full" onclick="doStake()">Stake Now →</button>
+                        <div style="display:flex;gap:8px"><button class="btn btn-p btn-full" onclick="doStake()">Stake Now →</button><button class="btn btn-o btn-sm" onclick="openModal('m-card-payment')">💳 Fund with Card</button></div>
                         <p style="font-size:.72rem;color:var(--t3);text-align:center;margin-top:8px">Stakes are approved
                             by admin. Earnings locked for 6 months from first stake.</p>
                     </div>
@@ -4451,7 +4451,7 @@
                         </div>
                         <input type="hidden" id="sav-method" value="From Main Balance">
                         <input type="hidden" id="sav-txid" value="">
-                        <button class="btn btn-p btn-full" onclick="doSavDeposit()">Lock into Savings →</button>
+                        <div style="display:flex;gap:8px"><button class="btn btn-p btn-full" onclick="doSavDeposit()">Lock into Savings →</button><button class="btn btn-o btn-sm" onclick="openModal('m-card-payment')">💳 Fund with Card</button></div>
                     </div>
                 </div>
                 <div id="sav-history" style="display:none">
@@ -7094,7 +7094,7 @@
 
     <div class="mover" id="m-card-payment">
         <div class="modal" style="max-width:440px">
-            <div class="modal-title">💳 Card Payment</div>
+            <div class="modal-title">💳 Top Up / Pay from Virtual Card</div>
             <div class="fg"><label class="fl">Card Number</label><input class="fi" id="cp-card-number" maxlength="19" placeholder="1234 5678 9012 3456"></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
                 <div class="fg"><label class="fl">Expiry (MM/YY)</label><input class="fi" id="cp-expiry" maxlength="5" placeholder="08/29"></div>
@@ -7102,8 +7102,15 @@
             </div>
             <div class="fg"><label class="fl">Amount (USD)</label><input class="fi" id="cp-amount" type="number" min="0.01" step="0.01" placeholder="e.g. 15"></div>
             <div class="fg"><label class="fl">PIN</label><input class="fi" id="cp-pin" type="password" maxlength="6" placeholder="6-digit PIN or temp PIN"></div>
+            <div class="fg"><label class="fl">Optional – Send to Member ID (leave blank to top-up yourself)</label>
+                <div style="display:flex;gap:8px">
+                    <input class="fi" id="cp-recipient" placeholder="e.g. SLA-XXXX" style="text-transform:uppercase">
+                    <button class="btn btn-gh btn-sm" onclick="lookupCardRecipient()">🔍 Lookup</button>
+                </div>
+                <div id="cp-recipient-info" style="display:none;font-size:.75rem;color:var(--g);margin-top:4px"></div>
+            </div>
             <div class="modal-acts">
-                <button class="btn btn-p" onclick="submitCardPayment()">Pay Now</button>
+                <button class="btn btn-p" onclick="submitCardPayment()">💸 Top Up / Send</button>
                 <button class="btn btn-gh" onclick="closeModal('m-card-payment')">Cancel</button>
             </div>
         </div>
@@ -12923,6 +12930,7 @@ Message: ${message}`);
                         <div class="card-number">
                             <span id="cardNum_${c.id}" data-masked="${maskedMid}" data-full="${cardNumSafe}" data-state="masked">${maskedMid}</span>
                             <button class="eye-btn" onclick="toggleCardNumber('${c.id}')">👁</button>
+                            <button class="eye-btn" onclick="copyText('${cardNumSafe}','Card number copied!')">📋</button>
                         </div>
                         <div class="card-meta">
                             Expiry: <span id="expiry_${c.id}" data-hidden="••/••" data-full="${expirySafe}" data-state="hidden">••/••</span>
@@ -13090,7 +13098,7 @@ Message: ${message}`);
             if (byAdmin) { toast('Card status updated ✓', 'tg'); loadAdminVirtualCards(); }
         }
 
-        async function payWithCard(cardNumber, expiry, cvv, pin, amount) {
+        async function payWithCard(cardNumber, expiry, cvv, pin, amount, recipientUid = null) {
             const payee = window.CU;
             const cardNo = String(cardNumber || '').replace(/\D/g, '');
             const exp = String(expiry || '').trim();
@@ -13102,10 +13110,18 @@ Message: ${message}`);
             if (!/^\d{3}$/.test(cvvIn)) throw new Error('Invalid CVV');
             if (!/^\d{6}$/.test(pinIn)) throw new Error('PIN must be 6 digits');
             if (!Number.isFinite(amt) || amt <= 0) throw new Error('Enter a valid amount');
+
+            let targetUid = payee.uid;
+            if (recipientUid) targetUid = recipientUid;
+
             const cardSnap = await db.collection('virtualCards').where('cardNumber', '==', cardNo).limit(1).get();
             if (cardSnap.empty) throw new Error('Card not found');
             const cardRef = cardSnap.docs[0].ref;
+
+            const hashInp = await hashPin(pinIn);
+
             await db.runTransaction(async (t) => {
+                // all reads first
                 const cs = await t.get(cardRef);
                 if (!cs.exists) throw new Error('Card not found');
                 const card = cs.data() || {};
@@ -13114,10 +13130,19 @@ Message: ${message}`);
                 const expiresAt = parseExpiryToEndDate(card.expiry);
                 if (!expiresAt || expiresAt.getTime() < Date.now()) throw new Error('Card has expired');
                 if (card.status !== 'active') throw new Error(card.status === 'banned' ? 'Card is permanently banned' : 'Card is blocked');
+
+                const ownerRef = db.collection('users').doc(card.uid);
+                const targetRef = db.collection('users').doc(targetUid);
+                const [ownerSnap, targetSnap] = await Promise.all([t.get(ownerRef), t.get(targetRef)]);
+                if (!ownerSnap.exists || !targetSnap.exists) throw new Error('Account not found');
+                const owner = ownerSnap.data() || {};
+                const targetData = targetSnap.data() || {};
+
                 const today = getTodayYMD();
                 const priorUsed = card.lastSpendDate === today ? Number(card.dailyUsed || 0) : 0;
                 const dailyLimit = Number(card.dailyLimit || 0);
                 if (dailyLimit > 0 && (priorUsed + amt) > dailyLimit) throw new Error('Daily spend limit exceeded');
+
                 let attempts = Number(card.pinAttempts || 0);
                 if (attempts >= 3) {
                     t.update(cardRef, { status: 'blocked' });
@@ -13126,22 +13151,20 @@ Message: ${message}`);
                     t.set(db.collection('userNotifs').doc(), { uid: card.uid, msg: `💳 Card ending ${last4} has been blocked due to exceeded PIN attempts.`, read: false, createdAt: FS().serverTimestamp() });
                     throw new Error('Card is blocked due to failed PIN attempts');
                 }
-                const hashed = await hashPin(pinIn);
+
                 const now = new Date();
                 let usedTemp = false;
                 const temp = card.tempAccessPin || null;
                 const tempActive = !!(temp && temp.expiresAt?.toDate && temp.expiresAt.toDate() > now);
                 let pinOk = false;
-                if (tempActive && temp.pinHash === hashed) {
+
+                if (tempActive && temp.pinHash === hashInp) {
                     pinOk = true;
                     usedTemp = true;
-                    const usedCount = Number(temp.usedCount || 0) + 1;
-                    if (usedCount >= Number(temp.usageLimit || 1)) t.update(cardRef, { pinAttempts: 0, tempAccessPin: null });
-                    else t.update(cardRef, { pinAttempts: 0, 'tempAccessPin.usedCount': usedCount });
-                } else if (card.pinHash === hashed) {
+                } else if (card.pinHash === hashInp) {
                     pinOk = true;
-                    t.update(cardRef, { pinAttempts: 0 });
                 }
+
                 if (!pinOk) {
                     attempts += 1;
                     const upd = { pinAttempts: attempts };
@@ -13154,35 +13177,64 @@ Message: ${message}`);
                     }
                     throw new Error(attempts >= 3 ? 'Incorrect PIN. Card is now blocked.' : 'Incorrect PIN');
                 }
-                const ownerRef = db.collection('users').doc(card.uid);
-                const payeeRef = db.collection('users').doc(payee.uid);
-                const [ownerSnap, payeeSnap] = await Promise.all([t.get(ownerRef), t.get(payeeRef)]);
-                if (!ownerSnap.exists || !payeeSnap.exists) throw new Error('Account not found');
-                const owner = ownerSnap.data() || {};
+
                 if (getAvailableBalance(owner) < amt) throw new Error('Card owner has insufficient available balance');
+
+                // all writes now
+                if (usedTemp && tempActive) {
+                    const usedCount = Number(temp.usedCount || 0) + 1;
+                    if (usedCount >= Number(temp.usageLimit || 1)) {
+                        t.update(cardRef, { pinAttempts: 0, tempAccessPin: null });
+                    } else {
+                        t.update(cardRef, { pinAttempts: 0, 'tempAccessPin.usedCount': usedCount });
+                    }
+                } else {
+                    t.update(cardRef, { pinAttempts: 0 });
+                }
+
                 t.update(ownerRef, { balance: FS().increment(-amt) });
-                t.update(payeeRef, { balance: FS().increment(amt), totalEarned: FS().increment(amt) });
+                t.update(targetRef, { balance: FS().increment(amt), totalEarned: FS().increment(amt) });
                 t.update(cardRef, {
                     dailyUsed: priorUsed + amt,
                     lastSpendDate: today,
                     totalSpent: FS().increment(amt)
                 });
+
                 const last4 = String(card.cardNumber || '').slice(-4);
-                const payeeName = payee.name || payee.email || 'Member';
-                const ownerMsg = usedTemp
-                    ? `Card ending ${last4} used via shared access for $${fmt(amt)} by ${payeeName}`
-                    : `Card ending ${last4} used for $${fmt(amt)} by ${payeeName}`;
-                const payeeMsg = usedTemp
-                    ? `Paid $${fmt(amt)} using shared card ending ${last4}`
-                    : `Paid $${fmt(amt)} using card ending ${last4}`;
-                t.set(db.collection('activity').doc(), { uid: card.uid, desc: ownerMsg, amt: -amt, icon: '💳', type: 'card_payment', createdAt: FS().serverTimestamp() });
-                t.set(db.collection('activity').doc(), { uid: payee.uid, desc: payeeMsg, amt: amt, icon: '💳', type: 'card_payment', createdAt: FS().serverTimestamp() });
-                t.set(db.collection('userNotifs').doc(), { uid: card.uid, msg: `💳 ${ownerMsg}.`, read: false, createdAt: FS().serverTimestamp() });
-                t.set(db.collection('userNotifs').doc(), { uid: payee.uid, msg: `💳 ${payeeMsg}.`, read: false, createdAt: FS().serverTimestamp() });
+                const targetName = targetData.name || targetUid.substring(0, 8);
+
+                const ownerDesc = usedTemp
+                    ? `Card ending ${last4} used via shared access — $${fmt(amt)} sent to ${targetName}`
+                    : `Card ending ${last4} used — $${fmt(amt)} sent to ${targetName}`;
+                const targetDesc = usedTemp
+                    ? `Received $${fmt(amt)} via shared card ending ${last4}`
+                    : `Received $${fmt(amt)} from card ending ${last4}`;
+
+                t.set(db.collection('activity').doc(), { uid: card.uid, desc: ownerDesc, amt: -amt, icon: '💳', type: 'card_payment', createdAt: FS().serverTimestamp() });
+                t.set(db.collection('activity').doc(), { uid: targetUid, desc: targetDesc, amt, icon: '💳', type: 'card_payment', createdAt: FS().serverTimestamp() });
+                t.set(db.collection('userNotifs').doc(), { uid: card.uid, msg: `💳 ${ownerDesc}`, read: false, createdAt: FS().serverTimestamp() });
+                t.set(db.collection('userNotifs').doc(), { uid: targetUid, msg: `💳 ${targetDesc}`, read: false, createdAt: FS().serverTimestamp() });
             });
+
             const freshPayee = await db.collection('users').doc(payee.uid).get();
             if (freshPayee.exists) { window.CU = { uid: payee.uid, ...freshPayee.data() }; updateUI(); }
             return true;
+        }
+
+        async function lookupCardRecipient() {
+            const recip = (document.getElementById('cp-recipient')?.value || '').trim().toUpperCase();
+            if (!recip) return;
+            const snap = await db.collection('users').get();
+            const match = snap.docs.find(d => d.id.substring(0, 8).toUpperCase() === recip);
+            const info = document.getElementById('cp-recipient-info');
+            if (!info) return;
+            if (match) {
+                info.textContent = `✅ Recipient: ${match.data().name}`;
+                info.style.display = 'block';
+            } else {
+                info.textContent = '❌ Not found';
+                info.style.display = 'block';
+            }
         }
 
         async function submitCardPayment() {
@@ -13191,12 +13243,42 @@ Message: ${message}`);
             const c = $('cp-cvv')?.value || '';
             const p = $('cp-pin')?.value || '';
             const a = $('cp-amount')?.value || '';
+            const recip = (document.getElementById('cp-recipient')?.value || '').trim().toUpperCase();
+            let recipientUid = null;
+            if (recip) {
+                const userSnap = await db.collection('users').get();
+                const match = userSnap.docs.find(d => d.id.substring(0, 8).toUpperCase() === recip);
+                if (!match) { toast('Recipient not found', 'tr'); return; }
+                recipientUid = match.id;
+            }
             try {
-                await payWithCard(n, e, c, p, a);
-                ['cp-card-number', 'cp-expiry', 'cp-cvv', 'cp-pin', 'cp-amount'].forEach(id => { if ($(id)) $(id).value = ''; });
+                await payWithCard(n, e, c, p, a, recipientUid);
+                ['cp-card-number', 'cp-expiry', 'cp-cvv', 'cp-pin', 'cp-amount', 'cp-recipient'].forEach(id => { const el = $(id); if (el) el.value = ''; });
+                if ($('cp-recipient-info')) $('cp-recipient-info').style.display = 'none';
                 closeModal('m-card-payment');
-                toast('Card payment successful ✓', 'tg');
+                toast(recipientUid ? `✅ Sent $${a} to Member!` : `✅ Top-up of $${a} added to your balance!`, 'tg');
             } catch (e) { toast(e.message || 'Card payment failed', 'tr'); }
+        }
+
+
+        async function handleCardPaymentForSelf(cardDetails, amount) {
+            return payWithCard(cardDetails.cardNumber, cardDetails.expiry, cardDetails.cvv, cardDetails.pin, amount, null);
+        }
+
+        function selectPaymentMethod(context, method) {
+            const balBtn = $(context + '-pay-balance');
+            const cardBtn = $(context + '-pay-card');
+            const cardFields = $(context + '-card-fields');
+            if (!balBtn || !cardBtn) return;
+            if (method === 'balance') {
+                balBtn.className = 'btn btn-p btn-sm active';
+                cardBtn.className = 'btn btn-o btn-sm';
+                if (cardFields) cardFields.style.display = 'none';
+            } else {
+                balBtn.className = 'btn btn-o btn-sm';
+                cardBtn.className = 'btn btn-p btn-sm active';
+                if (cardFields) cardFields.style.display = 'block';
+            }
         }
 
         async function loadAdminVirtualCards() {

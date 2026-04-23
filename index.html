@@ -4895,6 +4895,9 @@
             <div id="t-transfer" class="itc" style="display:none">
                 <div class="ptitle">💸 Transfer / Gift</div>
                 <div class="psub">Send cash or points to another Starlife member</div>
+                <div style="margin-bottom:10px">
+                    <button class="btn btn-gh btn-sm" onclick="openModal('m-card-payment')">💳 Pay with Card</button>
+                </div>
 
                 <!-- Lookup recipient -->
                 <div class="card" style="margin-bottom:14px">
@@ -4971,6 +4974,19 @@
                 <div id="tf-history">
                     <div class="es">No transfers yet</div>
                 </div>
+            </div>
+
+            <div id="t-my-cards" class="itc" style="display:none">
+                <div class="ptitle">💳 My Cards</div>
+                <div class="psub">Internal virtual cards for secure member-to-member payments</div>
+                <div class="card" style="margin-bottom:12px">
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                        <button class="btn btn-p btn-sm" onclick="openCreateCardModal()">➕ Create Card (+$1)</button>
+                        <button class="btn btn-gh btn-sm" onclick="openModal('m-card-payment')">💳 Pay with Card</button>
+                    </div>
+                    <div style="font-size:.74rem;color:var(--t3);margin-top:8px">Cards are internal to Starlife only. Never share your main PIN.</div>
+                </div>
+                <div id="my-cards-list"><div class="es">Loading cards…</div></div>
             </div>
 
             <div id="t-tokens" class="itc" style="display:none">
@@ -5545,6 +5561,8 @@
             <div class="more-item" onclick="tab('blog');hideMore()">📰 Blog</div>
             <div class="more-item" onclick="tab('community');loadCommunity();hideMore()">🌐 Community</div>
             <div class="more-item" onclick="tab('transfer');hideMore()">💸 Transfer / Gift</div>
+            <div class="more-item" onclick="tab('my-cards');loadMyCards();hideMore()">💳 My Cards</div>
+            <div class="more-item" onclick="openModal('m-card-payment');hideMore()">💳 Card Payment</div>
             <div class="more-item" onclick="tab('p2p');loadP2P();hideMore()">💱 P2P Trading</div>
             <div class="more-item" onclick="tab('messages');loadDMList();hideMore()">💬 Messages</div>
             <div class="more-item" onclick="tab('followers');loadFollowers();hideMore()">👥 Following</div>
@@ -5790,6 +5808,13 @@
                     <button class="btn btn-gh btn-sm" onclick="loadAdminActivity('transfer')">💸 Transfers</button>
                 </div>
                 <div id="at-act-list"></div>
+            </div>
+
+            <div id="at-virtualcards" class="atab">
+                <div class="sh"><h3>Virtual Cards</h3></div>
+                <div id="at-virtualcards-list"><div class="es">Loading cards…</div></div>
+                <div class="sh" style="margin-top:12px"><h3>Recent Card Payments</h3></div>
+                <div id="at-virtualcards-payments"><div class="es">Loading payments…</div></div>
             </div>
 
             <div id="at-testi" class="atab">
@@ -6987,6 +7012,54 @@
 
     <!-- Withdrawal PIN Modal -->
 
+    <div class="mover" id="m-card-create">
+        <div class="modal" style="max-width:420px">
+            <div class="modal-title">💳 Create Virtual Card</div>
+            <div class="fg"><label class="fl">Set 6-digit card PIN</label><input class="fi" id="vc-create-pin" type="password" maxlength="6" placeholder="******"></div>
+            <div class="modal-acts">
+                <button class="btn btn-p" onclick="submitCreateVirtualCard()">Create Card (+$1)</button>
+                <button class="btn btn-gh" onclick="closeModal('m-card-create')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="mover" id="m-card-payment">
+        <div class="modal" style="max-width:440px">
+            <div class="modal-title">💳 Card Payment</div>
+            <div class="fg"><label class="fl">Card Number</label><input class="fi" id="cp-card-number" maxlength="19" placeholder="1234 5678 9012 3456"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <div class="fg"><label class="fl">Expiry (MM/YY)</label><input class="fi" id="cp-expiry" maxlength="5" placeholder="08/29"></div>
+                <div class="fg"><label class="fl">CVV</label><input class="fi" id="cp-cvv" maxlength="3" placeholder="123"></div>
+            </div>
+            <div class="fg"><label class="fl">Amount (USD)</label><input class="fi" id="cp-amount" type="number" min="0.01" step="0.01" placeholder="e.g. 15"></div>
+            <div class="fg"><label class="fl">PIN</label><input class="fi" id="cp-pin" type="password" maxlength="6" placeholder="6-digit PIN or temp PIN"></div>
+            <div class="modal-acts">
+                <button class="btn btn-p" onclick="submitCardPayment()">Pay Now</button>
+                <button class="btn btn-gh" onclick="closeModal('m-card-payment')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="mover" id="m-card-temp-pin">
+        <div class="modal" style="max-width:430px">
+            <div class="modal-title">🔐 Generate Temp Access PIN</div>
+            <div class="fg"><label class="fl">Temp PIN (6 digits)</label><input class="fi" id="tmp-pin-value" maxlength="6" placeholder="******"></div>
+            <div class="fg"><label class="fl">Expiry</label>
+                <select class="fi" id="tmp-pin-expiry">
+                    <option value="5">5 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="60">1 hour</option>
+                </select>
+            </div>
+            <div class="fg"><label class="fl">Usage Limit</label><input class="fi" id="tmp-pin-usage" type="number" min="1" step="1" value="1"></div>
+            <div style="font-size:.74rem;color:var(--t3);margin-bottom:10px">PIN is shown once after creation. Share carefully.</div>
+            <div class="modal-acts">
+                <button class="btn btn-p" onclick="submitGenerateTempPin()">Generate</button>
+                <button class="btn btn-gh" onclick="closeModal('m-card-temp-pin')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <div class="mover" id="m-pin">
         <div class="modal" style="text-align:center">
             <div class="modal-title" id="pin-title">Withdrawal PIN</div>
@@ -7237,7 +7310,10 @@
                 'adminHoldFunds', 'adminSaveFinancialSettings', 'adminAdjustShareholderStake', 'adminToggleShareholderEarnings', 'adminViewUserFinance',
                 'tab', 'atab', 'lbTab', 'shTab', 'svTab', 'lnTab', 'spTab', 'actTab',
                 'aboutTab', 'cmTab', 'loadMyTickets', 'toggleMore', 'hideMore',
-                'openSurvey', 'openSetPin', 'openSurveyBuilder', 'savePIN', 'confirmPIN'
+                'openSurvey', 'openSetPin', 'openSurveyBuilder', 'savePIN', 'confirmPIN',
+                'hashPin', 'maskCard', 'generateCardNumber', 'generateExpiry', 'generateCVV', 'openCreateCardModal',
+                'createVirtualCard', 'submitCreateVirtualCard', 'loadMyCards', 'openTempPinModal', 'generateTempAccessPin', 'submitGenerateTempPin',
+                'toggleCardBlock', 'payWithCard', 'submitCardPayment', 'loadAdminVirtualCards'
             ];
             names.forEach(function (n) {
                 // Only register if it's NOT the stub (stubs call _safe)
@@ -7928,7 +8004,7 @@
         // LOAD ALL USER DATA
         // ════════════════════════════════════════════════════════
         async function loadAllUserData() {
-            await Promise.all([loadInvestments(), loadWithdrawals(), loadActivity('all'), loadReferrals(), loadSurveys(), loadMyLoans(), loadMyTickets(), loadSecurityCenter()]);
+            await Promise.all([loadInvestments(), loadWithdrawals(), loadActivity('all'), loadReferrals(), loadSurveys(), loadMyLoans(), loadMyTickets(), loadSecurityCenter(), loadMyCards()]);
             processScheduledBroadcasts();
             setTimeout(initAutoReinvestUI, 500);
             // Load fresh KYC status from Firestore (not just cached CU)
@@ -10523,15 +10599,15 @@
         const ADMIN_ROLES = {
             superadmin: {
                 label: '⭐ Super Admin', color: 'var(--gold)',
-                tabs: ['investments', 'deposits', 'withdrawals', 'users', 'kyc', 'leaderboard', 'community', 'stakes', 'loans', 'tickets', 'surveys', 'redemptions', 'activity', 'revenue', 'analytics', 'security', 'maintenance', 'testi', 'prizecodes', 'luckydraw', 'contest', 'p2p', 'broadcast', 'targeted', 'moving', 'ads', 'admins', 'promocodes', 'fees', 'accounts', 'cancelrequests', 'tokens', 'gifts', 'paiddm', 'official']
+                tabs: ['investments', 'deposits', 'withdrawals', 'users', 'kyc', 'leaderboard', 'community', 'stakes', 'loans', 'tickets', 'surveys', 'redemptions', 'activity', 'virtualcards', 'revenue', 'analytics', 'security', 'maintenance', 'testi', 'prizecodes', 'luckydraw', 'contest', 'p2p', 'broadcast', 'targeted', 'moving', 'ads', 'admins', 'promocodes', 'fees', 'accounts', 'cancelrequests', 'tokens', 'gifts', 'paiddm', 'official']
             },
             finance: {
                 label: '💰 Finance', color: 'var(--g)',
-                tabs: ['deposits', 'withdrawals', 'revenue', 'analytics', 'activity', 'users', 'promocodes', 'fees', 'accounts', 'cancelrequests', 'tokens', 'gifts']
+                tabs: ['deposits', 'withdrawals', 'revenue', 'analytics', 'activity', 'virtualcards', 'users', 'promocodes', 'fees', 'accounts', 'cancelrequests', 'tokens', 'gifts']
             },
             support: {
                 label: '🎧 Support', color: 'var(--sky)',
-                tabs: ['tickets', 'kyc', 'users', 'activity', 'security', 'paiddm']
+                tabs: ['tickets', 'kyc', 'users', 'activity', 'virtualcards', 'security', 'paiddm']
             },
             moderator: {
                 label: '🌐 Moderator', color: '#a78bfa',
@@ -10558,6 +10634,7 @@
             surveys: () => loadAdminSurveys(),
             redemptions: () => loadAdminRedemptions(),
             activity: () => loadAdminActivity('all'),
+            virtualcards: () => loadAdminVirtualCards(),
             revenue: () => loadRevenue(),
             analytics: () => loadAnalyticsDashboard(),
             security: () => loadAdminSecurity(),
@@ -10596,6 +10673,7 @@
             { id: 'surveys', label: 'Surveys' },
             { id: 'redemptions', label: '🔄 Redeem' },
             { id: 'activity', label: 'Activity' },
+            { id: 'virtualcards', label: '💳 Virtual Cards' },
             { id: 'revenue', label: 'Revenue' },
             { id: 'analytics', label: '📊 Analytics' },
             { id: 'security', label: '🛡️ Security' },
@@ -12614,6 +12692,336 @@ Message: ${message}`);
             if (nextBal < 0) throw new Error('Operation would create negative balance');
             if (nextBal < held) throw new Error('Held balance is not spendable');
             return { balance, held, spendable, nextBal };
+        }
+
+        // ════════════════════════════════════════════════════════
+        // VIRTUAL CARDS
+        // ════════════════════════════════════════════════════════
+        const CARD_PIN_SALT = 'starlife-card-salt-2025';
+        let _activeTempCardId = null;
+
+        async function hashPin(pin) {
+            const txt = String(pin || '') + CARD_PIN_SALT;
+            if (!window.crypto?.subtle) throw new Error('Secure hashing unavailable on this device');
+            const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt));
+            return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function maskCard(cardNumber) {
+            const raw = String(cardNumber || '').replace(/\D/g, '');
+            return raw.length >= 4 ? ('**** **** **** ' + raw.slice(-4)) : '**** **** **** ****';
+        }
+
+        async function generateCardNumber() {
+            for (let i = 0; i < 20; i++) {
+                let n = String(Math.floor(Math.random() * 9) + 1);
+                for (let k = 1; k < 16; k++) n += String(Math.floor(Math.random() * 10));
+                const snap = await db.collection('virtualCards').where('cardNumber', '==', n).limit(1).get();
+                if (snap.empty) return n;
+            }
+            throw new Error('Could not generate unique card number');
+        }
+
+        function generateExpiry() {
+            const now = new Date();
+            const monthsAhead = Math.floor(Math.random() * 60) + 1;
+            const d = new Date(now.getFullYear(), now.getMonth() + monthsAhead, 1);
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const yy = String(d.getFullYear()).slice(-2);
+            return `${mm}/${yy}`;
+        }
+
+        function generateCVV() {
+            return String(Math.floor(Math.random() * 1000)).padStart(3, '0');
+        }
+
+        function parseExpiryToEndDate(expiry) {
+            const m = String(expiry || '').match(/^(\d{2})\/(\d{2})$/);
+            if (!m) return null;
+            const month = Number(m[1]);
+            const year = 2000 + Number(m[2]);
+            if (month < 1 || month > 12) return null;
+            return new Date(year, month, 0, 23, 59, 59, 999);
+        }
+
+        function openCreateCardModal() {
+            if ($('vc-create-pin')) $('vc-create-pin').value = '';
+            openModal('m-card-create');
+        }
+
+        async function createVirtualCard(pin) {
+            const u = window.CU;
+            const cleanPin = String(pin || '').trim();
+            if (!/^\d{6}$/.test(cleanPin)) throw new Error('PIN must be exactly 6 digits');
+            const activeSnap = await db.collection('virtualCards').where('uid', '==', u.uid).where('status', '==', 'active').get();
+            if (activeSnap.size >= 5) throw new Error('You can only keep up to 5 active cards');
+            const freshUserSnap = await db.collection('users').doc(u.uid).get();
+            if (!freshUserSnap.exists) throw new Error('User account not found');
+            const freshUser = { uid: u.uid, ...freshUserSnap.data() };
+            if (getAvailableBalance(freshUser) < 1) throw new Error('Insufficient available balance. Need $1 to create card');
+            const cardNumber = await generateCardNumber();
+            const expiry = generateExpiry();
+            const cvv = generateCVV();
+            const pinHash = await hashPin(cleanPin);
+            await db.runTransaction(async (t) => {
+                const userRef = db.collection('users').doc(u.uid);
+                const userSnap = await t.get(userRef);
+                if (!userSnap.exists) throw new Error('User account not found');
+                const ud = userSnap.data() || {};
+                if (getAvailableBalance(ud) < 1) throw new Error('Insufficient available balance');
+                t.update(userRef, { balance: FS().increment(-1) });
+                t.set(db.collection('virtualCards').doc(), {
+                    uid: u.uid,
+                    cardNumber,
+                    expiry,
+                    cvv,
+                    pinHash,
+                    status: 'active',
+                    tempAccessPin: null,
+                    pinAttempts: 0,
+                    createdAt: FS().serverTimestamp()
+                });
+            });
+            const last4 = cardNumber.slice(-4);
+            await logAct(u.uid, 'Virtual card created (ending ' + last4 + ')', -1, '💳', 'card_creation');
+            await db.collection('userNotifs').add({ uid: u.uid, msg: `💳 Your virtual card ending ${last4} has been created.`, read: false, createdAt: FS().serverTimestamp() });
+            if (window.CU) window.CU.balance = Math.max(0, (window.CU.balance || 0) - 1);
+            updateUI();
+            return { cardNumber, expiry, cvv };
+        }
+
+        async function submitCreateVirtualCard() {
+            const pin = $('vc-create-pin')?.value || '';
+            try {
+                await createVirtualCard(pin);
+                closeModal('m-card-create');
+                toast('Your virtual card has been created ✓', 'tg');
+                loadMyCards();
+            } catch (e) { toast(e.message || 'Failed to create card', 'tr'); }
+        }
+
+        async function loadMyCards() {
+            const el = $('my-cards-list');
+            if (!el || !window.CU?.uid) return;
+            el.innerHTML = '<div class="es">Loading cards…</div>';
+            try {
+                const snap = await db.collection('virtualCards').where('uid', '==', window.CU.uid).get();
+                const list = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                if (!list.length) { el.innerHTML = '<div class="es"><div class="ei">💳</div>No cards yet</div>'; return; }
+                el.innerHTML = list.map(c => {
+                    const status = c.status === 'blocked' ? '<span class="badge br">Blocked</span>' : '<span class="badge bg">Active</span>';
+                    const tempLive = c.tempAccessPin?.expiresAt?.toDate && c.tempAccessPin.expiresAt.toDate() > new Date();
+                    const tempTxt = tempLive ? `<div style="font-size:.72rem;color:var(--gold)">Temp PIN active · ${c.tempAccessPin.usedCount || 0}/${c.tempAccessPin.usageLimit || 1} used</div>` : '';
+                    const nextAction = c.status === 'blocked' ? 'Unblock' : 'Block';
+                    const nextStatus = c.status === 'blocked' ? 'active' : 'blocked';
+                    return `<div class="arow" style="flex-direction:column;align-items:flex-start;gap:8px">
+                        <div style="display:flex;justify-content:space-between;width:100%;gap:8px;align-items:center">
+                            <div>
+                                <div class="ar-name">${maskCard(c.cardNumber)}</div>
+                                <div class="ar-sub">Expiry: ${c.expiry || '—'} · CVV: *** · Created: ${fmtDT(c.createdAt)}</div>
+                            </div>
+                            ${status}
+                        </div>
+                        ${tempTxt}
+                        <div style="display:flex;gap:8px;flex-wrap:wrap">
+                            <button class="btn btn-gh btn-sm" onclick="toggleCardBlock('${c.id}','${nextStatus}')">${nextAction}</button>
+                            <button class="btn btn-sky btn-sm" onclick="openTempPinModal('${c.id}')">🔐 Generate Temp PIN</button>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch (_) {
+                el.innerHTML = '<div class="es">Failed to load cards</div>';
+            }
+        }
+
+        function openTempPinModal(cardDocId) {
+            _activeTempCardId = cardDocId;
+            if ($('tmp-pin-value')) $('tmp-pin-value').value = '';
+            if ($('tmp-pin-expiry')) $('tmp-pin-expiry').value = '5';
+            if ($('tmp-pin-usage')) $('tmp-pin-usage').value = '1';
+            openModal('m-card-temp-pin');
+        }
+
+        async function generateTempAccessPin(cardDocId, tempPin, expiryMinutes, usageLimit) {
+            const cleanPin = String(tempPin || '').trim();
+            if (!/^\d{6}$/.test(cleanPin)) throw new Error('Temporary PIN must be 6 digits');
+            const mins = Number(expiryMinutes);
+            const uses = Math.max(1, parseInt(usageLimit, 10) || 1);
+            const ref = db.collection('virtualCards').doc(cardDocId);
+            const snap = await ref.get();
+            if (!snap.exists) throw new Error('Card not found');
+            const c = snap.data() || {};
+            if (c.uid !== window.CU?.uid) throw new Error('Only card owner can generate temporary PIN');
+            const pinHash = await hashPin(cleanPin);
+            const expiresAt = firebase.firestore.Timestamp.fromDate(new Date(Date.now() + mins * 60000));
+            await ref.update({ tempAccessPin: { pinHash, expiresAt, usageLimit: uses, usedCount: 0 } });
+            const last4 = String(c.cardNumber || '').slice(-4);
+            await logAct(window.CU.uid, `Temporary access PIN generated for card ending ${last4}`, 0, '💳', 'card_temp_pin');
+            await db.collection('userNotifs').add({ uid: window.CU.uid, msg: `🔐 Temporary PIN generated for card ending ${last4}.`, read: false, createdAt: FS().serverTimestamp() });
+            return cleanPin;
+        }
+
+        async function submitGenerateTempPin() {
+            if (!_activeTempCardId) return;
+            const pin = $('tmp-pin-value')?.value || '';
+            const mins = Number($('tmp-pin-expiry')?.value || 5);
+            const uses = Number($('tmp-pin-usage')?.value || 1);
+            try {
+                const revealed = await generateTempAccessPin(_activeTempCardId, pin, mins, uses);
+                closeModal('m-card-temp-pin');
+                alert('Temporary PIN created: ' + revealed + '\nCopy and share it immediately.');
+                toast('Temporary PIN generated ✓', 'tg');
+                loadMyCards();
+            } catch (e) { toast(e.message || 'Failed to generate temporary PIN', 'tr'); }
+        }
+
+        async function toggleCardBlock(cardDocId, newStatus, byAdmin = false) {
+            const ref = db.collection('virtualCards').doc(cardDocId);
+            const snap = await ref.get();
+            if (!snap.exists) return toast('Card not found', 'tr');
+            const card = snap.data() || {};
+            if (!byAdmin && card.uid !== window.CU?.uid) return toast('Only owner can change this card', 'tr');
+            if (!['active', 'blocked'].includes(newStatus)) return toast('Invalid status', 'ty');
+            await ref.update({ status: newStatus });
+            const last4 = String(card.cardNumber || '').slice(-4);
+            let msg = `Card ending ${last4} ${newStatus === 'blocked' ? 'blocked' : 'unblocked'}`;
+            if (byAdmin && newStatus === 'blocked') msg = `Card ending ${last4} blocked by Starlife`;
+            await logAct(card.uid, msg, 0, '💳', byAdmin ? 'card_admin_action' : 'card_status');
+            await db.collection('userNotifs').add({ uid: card.uid, msg: `💳 ${msg}.`, read: false, createdAt: FS().serverTimestamp() });
+            if (!byAdmin) { toast('Card status updated ✓', 'tg'); loadMyCards(); }
+            if (byAdmin) { toast('Card status updated ✓', 'tg'); loadAdminVirtualCards(); }
+        }
+
+        async function payWithCard(cardNumber, expiry, cvv, pin, amount) {
+            const payee = window.CU;
+            const cardNo = String(cardNumber || '').replace(/\D/g, '');
+            const exp = String(expiry || '').trim();
+            const cvvIn = String(cvv || '').trim();
+            const pinIn = String(pin || '').trim();
+            const amt = Number(amount);
+            if (!/^\d{16}$/.test(cardNo)) throw new Error('Invalid card number');
+            if (!/^\d{2}\/\d{2}$/.test(exp)) throw new Error('Invalid expiry format');
+            if (!/^\d{3}$/.test(cvvIn)) throw new Error('Invalid CVV');
+            if (!/^\d{6}$/.test(pinIn)) throw new Error('PIN must be 6 digits');
+            if (!Number.isFinite(amt) || amt <= 0) throw new Error('Enter a valid amount');
+            const cardSnap = await db.collection('virtualCards').where('cardNumber', '==', cardNo).limit(1).get();
+            if (cardSnap.empty) throw new Error('Card not found');
+            const cardRef = cardSnap.docs[0].ref;
+            await db.runTransaction(async (t) => {
+                const cs = await t.get(cardRef);
+                if (!cs.exists) throw new Error('Card not found');
+                const card = cs.data() || {};
+                if (String(card.expiry || '') !== exp) throw new Error('Card details are invalid');
+                if (String(card.cvv || '') !== cvvIn) throw new Error('Card details are invalid');
+                const expiresAt = parseExpiryToEndDate(card.expiry);
+                if (!expiresAt || expiresAt.getTime() < Date.now()) throw new Error('Card has expired');
+                if (card.status !== 'active') throw new Error('Card is blocked');
+                let attempts = Number(card.pinAttempts || 0);
+                if (attempts >= 3) {
+                    t.update(cardRef, { status: 'blocked' });
+                    const last4 = String(card.cardNumber || '').slice(-4);
+                    t.set(db.collection('activity').doc(), { uid: card.uid, desc: `Card ending ${last4} blocked due to exceeded PIN attempts`, amt: 0, icon: '💳', type: 'card_status', createdAt: FS().serverTimestamp() });
+                    t.set(db.collection('userNotifs').doc(), { uid: card.uid, msg: `💳 Card ending ${last4} has been blocked due to exceeded PIN attempts.`, read: false, createdAt: FS().serverTimestamp() });
+                    throw new Error('Card is blocked due to failed PIN attempts');
+                }
+                const hashed = await hashPin(pinIn);
+                const now = new Date();
+                let usedTemp = false;
+                const temp = card.tempAccessPin || null;
+                const tempActive = !!(temp && temp.expiresAt?.toDate && temp.expiresAt.toDate() > now);
+                let pinOk = false;
+                if (tempActive && temp.pinHash === hashed) {
+                    pinOk = true;
+                    usedTemp = true;
+                    const usedCount = Number(temp.usedCount || 0) + 1;
+                    if (usedCount >= Number(temp.usageLimit || 1)) t.update(cardRef, { pinAttempts: 0, tempAccessPin: null });
+                    else t.update(cardRef, { pinAttempts: 0, 'tempAccessPin.usedCount': usedCount });
+                } else if (card.pinHash === hashed) {
+                    pinOk = true;
+                    t.update(cardRef, { pinAttempts: 0 });
+                }
+                if (!pinOk) {
+                    attempts += 1;
+                    const upd = { pinAttempts: attempts };
+                    if (attempts >= 3) upd.status = 'blocked';
+                    t.update(cardRef, upd);
+                    if (attempts >= 3) {
+                        const last4 = String(card.cardNumber || '').slice(-4);
+                        t.set(db.collection('activity').doc(), { uid: card.uid, desc: `Card ending ${last4} blocked due to exceeded PIN attempts`, amt: 0, icon: '💳', type: 'card_status', createdAt: FS().serverTimestamp() });
+                        t.set(db.collection('userNotifs').doc(), { uid: card.uid, msg: `💳 Card ending ${last4} has been blocked due to exceeded PIN attempts.`, read: false, createdAt: FS().serverTimestamp() });
+                    }
+                    throw new Error(attempts >= 3 ? 'Incorrect PIN. Card is now blocked.' : 'Incorrect PIN');
+                }
+                const ownerRef = db.collection('users').doc(card.uid);
+                const payeeRef = db.collection('users').doc(payee.uid);
+                const [ownerSnap, payeeSnap] = await Promise.all([t.get(ownerRef), t.get(payeeRef)]);
+                if (!ownerSnap.exists || !payeeSnap.exists) throw new Error('Account not found');
+                const owner = ownerSnap.data() || {};
+                if (getAvailableBalance(owner) < amt) throw new Error('Card owner has insufficient available balance');
+                t.update(ownerRef, { balance: FS().increment(-amt) });
+                t.update(payeeRef, { balance: FS().increment(amt), totalEarned: FS().increment(amt) });
+                const last4 = String(card.cardNumber || '').slice(-4);
+                const payeeName = payee.name || payee.email || 'Member';
+                const ownerMsg = usedTemp
+                    ? `Card ending ${last4} used via shared access for $${fmt(amt)} by ${payeeName}`
+                    : `Card ending ${last4} used for $${fmt(amt)} by ${payeeName}`;
+                const payeeMsg = usedTemp
+                    ? `Paid $${fmt(amt)} using shared card ending ${last4}`
+                    : `Paid $${fmt(amt)} using card ending ${last4}`;
+                t.set(db.collection('activity').doc(), { uid: card.uid, desc: ownerMsg, amt: -amt, icon: '💳', type: 'card_payment', createdAt: FS().serverTimestamp() });
+                t.set(db.collection('activity').doc(), { uid: payee.uid, desc: payeeMsg, amt: amt, icon: '💳', type: 'card_payment', createdAt: FS().serverTimestamp() });
+                t.set(db.collection('userNotifs').doc(), { uid: card.uid, msg: `💳 ${ownerMsg}.`, read: false, createdAt: FS().serverTimestamp() });
+                t.set(db.collection('userNotifs').doc(), { uid: payee.uid, msg: `💳 ${payeeMsg}.`, read: false, createdAt: FS().serverTimestamp() });
+            });
+            const freshPayee = await db.collection('users').doc(payee.uid).get();
+            if (freshPayee.exists) { window.CU = { uid: payee.uid, ...freshPayee.data() }; updateUI(); }
+            return true;
+        }
+
+        async function submitCardPayment() {
+            const n = $('cp-card-number')?.value || '';
+            const e = $('cp-expiry')?.value || '';
+            const c = $('cp-cvv')?.value || '';
+            const p = $('cp-pin')?.value || '';
+            const a = $('cp-amount')?.value || '';
+            try {
+                await payWithCard(n, e, c, p, a);
+                ['cp-card-number', 'cp-expiry', 'cp-cvv', 'cp-pin', 'cp-amount'].forEach(id => { if ($(id)) $(id).value = ''; });
+                closeModal('m-card-payment');
+                toast('Card payment successful ✓', 'tg');
+            } catch (e) { toast(e.message || 'Card payment failed', 'tr'); }
+        }
+
+        async function loadAdminVirtualCards() {
+            const listEl = $('at-virtualcards-list');
+            const payEl = $('at-virtualcards-payments');
+            if (listEl) listEl.innerHTML = '<div class="es">Loading cards…</div>';
+            if (payEl) payEl.innerHTML = '<div class="es">Loading payments…</div>';
+            try {
+                const [cardsSnap, usersSnap, paySnap] = await Promise.all([
+                    db.collection('virtualCards').get(),
+                    db.collection('users').get(),
+                    db.collection('activity').where('type', '==', 'card_payment').limit(50).get()
+                ]);
+                const userMap = {};
+                usersSnap.docs.forEach(d => userMap[d.id] = d.data() || {});
+                const cards = cardsSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                if (listEl) {
+                    if (!cards.length) listEl.innerHTML = '<div class="es">No virtual cards yet</div>';
+                    else listEl.innerHTML = cards.map(c => {
+                        const owner = userMap[c.uid] || {};
+                        const status = c.status === 'blocked' ? '<span class="badge br">Blocked</span>' : '<span class="badge bg">Active</span>';
+                        const next = c.status === 'blocked' ? 'active' : 'blocked';
+                        const btn = `<button class="btn btn-gh btn-sm" onclick="toggleCardBlock('${c.id}','${next}',true)">${c.status === 'blocked' ? 'Unblock' : 'Block'}</button>`;
+                        return `<div class="arow"><div style="flex:1"><div class="ar-name">${maskCard(c.cardNumber)}</div><div class="ar-sub">${owner.name || '—'} · ${owner.email || '—'}</div><div class="ar-sub">Expiry: ${c.expiry || '—'} · Created: ${fmtDT(c.createdAt)}</div><div class="ar-sub">Status: ${c.status || 'unknown'}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">${status}${btn}</div></div>`;
+                    }).join('');
+                }
+                const payments = paySnap.docs.map(d => d.data()).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                if (payEl) payEl.innerHTML = payments.length ? payments.map(a => `<div class="ai"><div class="ai-l"><div class="ai-ico ${a.amt >= 0 ? 'g' : 'r'}">💳</div><div><div class="ai-desc">${a.desc || 'Card payment'}</div><div class="ai-time">${fmtDT(a.createdAt)}</div></div></div><div class="ai-amt ${a.amt >= 0 ? 'pos' : 'neg'}">${a.amt >= 0 ? '+' : '-'}$${fmt(Math.abs(a.amt || 0))}</div></div>`).join('') : '<div class="es">No card payments yet</div>';
+            } catch (_) {
+                if (listEl) listEl.innerHTML = '<div class="es">Failed to load cards</div>';
+                if (payEl) payEl.innerHTML = '<div class="es">Failed to load payments</div>';
+            }
         }
 
         // ════════════════════════════════════════════════════════
@@ -18069,6 +18477,7 @@ By: ${u.name}`);
             if (name === 'messages') { loadDMList(); }
             if (name === 'support') { loadMyTickets(); loadFAQ(); }
             if (name === 'tokens') { refreshTokenGiftBalances(); loadTokenLogs(); }
+            if (name === 'my-cards') { loadMyCards(); }
             if (name === 'gifts') { refreshTokenGiftBalances(); loadGiftLogs(); }
             if (name === 'paid-dm') { refreshTokenGiftBalances(); loadPaidDMLogs(); }
             if (name === 'profile') {

@@ -3522,7 +3522,7 @@
                     <div class="bal-amt"><span style="font-size:1.2rem;opacity:.7">$</span><span id="h-bal">0.00</span>
                     </div>
                     <div class="bal-sub">Points: <span id="h-pts">0</span> · Daily Profit: <span id="h-dp"
-                            style="color:var(--g)">$0.00</span> · Held: <span id="h-held"
+                            style="color:var(--g)">$0.00</span> · Starlife Held: <span id="h-held"
                             style="color:var(--red)">$0.00</span></div>
                     <div style="margin-top:10px;margin-bottom:4px" id="h-rank-wrap"></div>
                     <div style="margin-top:10px;display:flex;gap:7px;flex-wrap:wrap">
@@ -5873,6 +5873,65 @@
                 <div style="font-size:.72rem;color:var(--t3);margin-top:10px">Aggregated from Withdrawals (10%), Transfers (5%), P2P spreads, and Loan interest.</div>
             </div>
 
+            <!-- ═══ PLATFORM ACCOUNTS TAB ═══ -->
+            <div id="at-accounts" class="atab">
+                <h3 style="margin-bottom:4px">🏦 Starlife Platform Accounts</h3>
+                <div style="font-size:.78rem;color:var(--t3);margin-bottom:14px">Internal ledger accounts. All money flows tracked here. Freeze to lock; Transfer to move between accounts; Send to pay a member.</div>
+                <div id="at-accounts-list" style="display:grid;gap:12px"></div>
+                <div class="card" style="margin-top:16px">
+                    <div style="font-weight:700;margin-bottom:10px">⚡ Account Actions</div>
+                    <div class="fg"><label class="fl">Select Account</label>
+                        <select class="fi" id="acc-action-account">
+                            <option value="assets">🏠 Assets Account</option>
+                            <option value="operations">⚙️ Operations Account</option>
+                            <option value="stakes">💎 Stakes Account</option>
+                            <option value="savings">🏦 Savings Account</option>
+                            <option value="treasury">🏛️ Treasury (Main) Account</option>
+                        </select>
+                    </div>
+                    <div class="fg"><label class="fl">Action</label>
+                        <select class="fi" id="acc-action-type" onchange="toggleAccActionFields()">
+                            <option value="add">➕ Add Funds</option>
+                            <option value="deduct">➖ Deduct Funds</option>
+                            <option value="transfer">🔀 Transfer to Another Account</option>
+                            <option value="send">💸 Send to Member</option>
+                            <option value="freeze">🔒 Freeze / Unfreeze Account</option>
+                        </select>
+                    </div>
+                    <div id="acc-field-amount" class="fg"><label class="fl">Amount ($)</label><input class="fi" type="number" id="acc-amount" min="0.01" step="0.01" placeholder="0.00"></div>
+                    <div id="acc-field-target-account" class="fg" style="display:none"><label class="fl">Destination Account</label>
+                        <select class="fi" id="acc-target-account">
+                            <option value="assets">🏠 Assets Account</option>
+                            <option value="operations">⚙️ Operations Account</option>
+                            <option value="stakes">💎 Stakes Account</option>
+                            <option value="savings">🏦 Savings Account</option>
+                            <option value="treasury">🏛️ Treasury (Main) Account</option>
+                        </select>
+                    </div>
+                    <div id="acc-field-member" class="fg" style="display:none"><label class="fl">Member ID or UID</label><input class="fi" type="text" id="acc-member-id" placeholder="Enter Member ID (e.g. SL-00123)"><div id="acc-member-found" style="font-size:.75rem;color:var(--g);margin-top:4px"></div></div>
+                    <div class="fg"><label class="fl">Note / Reason</label><input class="fi" type="text" id="acc-note" placeholder="e.g. Salary payment, fee adjustment…"></div>
+                    <button class="btn btn-p btn-full" onclick="executeAccountAction()">Execute Action</button>
+                </div>
+                <div class="card" style="margin-top:12px">
+                    <div style="font-weight:700;margin-bottom:8px">📋 Account Transaction Log</div>
+                    <div id="acc-log-list"><div class="es">Select an account to view log</div></div>
+                    <button class="btn btn-gh btn-full" style="margin-top:8px" onclick="loadAccountLog()">🔄 Refresh Log</button>
+                </div>
+            </div>
+
+            <!-- ═══ CANCEL/REVERSAL REQUESTS TAB ═══ -->
+            <div id="at-cancelrequests" class="atab">
+                <h3 style="margin-bottom:4px">📋 Cancel & Reversal Requests</h3>
+                <div style="font-size:.78rem;color:var(--t3);margin-bottom:14px">Review member requests before any refund is processed. Approve to trigger refund; Reject to deny.</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+                    <button class="btn btn-gh btn-sm" onclick="loadCancelRequests('pending')">⏳ Pending</button>
+                    <button class="btn btn-gh btn-sm" onclick="loadCancelRequests('approved')">✅ Approved</button>
+                    <button class="btn btn-gh btn-sm" onclick="loadCancelRequests('rejected')">❌ Rejected</button>
+                    <button class="btn btn-gh btn-sm" onclick="loadCancelRequests('all')">All</button>
+                </div>
+                <div id="at-cancelrequests-list"><div class="es">Loading…</div></div>
+            </div>
+
             <div id="at-tokens" class="atab">
                 <h3 style="margin-bottom:12px">🪙 Token Economy (Admin)</h3>
                 <div class="card" style="margin-bottom:12px">
@@ -7961,7 +8020,7 @@
             <div class="ar-sub">Rate: ${o.rate || '—'} · ${fmtDT(o.createdAt)}</div>
             ${o.buyerPaid ? '<div class="ar-sub" style="color:var(--g)">✅ Buyer marked as paid</div>' : ''}
             ${o.disputed ? '<div class="ar-sub" style="color:var(--red)">⚠️ Disputed by: ' + (o.raisedByName || 'User') + '</div>' : ''}
-            ${o.status === 'resolved' ? '<div class="ar-sub" style="color:var(--g)">✅ Resolved by: ' + (o.resolvedBy || 'Admin') + '</div>' : ''}
+            ${o.status === 'resolved' ? '<div class="ar-sub" style="color:var(--g)">✅ Resolved by: ' + (o.resolvedBy || 'Starlife') + '</div>' : ''}
           </div>${statusBadge}
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">${disputeActions}</div>
@@ -7995,7 +8054,7 @@
                 });
                 await db.collection('userNotifs').add({ uid: winnerUid, msg: `✅ P2P dispute resolved in your favor! $${fmt(amount)} added to your balance.`, read: false, createdAt: FS().serverTimestamp() });
                 if (loserUid && loserUid !== 'undefined') await db.collection('userNotifs').add({ uid: loserUid, msg: `❌ P2P dispute resolved in favor of the ${winnerLabel}.`, read: false, createdAt: FS().serverTimestamp() });
-                await logAct(winnerUid, `P2P dispute resolved — $${fmt(amount)} added by admin`, amount, '⚖️', 'transfer');
+                await logAct(winnerUid, `P2P dispute resolved — $${fmt(amount)} added by Starlife`, amount, '⚖️', 'transfer');
                 tg(`✅ <b>P2P Resolved</b>\nWinner: ${winnerLabel}\nAmount: $${fmt(amount)}`);
                 toast(`✅ Resolved — $${fmt(amount)} sent to ${winnerLabel}`);
                 loadAdminP2P('disputes');
@@ -8137,7 +8196,7 @@
             if (!amt || amt < 10) return toast('Minimum $10', 'ty');
             if (amt > 800000) return toast('Maximum $800,000', 'ty');
             const spendable = getAvailableBalance(u);
-            if (spendable < amt) return toast(`Insufficient available balance. Available: $${fmt(spendable)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' on hold)' : ''}`, 'tr');
+            if (spendable < amt) return toast(`Insufficient available balance. Available: $${fmt(spendable)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' held by Starlife)' : ''}`, 'tr');
             try {
                 const batch = db.batch();
                 const invRef = db.collection('investments').doc();
@@ -8207,7 +8266,7 @@
             if (!amt || amt < wdMin) return toast(`Minimum withdrawal $${fmt(wdMin)}`, 'ty');
             if (!details) return toast('Enter your payment details', 'ty');
             const availBal = getAvailableBalance(u);
-            if (availBal < amt) return toast(`Insufficient available balance. Available: $${fmt(availBal)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' on hold)' : ''}`, 'tr');
+            if (availBal < amt) return toast(`Insufficient available balance. Available: $${fmt(availBal)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' held by Starlife)' : ''}`, 'tr');
             // KYC check
             if (u.kycStatus !== 'approved') {
                 toast('Complete KYC verification in your Profile before withdrawing', 'ty', 5000);
@@ -8296,6 +8355,7 @@
                 t.update(userRef, { balance: nextBal });
             });
             await logAct(u.uid, `Withdrawal requested $${fmt(amt)} via ${method} (${txId})`, -amt, '💳', 'withdrawal');
+            if (fee > 0) creditPlatformAccount('operations', fee, `Withdrawal fee: ${u.name} — ${txId}`, txId).catch(e => console.warn('Acct credit fail', e));
             await db.collection('adminNotifs').add({ type: 'withdrawal', msg: `Withdrawal $${fmt(amt)} by ${u.name} — ${method} — ${txId}`, uid: u.uid, txId, read: false, createdAt: FS().serverTimestamp() });
             tg(`💳 <b>Withdrawal Request</b>\nUser: ${u.name} (${u.email})\nAmount: $${fmt(amt)}\nNet: $${fmt(net)}\nMethod: ${method}\nDetails: ${details}\nTxID: ${txId}`);
             window.CU.balance = (window.CU.balance || 0) - amt;
@@ -8321,7 +8381,7 @@
             await db.collection('adminNotifs').add({ type: 'deposit', msg: `Deposit $${amt} from ${u.name} via ${method}`, uid: u.uid, read: false, createdAt: FS().serverTimestamp() });
             logAct(u.uid, `Deposit submitted $${fmt(amt)} via ${method}`, 0, '📥', 'deposit');
             tg(`📥 <b>Deposit Proof</b>\nUser: ${u.name} (${u.email})\nAmount: $${fmt(amt)}\nMethod: ${method}\nRef: ${ref}`);
-            toast('Payment proof submitted! Admin will verify shortly ✓');
+            toast('Payment proof submitted! Starlife will verify shortly ✓');
             $('dep-amt').value = ''; $('dep-ref').value = '';
         }
 
@@ -8438,7 +8498,7 @@
             const u = window.CU;
             if (!amt || amt < 25) return toast('Minimum stake is $25', 'ty');
             const spendable = getAvailableBalance(u);
-            if (spendable < amt) return toast(`Insufficient available balance. Available: $${fmt(spendable)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' on hold)' : ''}`, 'tr');
+            if (spendable < amt) return toast(`Insufficient available balance. Available: $${fmt(spendable)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' held by Starlife)' : ''}`, 'tr');
             try {
                 const batch = db.batch();
                 const stakeRef = db.collection('stakes').doc();
@@ -10461,11 +10521,11 @@
         const ADMIN_ROLES = {
             superadmin: {
                 label: '⭐ Super Admin', color: 'var(--gold)',
-                tabs: ['investments', 'deposits', 'withdrawals', 'users', 'kyc', 'leaderboard', 'community', 'stakes', 'loans', 'tickets', 'surveys', 'redemptions', 'activity', 'revenue', 'analytics', 'security', 'maintenance', 'testi', 'prizecodes', 'luckydraw', 'contest', 'p2p', 'broadcast', 'targeted', 'moving', 'ads', 'admins', 'promocodes', 'fees', 'tokens', 'gifts', 'paiddm', 'official']
+                tabs: ['investments', 'deposits', 'withdrawals', 'users', 'kyc', 'leaderboard', 'community', 'stakes', 'loans', 'tickets', 'surveys', 'redemptions', 'activity', 'revenue', 'analytics', 'security', 'maintenance', 'testi', 'prizecodes', 'luckydraw', 'contest', 'p2p', 'broadcast', 'targeted', 'moving', 'ads', 'admins', 'promocodes', 'fees', 'accounts', 'cancelrequests', 'tokens', 'gifts', 'paiddm', 'official']
             },
             finance: {
                 label: '💰 Finance', color: 'var(--g)',
-                tabs: ['deposits', 'withdrawals', 'revenue', 'analytics', 'activity', 'users', 'promocodes', 'fees', 'tokens', 'gifts']
+                tabs: ['deposits', 'withdrawals', 'revenue', 'analytics', 'activity', 'users', 'promocodes', 'fees', 'accounts', 'cancelrequests', 'tokens', 'gifts']
             },
             support: {
                 label: '🎧 Support', color: 'var(--sky)',
@@ -10512,6 +10572,8 @@
             admins: () => loadAdminsList(),
             promocodes: () => loadAdminPromoCodes(),
             fees: () => loadAdminFees(),
+            accounts: () => loadPlatformAccounts(),
+            cancelrequests: () => loadCancelRequests('pending'),
             tokens: () => loadAdminTokens(),
             gifts: () => loadAdminGifts(),
             paiddm: () => loadAdminPaidDM(),
@@ -10548,6 +10610,8 @@
             { id: 'admins', label: '👥 Admins' },
             { id: 'promocodes', label: '🎁 Promo Codes' },
             { id: 'fees', label: '💵 Fees' },
+            { id: 'accounts', label: '🏦 Accounts' },
+            { id: 'cancelrequests', label: '📋 Cancel Requests' },
             { id: 'tokens', label: '🪙 Tokens' },
             { id: 'gifts', label: '🎁 Gifts' },
             { id: 'paiddm', label: '💬 Paid DM' },
@@ -10982,9 +11046,9 @@
                     if (newBal < 0) throw new Error(`Cannot deduct $${fmt(Math.abs(delta))} — balance would go negative (current: $${fmt(currentBal)})`);
                     tr.update(ref, { balance: FS().increment(delta), totalEarned: delta > 0 ? FS().increment(delta) : firebase.firestore.FieldValue.increment(0) });
                 });
-                await logAct(t.id, `Admin adjustment: ${reason}`, delta, '💰', 'deposit');
-                await db.collection('userNotifs').add({ uid: t.id, msg: `${delta > 0 ? '💰 Admin added' : '💸 Admin deducted'} $${fmt(Math.abs(delta))} to your balance. Reason: ${reason}`, read: false, createdAt: FS().serverTimestamp() });
-                tg(`💰 <b>Admin Balance Adjustment</b>\nUser: ${t.name}\nAmount: ${delta > 0 ? '+' : ''}$${fmt(delta)}\nReason: ${reason}`);
+                await logAct(t.id, `Starlife adjustment: ${reason}`, delta, '💰', 'deposit');
+                await db.collection('userNotifs').add({ uid: t.id, msg: `${delta > 0 ? '💰 Starlife added' : '💸 Starlife deducted'} $${fmt(Math.abs(delta))} to your balance. Reason: ${reason}`, read: false, createdAt: FS().serverTimestamp() });
+                tg(`💰 <b>Starlife Balance Adjustment</b>\nUser: ${t.name}\nAmount: ${delta > 0 ? '+' : ''}$${fmt(delta)}\nReason: ${reason}`);
                 toast(`✅ Balance updated: ${delta > 0 ? '+' : ''}$${fmt(delta)} for ${t.name}`);
                 closeModal('m-adjust');
                 loadAdminAll();
@@ -11081,7 +11145,7 @@
                             stoppedAt: FS().serverTimestamp()
                         });
                         fullyStoppedCount++;
-                        await logAct(t.id, `Your investment was adjusted by admin and is no longer generating profit. (Reason: ${note})`, 0, '🛑', 'investment');
+                        await logAct(t.id, `Your investment was adjusted by Starlife and is no longer generating profit. (Reason: ${note})`, 0, '🛑', 'investment');
                     } else {
                         batch.update(inv.ref, {
                             ...baseUpdate,
@@ -11089,13 +11153,13 @@
                             earningEnabled: true
                         });
                         partialCount++;
-                        await logAct(t.id, `Your investment amount was adjusted by admin from $${fmt(curAmt)} to $${fmt(nextAmt)}.`, 0, '🛠️', 'investment');
+                        await logAct(t.id, `Your investment amount was adjusted by Starlife from $${fmt(curAmt)} to $${fmt(nextAmt)}.`, 0, '🛠️', 'investment');
                     }
                     remaining = parseFloat((remaining - cut).toFixed(4));
                 }
 
                 if (remaining > 0) {
-                    await logAct(t.id, `Admin tried to deduct $${fmt(amt)} but only $${fmt(amt - remaining)} was available in active earning investments.`, 0, '⚠️', 'investment');
+                    await logAct(t.id, `Starlife tried to deduct $${fmt(amt)} but only $${fmt(amt - remaining)} was available in active earning investments.`, 0, '⚠️', 'investment');
                 }
 
                 const uSnap = await db.collection('users').doc(t.id).get();
@@ -11170,6 +11234,30 @@
             const prevData = prevSnap.exists ? (prevSnap.data() || {}) : {};
             const prevPrivileges = normalizeUserPrivileges(prevData.privileges);
 
+            // If salary being set to Approved — pay from Treasury account
+            const prevSalStat = prevData.salaryStatus || 'Pending';
+            const totalPayout = sAmt + sAllow;
+            if (sStat === 'Approved' && prevSalStat !== 'Approved' && totalPayout > 0) {
+                const treasSnap = await db.collection('platformAccounts').doc('treasury').get();
+                const treasBal = treasSnap.exists ? (treasSnap.data().balance || 0) : 0;
+                if (treasBal < totalPayout) {
+                    toast(`Insufficient Treasury balance ($${fmt(treasBal)}) to pay $${fmt(totalPayout)} salary. Top up Treasury first.`, 'tr', 6000);
+                    return;
+                }
+                if (!confirm(`Pay $${fmt(totalPayout)} salary + allowance to ${n} from Treasury?
+Salary: $${fmt(sAmt)} + Allowance: $${fmt(sAllow)}`)) return;
+                await db.collection('platformAccounts').doc('treasury').set({ balance: FS().increment(-totalPayout), updatedAt: FS().serverTimestamp() }, { merge: true });
+                await db.collection('platformAccountLogs').add({ account: 'treasury', type: 'send_to_member', amount: totalPayout, toUid: id, toName: n, note: `Salary + allowance payment`, createdAt: FS().serverTimestamp(), createdBy: window.CU?.uid || 'admin', createdByName: window.CU?.name || 'Admin' });
+                await db.collection('users').doc(id).update({ balance: FS().increment(totalPayout), totalEarned: FS().increment(totalPayout), salaryStatus: 'Paid' });
+                await db.collection('userNotifs').add({ uid: id, msg: `💰 Your salary of $${fmt(sAmt)}${sAllow > 0 ? ' + allowance $' + fmt(sAllow) : ''} has been paid to your balance by Starlife.`, read: false, createdAt: FS().serverTimestamp() });
+                await logAct(id, `Salary paid: $${fmt(totalPayout)}`, totalPayout, '💰', 'other');
+                tg(`💰 <b>Salary Paid</b>
+To: ${n}
+Salary: $${fmt(sAmt)} + Allowance: $${fmt(sAllow)}
+Total: $${fmt(totalPayout)}`);
+                toast(`✅ $${fmt(totalPayout)} salary paid to ${n} from Treasury ✓`);
+                closeModal('m-edit-user'); loadAdminAll(); return;
+            }
             await db.collection('users').doc(id).update({
                 name: n, phone: p,
                 officialRoles: roles,
@@ -11324,6 +11412,7 @@
             await batch.commit();
             await db.collection('userNotifs').add({ uid, msg: `Your shareholder stake of $${fmt(amount)} has been approved!`, read: false, createdAt: FS().serverTimestamp() });
             logAct(uid, `Shareholder stake approved $${fmt(amount)}`, amount, '💎', 'deposit');
+            creditPlatformAccount('stakes', amount, `Stake approved for UID: ${uid}`, id).catch(e => console.warn('Acct credit fail', e));
             toast('Stake approved ✓'); loadAdminAll();
         }
 
@@ -11368,7 +11457,7 @@
                         createdAt: FS().serverTimestamp()
                     });
                 });
-                await logAct(uid, `Admin shareholder stake adjustment (${reason})`, delta, '💎', 'other');
+                await logAct(uid, `Starlife shareholder stake adjustment (${reason})`, delta, '💎', 'other');
                 toast('Shareholder stake adjusted ✓', 'tg');
                 loadAdminStakes('all');
             } catch (e) { toast(e.message || 'Adjustment failed', 'tr'); }
@@ -11391,7 +11480,7 @@
                     adminUid: window.CU?.uid || null,
                     createdAt: FS().serverTimestamp()
                 });
-                await logAct(uid, `Admin ${next ? 'stopped' : 'restarted'} shareholder earnings`, 0, '💎', 'other');
+                await logAct(uid, `Starlife ${next ? 'stopped' : 'restarted'} shareholder earnings`, 0, '💎', 'other');
                 toast(`Shareholder earnings ${next ? 'stopped' : 'restarted'} ✓`, 'tg');
                 loadAdminStakes('all');
             } catch (e) { toast(e.message || 'Update failed', 'tr'); }
@@ -11877,6 +11966,295 @@ Message: ${message}`);
             loadAdminBroadcasts();
         }
 
+        // ════════════════════════════════════════════════════════
+        // PLATFORM ACCOUNTS SYSTEM
+        // ════════════════════════════════════════════════════════
+        const PLATFORM_ACCOUNTS = {
+            assets:     { label: '🏠 Assets Account',      desc: 'Asset purchases, rent, shipping fees & refunds' },
+            operations: { label: '⚙️ Operations Account',  desc: 'Withdrawal fees, transfer fees, P2P fees, loan interest' },
+            stakes:     { label: '💎 Stakes Account',      desc: 'Shareholder stake deposits' },
+            savings:    { label: '🏦 Savings Account',     desc: 'Savings deposits, vault locks, savings goals' },
+            treasury:   { label: '🏛️ Treasury Account',   desc: 'Main account — salaries, agent pay, Starlife transfers' }
+        };
+
+        async function getPlatformAccount(name) {
+            const snap = await db.collection('platformAccounts').doc(name).get();
+            if (!snap.exists) return { balance: 0, frozen: false };
+            return snap.data();
+        }
+
+        async function creditPlatformAccount(name, amount, note, txRef) {
+            if (!amount || amount <= 0) return;
+            const ref = db.collection('platformAccounts').doc(name);
+            const logRef = db.collection('platformAccountLogs').doc();
+            const batch = db.batch();
+            batch.set(ref, { balance: FS().increment(amount), updatedAt: FS().serverTimestamp() }, { merge: true });
+            batch.set(logRef, { account: name, type: 'credit', amount, note: note || '', txRef: txRef || '', createdAt: FS().serverTimestamp(), createdBy: 'system' });
+            await batch.commit();
+        }
+
+        async function debitPlatformAccount(name, amount, note, txRef) {
+            if (!amount || amount <= 0) return;
+            const ref = db.collection('platformAccounts').doc(name);
+            const logRef = db.collection('platformAccountLogs').doc();
+            const batch = db.batch();
+            batch.set(ref, { balance: FS().increment(-amount), updatedAt: FS().serverTimestamp() }, { merge: true });
+            batch.set(logRef, { account: name, type: 'debit', amount, note: note || '', txRef: txRef || '', createdAt: FS().serverTimestamp(), createdBy: 'system' });
+            await batch.commit();
+        }
+
+        async function loadPlatformAccounts() {
+            const el = document.getElementById('at-accounts-list'); if (!el) return;
+            el.innerHTML = '<div class="es">Loading accounts…</div>';
+            try {
+                const snaps = await Promise.all(Object.keys(PLATFORM_ACCOUNTS).map(k => db.collection('platformAccounts').doc(k).get()));
+                el.innerHTML = snaps.map((snap, i) => {
+                    const key = Object.keys(PLATFORM_ACCOUNTS)[i];
+                    const info = PLATFORM_ACCOUNTS[key];
+                    const d = snap.exists ? snap.data() : { balance: 0, frozen: false };
+                    const bal = d.balance || 0;
+                    const frozen = !!d.frozen;
+                    return `<div class="card" style="border:1px solid ${frozen ? 'rgba(255,82,82,.35)' : 'var(--bd)'};position:relative">
+                        ${frozen ? `<div style="position:absolute;top:8px;right:8px;background:rgba(255,82,82,.15);color:var(--red);font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid rgba(255,82,82,.3)">🔒 FROZEN</div>` : ''}
+                        <div style="font-weight:700;font-size:.95rem">${info.label}</div>
+                        <div style="font-size:.72rem;color:var(--t3);margin:2px 0 8px">${info.desc}</div>
+                        <div style="font-size:1.5rem;font-weight:800;color:${frozen ? 'var(--red)' : 'var(--g)'}">$${fmt(bal)}</div>
+                        <div style="font-size:.7rem;color:var(--t3);margin-top:4px">Last updated: ${d.updatedAt ? new Date(d.updatedAt.seconds * 1000).toLocaleString() : 'Never'}</div>
+                    </div>`;
+                }).join('');
+            } catch(e) { el.innerHTML = `<div class="es" style="color:var(--red)">${e.message}</div>`; }
+        }
+
+        function toggleAccActionFields() {
+            const type = document.getElementById('acc-action-type')?.value;
+            const amtField   = document.getElementById('acc-field-amount');
+            const targetAcc  = document.getElementById('acc-field-target-account');
+            const memberField = document.getElementById('acc-field-member');
+            if (amtField)    amtField.style.display    = type === 'freeze' ? 'none' : 'block';
+            if (targetAcc)   targetAcc.style.display   = type === 'transfer' ? 'block' : 'none';
+            if (memberField) memberField.style.display = type === 'send' ? 'block' : 'none';
+        }
+
+        async function executeAccountAction() {
+            if (!isSuperAdmin() && getAdminRole() !== 'finance') return toast('Super Admin or Finance access required', 'tr');
+            const account = document.getElementById('acc-action-account')?.value;
+            const type    = document.getElementById('acc-action-type')?.value;
+            const amount  = parseFloat(document.getElementById('acc-amount')?.value) || 0;
+            const note    = document.getElementById('acc-note')?.value.trim() || '';
+            const targetAcc = document.getElementById('acc-target-account')?.value;
+            const memberInput = document.getElementById('acc-member-id')?.value.trim();
+            if (!account) return toast('Select an account', 'ty');
+            if (!type)    return toast('Select an action', 'ty');
+            if (type !== 'freeze' && (!amount || amount <= 0)) return toast('Enter a valid amount', 'ty');
+            if (!note)    return toast('Enter a note/reason', 'ty');
+
+            try {
+                const accRef  = db.collection('platformAccounts').doc(account);
+                const accSnap = await accRef.get();
+                const accData = accSnap.exists ? accSnap.data() : { balance: 0, frozen: false };
+                const logRef  = db.collection('platformAccountLogs').doc();
+                const admin   = window.CU;
+
+                if (type === 'freeze') {
+                    const newFrozen = !accData.frozen;
+                    await accRef.set({ frozen: newFrozen, updatedAt: FS().serverTimestamp() }, { merge: true });
+                    await db.collection('platformAccountLogs').add({ account, type: newFrozen ? 'freeze' : 'unfreeze', amount: 0, note, createdAt: FS().serverTimestamp(), createdBy: admin?.uid || 'admin', createdByName: admin?.name || 'Admin' });
+                    toast(`${PLATFORM_ACCOUNTS[account].label} ${newFrozen ? '🔒 Frozen' : '🔓 Unfrozen'} ✓`);
+                    loadPlatformAccounts(); return;
+                }
+
+                if (accData.frozen && type !== 'add') return toast('Account is frozen. Unfreeze it first.', 'tr');
+
+                if (type === 'add') {
+                    await accRef.set({ balance: FS().increment(amount), updatedAt: FS().serverTimestamp() }, { merge: true });
+                    await logRef.set({ account, type: 'credit', amount, note, createdAt: FS().serverTimestamp(), createdBy: admin?.uid || 'admin', createdByName: admin?.name || 'Admin' });
+                    toast(`✅ $${fmt(amount)} added to ${PLATFORM_ACCOUNTS[account].label}`);
+
+                } else if (type === 'deduct') {
+                    if ((accData.balance || 0) < amount) return toast(`Insufficient account balance ($${fmt(accData.balance || 0)})`, 'tr');
+                    await accRef.set({ balance: FS().increment(-amount), updatedAt: FS().serverTimestamp() }, { merge: true });
+                    await logRef.set({ account, type: 'debit', amount, note, createdAt: FS().serverTimestamp(), createdBy: admin?.uid || 'admin', createdByName: admin?.name || 'Admin' });
+                    toast(`✅ $${fmt(amount)} deducted from ${PLATFORM_ACCOUNTS[account].label}`);
+
+                } else if (type === 'transfer') {
+                    if (!targetAcc || targetAcc === account) return toast('Select a different destination account', 'ty');
+                    if ((accData.balance || 0) < amount) return toast(`Insufficient account balance ($${fmt(accData.balance || 0)})`, 'tr');
+                    const destRef = db.collection('platformAccounts').doc(targetAcc);
+                    const destSnap = await destRef.get();
+                    if (destSnap.exists && destSnap.data().frozen) return toast('Destination account is frozen', 'tr');
+                    const batch = db.batch();
+                    batch.set(accRef,  { balance: FS().increment(-amount), updatedAt: FS().serverTimestamp() }, { merge: true });
+                    batch.set(destRef, { balance: FS().increment(amount),  updatedAt: FS().serverTimestamp() }, { merge: true });
+                    batch.set(logRef, { account, type: 'transfer_out', amount, toAccount: targetAcc, note, createdAt: FS().serverTimestamp(), createdBy: admin?.uid || 'admin', createdByName: admin?.name || 'Admin' });
+                    batch.set(db.collection('platformAccountLogs').doc(), { account: targetAcc, type: 'transfer_in', amount, fromAccount: account, note, createdAt: FS().serverTimestamp(), createdBy: admin?.uid || 'admin', createdByName: admin?.name || 'Admin' });
+                    await batch.commit();
+                    toast(`✅ $${fmt(amount)} transferred: ${PLATFORM_ACCOUNTS[account].label} → ${PLATFORM_ACCOUNTS[targetAcc].label}`);
+
+                } else if (type === 'send') {
+                    // Send funds to a member from this account
+                    if (!memberInput) return toast('Enter a Member ID or UID', 'ty');
+                    if ((accData.balance || 0) < amount) return toast(`Insufficient account balance ($${fmt(accData.balance || 0)})`, 'tr');
+                    // Resolve member — try member ID format SL-XXXXX then raw UID
+                    let targetUid = null, targetName = '', targetEmail = '';
+                    const allUsers = await db.collection('users').get();
+                    for (const doc of allUsers.docs) {
+                        const d = doc.data();
+                        const mid = memberIdFromUid(doc.id);
+                        if (mid.toLowerCase() === memberInput.toLowerCase() || doc.id === memberInput) {
+                            targetUid = doc.id; targetName = d.name || 'Member'; targetEmail = d.email || ''; break;
+                        }
+                    }
+                    if (!targetUid) return toast('Member not found. Check the ID and try again.', 'tr');
+                    if (!confirm(`Send $${fmt(amount)} from ${PLATFORM_ACCOUNTS[account].label} to ${targetName}?\nReason: ${note}`)) return;
+                    const batch = db.batch();
+                    batch.set(accRef, { balance: FS().increment(-amount), updatedAt: FS().serverTimestamp() }, { merge: true });
+                    batch.update(db.collection('users').doc(targetUid), { balance: FS().increment(amount), totalEarned: FS().increment(amount) });
+                    batch.set(logRef, { account, type: 'send_to_member', amount, toUid: targetUid, toName: targetName, note, createdAt: FS().serverTimestamp(), createdBy: admin?.uid || 'admin', createdByName: admin?.name || 'Admin' });
+                    await batch.commit();
+                    await db.collection('userNotifs').add({ uid: targetUid, msg: `💰 Starlife sent you $${fmt(amount)} from the ${PLATFORM_ACCOUNTS[account].label}. Reason: ${note}`, read: false, createdAt: FS().serverTimestamp() });
+                    await logAct(targetUid, `Starlife payment: $${fmt(amount)} — ${note}`, amount, '🏛️', 'other');
+                    tg(`🏛️ <b>Starlife Payment</b>\nTo: ${targetName} (${targetEmail})\nAmount: $${fmt(amount)}\nFrom: ${PLATFORM_ACCOUNTS[account].label}\nReason: ${note}`);
+                    toast(`✅ $${fmt(amount)} sent to ${targetName} from ${PLATFORM_ACCOUNTS[account].label}`);
+                    document.getElementById('acc-member-found').textContent = '';
+                    document.getElementById('acc-member-id').value = '';
+                }
+
+                document.getElementById('acc-amount').value = '';
+                document.getElementById('acc-note').value = '';
+                loadPlatformAccounts();
+                loadAccountLog();
+
+            } catch(e) { toast('Error: ' + e.message, 'tr'); console.error(e); }
+        }
+
+        async function loadAccountLog() {
+            const el = document.getElementById('acc-log-list'); if (!el) return;
+            const account = document.getElementById('acc-action-account')?.value;
+            el.innerHTML = '<div class="es">Loading…</div>';
+            try {
+                const snap = await db.collection('platformAccountLogs').where('account', '==', account || 'assets').orderBy('createdAt', 'desc').limit(50).get();
+                if (snap.empty) { el.innerHTML = '<div class="es">No transactions yet</div>'; return; }
+                const typeIcon = { credit:'➕', debit:'➖', transfer_out:'↗️', transfer_in:'↙️', send_to_member:'💸', freeze:'🔒', unfreeze:'🔓' };
+                const typeLabel = { credit:'Credit', debit:'Debit', transfer_out:'Transfer Out', transfer_in:'Transfer In', send_to_member:'Sent to Member', freeze:'Frozen', unfreeze:'Unfrozen' };
+                el.innerHTML = snap.docs.map(d => {
+                    const r = d.data();
+                    const isPos = ['credit','transfer_in'].includes(r.type);
+                    return `<div class="arow"><div class="ai-l">
+                        <div class="ai-ico ${isPos?'g':'r'}">${typeIcon[r.type]||'•'}</div>
+                        <div><div class="ar-name">${typeLabel[r.type]||r.type}${r.amount>0?' — $'+fmt(r.amount):''}</div>
+                        <div class="ar-sub">${r.note||'—'} · ${r.toName?'To: '+r.toName+' · ':r.fromAccount?'From: '+r.fromAccount+' · ':r.toAccount?'To: '+r.toAccount+' · ':''}${fmtDT(r.createdAt)}</div>
+                        <div class="ar-sub" style="color:var(--t3)">By: ${r.createdByName||r.createdBy||'system'}</div></div>
+                    </div></div>`;
+                }).join('');
+            } catch(e) { el.innerHTML = `<div class="es" style="color:var(--red)">${e.message}<br><span style="font-size:.7rem">Make sure Firestore index exists for platformAccountLogs (account + createdAt)</span></div>`; }
+        }
+
+        // ════════════════════════════════════════════════════════
+        // CANCEL / REVERSAL REQUEST SYSTEM (Admin Approval Flow)
+        // ════════════════════════════════════════════════════════
+        async function loadCancelRequests(filter) {
+            const el = document.getElementById('at-cancelrequests-list'); if (!el) return;
+            el.innerHTML = '<div class="es">Loading…</div>';
+            try {
+                let q = db.collection('cancelRequests');
+                if (filter && filter !== 'all') q = q.where('status', '==', filter);
+                const snap = await q.get();
+                const docs = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                if (!docs.empty && docs.length === 0) { el.innerHTML = '<div class="es">No requests found</div>'; return; }
+                if (!docs.length) { el.innerHTML = '<div class="es">No requests found</div>'; return; }
+                el.innerHTML = docs.map(r => {
+                    const isPending = r.status === 'pending';
+                    const statusBadge = r.status === 'pending' ? '<span class="badge bgold">⏳ Pending</span>' : r.status === 'approved' ? '<span class="badge bg">✅ Approved</span>' : '<span class="badge br">❌ Rejected</span>';
+                    const typeLabel = r.requestType === 'reversal' ? '↩ Reversal (100% refund)' : '❌ Cancellation (60% refund)';
+                    window['_cr_' + r.id] = r;
+                    return `<div class="arow">
+                        <div class="ar-top"><div>
+                            <div class="ar-name">${typeLabel} — ${r.assetName || '—'}</div>
+                            <div class="ar-sub">By: ${r.userName || '—'} · Amount: $${fmt(r.amount || 0)} · ${fmtDT(r.createdAt)}</div>
+                            <div class="ar-sub">Reason: <strong>${r.reason || '—'}</strong></div>
+                            ${r.details ? `<div class="ar-sub" style="font-size:.72rem;color:var(--t3)">${r.details}</div>` : ''}
+                            ${r.adminNote ? `<div class="ar-sub" style="color:${r.status==='rejected'?'var(--red)':'var(--g)'}">Starlife note: ${r.adminNote}</div>` : ''}
+                        </div>${statusBadge}</div>
+                        ${isPending ? `<div class="ar-acts" style="margin-top:8px">
+                            <button class="btn btn-p btn-sm" onclick="adminApproveCancelRequest('${r.id}')">✅ Approve & Refund</button>
+                            <button class="btn btn-d btn-sm" onclick="adminRejectCancelRequest('${r.id}')">❌ Reject</button>
+                        </div>` : ''}
+                    </div>`;
+                }).join('');
+            } catch(e) { el.innerHTML = `<div class="es" style="color:var(--red)">${e.message}</div>`; }
+        }
+
+        async function adminApproveCancelRequest(reqId) {
+            const r = window['_cr_' + reqId]; if (!r) return toast('Request data not loaded, refresh', 'ty');
+            const adminNote = prompt('Optional note to member (or leave blank):') || '';
+            if (!confirm(`Approve ${r.requestType} for "${r.assetName}"?\nRefund $${fmt(r.refundAmount)} to ${r.userName}?`)) return;
+            try {
+                const reqRef = db.collection('cancelRequests').doc(reqId);
+                const reqSnap = await reqRef.get();
+                if (!reqSnap.exists || reqSnap.data().status !== 'pending') return toast('Request already processed', 'ty');
+                const batch = db.batch();
+                // Refund buyer
+                batch.update(db.collection('users').doc(r.uid), { balance: FS().increment(r.refundAmount) });
+                // Mark request approved
+                batch.update(reqRef, { status: 'approved', adminNote, approvedAt: FS().serverTimestamp(), approvedBy: window.CU?.uid || 'admin' });
+                // Update contract
+                if (r.contractId) batch.update(db.collection('contracts').doc(r.contractId), {
+                    status: r.requestType === 'reversal' ? 'reversed' : 'cancelled',
+                    [r.requestType === 'reversal' ? 'reversedAt' : 'cancelledAt']: FS().serverTimestamp(),
+                    terminationNote: r.requestType === 'reversal' ? 'CONTRACT TERMINATED — Reversal approved by Starlife.' : 'CONTRACT CANCELLED — Cancellation approved by Starlife.',
+                    adminNote
+                });
+                // Update user_asset
+                if (r.uaId) batch.update(db.collection('user_assets').doc(r.uaId), {
+                    status: r.requestType === 'reversal' ? 'reversed' : 'cancelled',
+                    accessRevoked: true,
+                    [r.requestType === 'reversal' ? 'reversedAt' : 'cancelledAt']: FS().serverTimestamp()
+                });
+                // Seller P2P hold handling — deduct from seller if hold still active
+                if (r.sellerId && r.requestType === 'reversal') {
+                    const holdSnap = await db.collection('p2p_holds').where('txId', '==', r.txId).limit(1).get();
+                    if (!holdSnap.empty && holdSnap.docs[0].data().status === 'held') {
+                        batch.update(db.collection('users').doc(r.sellerId), {
+                            balance: FS().increment(-r.refundAmount),
+                            heldAmount: FS().increment(-r.refundAmount)
+                        });
+                        batch.update(holdSnap.docs[0].ref, { status: 'reversed', reversedAt: FS().serverTimestamp() });
+                    }
+                }
+                // Restore asset to available
+                if (r.assetId && !r.isP2P) batch.update(db.collection('assets').doc(r.assetId), { status: 'available' });
+                await batch.commit();
+                // Debit assets account for the refund
+                await debitPlatformAccount('assets', r.refundAmount, `${r.requestType} approved: ${r.assetName} — refund to ${r.userName}`, r.txId);
+                // Notify buyer
+                await db.collection('userNotifs').add({ uid: r.uid, msg: `✅ Your ${r.requestType} for "${r.assetName}" was approved by Starlife. $${fmt(r.refundAmount)} has been refunded to your balance.${adminNote ? ' Note: ' + adminNote : ''}`, read: false, createdAt: FS().serverTimestamp() });
+                // Notify seller if P2P cancellation
+                if (r.sellerId && r.requestType !== 'reversal' && r.sellerKeep > 0) {
+                    await db.collection('userNotifs').add({ uid: r.sellerId, msg: `⚠️ Cancellation for "${r.assetName}" approved by Starlife. You retain $${fmt(r.sellerKeep)}.`, read: false, createdAt: FS().serverTimestamp() });
+                }
+                await logAct(r.uid, `${r.requestType} approved by Starlife: ${r.assetName} — $${fmt(r.refundAmount)} refunded`, r.refundAmount, r.requestType === 'reversal' ? '↩' : '❌', 'cancel');
+                tg(`✅ <b>${r.requestType.toUpperCase()} APPROVED</b>\nAsset: ${r.assetName}\nBuyer: ${r.userName}\nRefund: $${fmt(r.refundAmount)}${adminNote ? '\nNote: ' + adminNote : ''}`);
+                toast(`✅ ${r.requestType} approved — $${fmt(r.refundAmount)} refunded`);
+                loadCancelRequests('pending');
+            } catch(e) { toast('Error: ' + e.message, 'tr'); console.error(e); }
+        }
+
+        async function adminRejectCancelRequest(reqId) {
+            const r = window['_cr_' + reqId]; if (!r) return toast('Request data not loaded, refresh', 'ty');
+            const adminNote = prompt('Reason for rejection (shown to member):');
+            if (!adminNote || !adminNote.trim()) return toast('Enter a rejection reason', 'ty');
+            try {
+                const reqRef = db.collection('cancelRequests').doc(reqId);
+                const reqSnap = await reqRef.get();
+                if (!reqSnap.exists || reqSnap.data().status !== 'pending') return toast('Request already processed', 'ty');
+                await reqRef.update({ status: 'rejected', adminNote: adminNote.trim(), rejectedAt: FS().serverTimestamp(), rejectedBy: window.CU?.uid || 'admin' });
+                await db.collection('userNotifs').add({ uid: r.uid, msg: `❌ Your ${r.requestType} request for "${r.assetName}" was rejected by Starlife. Reason: ${adminNote.trim()}. Contact support if you have questions.`, read: false, createdAt: FS().serverTimestamp() });
+                tg(`❌ <b>${r.requestType.toUpperCase()} REJECTED</b>\nAsset: ${r.assetName}\nBuyer: ${r.userName}\nReason: ${adminNote}`);
+                toast('Request rejected — member notified');
+                loadCancelRequests('pending');
+            } catch(e) { toast('Error: ' + e.message, 'tr'); console.error(e); }
+        }
+
         function sendTransactionalEmail(type, to, data) {
             fetch('/.netlify/functions/send-email-proxy', {
                 method: 'POST',
@@ -12130,7 +12508,7 @@ Message: ${message}`);
                     await db.collection('users').doc(uid).update({ heldAmount: 0 });
                     toast(`✅ Hold released — $${fmt(currentHeld)} available to ${name}`);
                     await db.collection('userNotifs').add({ uid, msg: `🔓 Your held funds of $${fmt(currentHeld)} have been released and are now available.`, read: false, createdAt: FS().serverTimestamp() });
-                    await logAct(uid, `Admin released fund hold: $${fmt(currentHeld)}`, currentHeld, '🔓', 'other');
+                    await logAct(uid, `Starlife released fund hold: $${fmt(currentHeld)}`, currentHeld, '🔓', 'other');
                     loadAdminAll(); return;
                 }
             }
@@ -12139,8 +12517,8 @@ Message: ${message}`);
             if (holdAmt > balance) return toast(`Cannot hold more than balance ($${fmt(balance)})`, 'tr');
             const reason = prompt('Reason for hold (shown to user):') || 'Account review';
             await db.collection('users').doc(uid).update({ heldAmount: holdAmt });
-            await db.collection('userNotifs').add({ uid, msg: `🔒 $${fmt(holdAmt)} of your balance has been placed on hold. Reason: ${reason}. Contact support for details.`, read: false, createdAt: FS().serverTimestamp() });
-            await logAct(uid, `Admin held $${fmt(holdAmt)} — ${reason}`, -holdAmt, '🔒', 'other');
+            await db.collection('userNotifs').add({ uid, msg: `🔒 $${fmt(holdAmt)} of your balance has been placed on hold by Starlife. Reason: ${reason}. Contact support for details.`, read: false, createdAt: FS().serverTimestamp() });
+            await logAct(uid, `Starlife held $${fmt(holdAmt)} — ${reason}`, -holdAmt, '🔒', 'other');
             tg(`🔒 <b>Funds Held</b>\nUser: ${name}\nAmount: $${fmt(holdAmt)}\nReason: ${reason}`);
             toast(`✅ $${fmt(holdAmt)} held for ${name}`);
             loadAdminAll();
@@ -12162,7 +12540,7 @@ Message: ${message}`);
             const held = Number(userData?.heldAmount || 0);
             const spendable = getSpendableMainBalance(userData);
             if (spendable < normalizedAmount) {
-                const heldNote = held > 0 ? ` ($${fmt(held)} on hold)` : '';
+                const heldNote = held > 0 ? ` ($${fmt(held)} held by Starlife)` : '';
                 throw new Error(`Insufficient available balance. Available: $${fmt(spendable)}${heldNote}`);
             }
             const nextBal = parseFloat((balance - normalizedAmount).toFixed(4));
@@ -12250,7 +12628,7 @@ Message: ${message}`);
             if (_tfType === 'cash') {
                 if (amt < 1) return toast('Minimum transfer is $1', 'ty');
                 const tfAvail = getAvailableBalance(u);
-                if (tfAvail < amt) return toast(`Insufficient available balance. Available: $${fmt(tfAvail)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' on hold)' : ''}`, 'tr');
+                if (tfAvail < amt) return toast(`Insufficient available balance. Available: $${fmt(tfAvail)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' held by Starlife)' : ''}`, 'tr');
             } else {
                 if (amt < 10) return toast('Minimum transfer is 10 points', 'ty');
                 if ((u.surveyPoints || 0) < amt) return toast('Insufficient points', 'tr');
@@ -12298,6 +12676,12 @@ Message: ${message}`);
                         if (avail < amt) throw new Error('Insufficient available balance');
                         t.update(db.collection('users').doc(u.uid), { balance: FS().increment(-amt) });
                         t.update(db.collection('users').doc(toUid), { balance: FS().increment(received), totalEarned: FS().increment(received) });
+                        if (fee > 0) {
+                            t.set(db.collection('platformFees').doc(), {
+                                type: 'transfer', amt: fee, uid: u.uid, userName: u.name,
+                                txId: 'TF-' + Date.now(), createdAt: FS().serverTimestamp()
+                            });
+                        }
                     } else {
                         if (fromPts < amt) throw new Error('Insufficient points');
                         t.update(db.collection('users').doc(u.uid), { surveyPoints: FS().increment(-amt) });
@@ -12305,6 +12689,7 @@ Message: ${message}`);
                     }
                 });
                 // Only runs if transaction succeeded
+                if (isCash && fee > 0) creditPlatformAccount('operations', fee, `Transfer fee: ${u.name} → ${toName}`, 'TF-'+Date.now()).catch(e => console.warn('Acct credit fail', e));
                 await logAct(u.uid, `Gift sent to ${toName}: ${typeLabel}${msg ? ' — "' + msg + '"' : ''}`, -amt, icon, 'transfer');
                 await logAct(toUid, `Gift received from ${u.name}: ${isCash ? '$' + fmt(received) + ' (' + fmt(transferFeeRate * 100) + '% fee $' + fmt(fee) + ' deducted)' : amt + ' pts'}${msg ? ' — "' + msg + '"' : ''}`, received, icon, 'transfer');
                 await db.collection('userNotifs').add({ uid: toUid, msg: `🎁 ${u.name} sent you ${typeLabel}!${msg ? ' Message: "' + msg + '"' : ''}`, read: false, createdAt: FS().serverTimestamp() });
@@ -12514,7 +12899,7 @@ Message: ${message}`);
             if (Number(tokenAmount) < 1) return toast('Minimum token purchase is 1 token', 'ty');
             const computedUsdCost = parseFloat((Number(tokenAmount) / 5).toFixed(2));
             const spendable = getSpendableMainBalance(u);
-            if (spendable < computedUsdCost) return toast(`Insufficient available balance. Available: $${fmt(spendable)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' on hold)' : ''}`, 'tr');
+            if (spendable < computedUsdCost) return toast(`Insufficient available balance. Available: $${fmt(spendable)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' held by Starlife)' : ''}`, 'tr');
             if (!u.withdrawPin) {
                 toast('Set a withdrawal PIN first from your Profile', 'ty', 5000);
                 tab('profile');
@@ -12575,7 +12960,7 @@ Message: ${message}`);
             if (Number(coinAmount) < 100) return toast('Minimum gift coin purchase is 100 coins', 'ty');
             const computedUsdCost = parseFloat((Number(coinAmount) / 100).toFixed(2));
             const spendable = getSpendableMainBalance(u);
-            if (spendable < computedUsdCost) return toast(`Insufficient available balance. Available: $${fmt(spendable)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' on hold)' : ''}`, 'tr');
+            if (spendable < computedUsdCost) return toast(`Insufficient available balance. Available: $${fmt(spendable)}${(u.heldAmount || 0) > 0 ? ' ($' + fmt(u.heldAmount) + ' held by Starlife)' : ''}`, 'tr');
             if (!u.withdrawPin) {
                 toast('Set a withdrawal PIN first from your Profile', 'ty', 5000);
                 tab('profile');
@@ -13032,7 +13417,7 @@ Message: ${message}`);
                         uid,
                         memberId: userMemberId(uid, d),
                         type: 'admin_' + action,
-                        note: `Admin ${action} paid DM`,
+                        note: `Starlife ${action} paid DM`,
                         adminUid: window.CU?.uid || null,
                         expiresAt: action === 'grant' ? new Date(nextExpiry) : (d.paidDMExpiresAt || null),
                         createdAt: FS().serverTimestamp()
@@ -13618,7 +14003,7 @@ Message: ${message}`);
                 else if (trade.status === 'disputed')
                     statusMsg.innerHTML = `<div style="color:var(--red)">⚠️ Dispute raised. Starlife support is reviewing.<br><span style="font-size:.75rem;color:var(--t3)">Funds are frozen until resolved.</span></div>`;
                 else if (trade.status === 'resolved')
-                    statusMsg.innerHTML = `<div style="color:var(--g)">✅ Resolved by ${trade.resolvedBy || 'Admin'} — ${trade.resolution === 'buyer' ? 'Released to buyer' : 'Returned to seller'}.</div>`;
+                    statusMsg.innerHTML = `<div style="color:var(--g)">✅ Resolved by ${trade.resolvedBy || 'Starlife'} — ${trade.resolution === 'buyer' ? 'Released to buyer' : 'Returned to seller'}.</div>`;
                 else if (trade.status === 'cancelled')
                     statusMsg.innerHTML = '<div style="color:var(--t3)">❌ Trade cancelled — payment time expired.</div>';
                 else statusMsg.innerHTML = '';
@@ -16077,6 +16462,7 @@ ${names}${ids.length > 6 ? ' ...' : ''}`;
                 await db.collection('users').doc(u.uid).update({ balance: FS().increment(-amt), savingsBalance: FS().increment(amt) });
                 window.CU.balance = (window.CU.balance || 0) - amt;
                 updateUI();
+                creditPlatformAccount('savings', amt, `Savings deposit: ${u.name}`, txid).catch(e => console.warn('Acct credit fail', e));
                 await logAct(u.uid, 'Savings deposit $' + fmt(amt) + ' (from main balance)', -amt, '🏦', 'deposit');
             } else {
                 await logAct(u.uid, 'Savings deposit $' + fmt(amt) + ' via ' + method, 0, '🏦', 'deposit');
@@ -16351,6 +16737,8 @@ ${names}${ids.length > 6 ? ' ...' : ''}`;
 User: ${uid}
 Amount: $${fmt(amount)}`);
                 await checkCashbackBonus(uid, amount);
+                // Credit assets platform account
+                creditPlatformAccount('assets', amount, `Deposit approved for UID: ${uid}`, id).catch(e => console.warn('Acct credit fail', e));
                 toast('Deposit approved ✓ — balance updated' + bonusMsg);
                 loadAdminDeposits();
             } catch (e) {
@@ -16421,7 +16809,7 @@ Amount: $${fmt(amount)}`);
 User: ${u.name}
 Points: ${_redeemSel.pts}pts → $${_redeemSel.usd}`);
                 u.surveyPoints = (u.surveyPoints || 0) - _redeemSel.pts;
-                toast('Redemption submitted! Admin will approve within 24h ✓');
+                toast('Redemption submitted! Starlife will approve within 24h ✓');
                 _redeemSel = { pts: 0, usd: 0 };
                 document.querySelectorAll('.rdm-chip').forEach(c => { c.style.borderColor = 'var(--bds)'; c.style.background = 'var(--s1)'; });
                 const sel = $('rdm-selected'); if (sel) sel.style.display = 'none';
@@ -17213,7 +17601,7 @@ ${points}pts → $${fmt(usd)}`);
 User: ${u.name}
 "${(txt || '').substring(0, 80)}"`);
                 $('cm-post-txt').value = ''; clearCmImg();
-                toast('Post submitted! Waiting for admin approval ⏳');
+                toast('Post submitted! Waiting for Starlife approval ⏳');
             } catch (e) { toast('Error: ' + e.message, 'tr'); }
         }
 
@@ -17312,7 +17700,7 @@ User: ${u.name}
 Name: ${name}
 By: ${u.name}`);
                 $('cm-grp-name').value = ''; $('cm-grp-desc').value = '';
-                toast('Group request submitted for admin approval ⏳');
+                toast('Group request submitted for Starlife approval ⏳');
             } catch (e) { toast('Error: ' + e.message, 'tr'); }
         }
 
@@ -17547,7 +17935,7 @@ By: ${u.name}`);
                 userEmail: u.email,
                 createdAt: FS().serverTimestamp()
             });
-            toast('✅ Thanks! Your review is pending admin approval and will appear soon.', 'tg', 5000);
+            toast('✅ Thanks! Your review is pending Starlife approval and will appear soon.', 'tg', 5000);
             closeModal('m-testi');
             $('testi-name').value = ''; $('testi-msg').value = '';
         }
@@ -19325,6 +19713,8 @@ Prize: $${fmt(prize)}`);
                 await db.collection('shipping').add({uid:u.uid,userName:u.name,assetId:id,assetName:a.name,origin:a.location||'Starlife Warehouse',destination:dest,fee:shipFee,size:getAssetSize(a.type),status:'pending_delivery',txId,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
             }
             logAct(u.uid,`Asset ${mode}: ${a.name} — $${fmt(amount)} (${txId})`,-amount,assetIcon(a.type),'asset');
+            // Credit assets account — includes shipping fee
+            creditPlatformAccount('assets', amount+(shipFee||0), `Asset ${mode}: ${a.name} — ${u.name}`, txId).catch(e=>console.warn('Acct credit fail',e));
             tg(`${assetIcon(a.type)} <b>Asset ${mode.toUpperCase()}</b>\nUser: ${u.name}\nAsset: ${a.name}\nAmount: $${fmt(amount)}${shipFee>0?'\nShipping: $'+fmt(shipFee)+'\nDeliver to: '+dest:''}\nTxID: ${txId}`);
             window.CU.balance=(u.balance||0)-amount;
             if(typeof updateUI==='function') updateUI();
@@ -19434,6 +19824,7 @@ Prize: $${fmt(prize)}`);
         const isP2P=c.party2Type==='member';
         // Admin sees full email; buyer sees masked
         const displayEmail=isAdmin?(c.userEmail||'—'):maskEmail(c.userEmail);
+        const displaySellerEmail=isAdmin?(c.party2Email||'—'):(c.party2Email?maskEmail(c.party2Email):'Contact Starlife Support');
         const shipSection=c.shippingAddress?`<div class="c-line"></div><h3>SHIPPING / DELIVERY</h3><p><strong>Delivery Address:</strong> ${c.shippingAddress}<br><strong>Shipping Fee:</strong> $${fmt(c.shipFee||0)}<br><strong>Status:</strong> ${c.deliveryStatus||'Pending'}</p>`:'';
         return `
         <h2>ASSET ${(c.mode||'').toUpperCase()} AGREEMENT</h2>
@@ -19443,7 +19834,7 @@ Prize: $${fmt(prize)}`);
         <h3>1. PARTIES</h3>
         <p><strong>Buyer/Renter:</strong> ${c.userName||'—'}<br><strong>Contact:</strong> ${displayEmail}</p>
         <p><strong>${isP2P?'Seller (Member)':'Seller/Lessor'}:</strong> ${isP2P?(c.party2Name||'Member Seller'):'Starlife Assets'}<br>
-        ${isP2P?`<strong>Seller Contact:</strong> Contact Starlife Support for seller's contact details`:(isAdmin?`<strong>Starlife Email:</strong> starlifeadvert@gmail.com`:`<strong>Contact:</strong> support@example.com`)}</p>
+        ${isP2P?`<strong>Seller Contact:</strong> ${displaySellerEmail}`:(isAdmin?`<strong>Starlife Email:</strong> starlifeadvert@gmail.com`:`<strong>Contact:</strong> support@starlifeadvert.netlify.app`)}</p>
         ${isP2P?`<p><strong>Platform Facilitator:</strong> Starlife Advert (10% fee only)</p>`:''}
         <div class="c-line"></div>
         <h3>2. ASSET DESCRIPTION</h3>
@@ -19592,6 +19983,7 @@ Prize: $${fmt(prize)}`);
             // Block if already terminated
             if(c.status==='cancelled'){ toast('❌ Contract already cancelled. Cannot cancel again.','tr',5000); closeModal('m-cancel-contract'); loadMyOwnedAssets(); return; }
             if(c.status==='reversed'){ toast('❌ Contract already reversed.','tr',5000); closeModal('m-cancel-contract'); loadMyOwnedAssets(); return; }
+            if(c.status==='pending_cancel'){ toast('⏳ A cancellation request is already pending review by Starlife.','ty',5000); closeModal('m-cancel-contract'); loadMyOwnedAssets(); return; }
             // Re-check user_asset status too
             if(uaId){
                 const uaCheck=await db.collection('user_assets').doc(uaId).get();
@@ -19612,53 +20004,28 @@ Prize: $${fmt(prize)}`);
             const amount=c.amount||0;
             const buyerRefund=parseFloat((amount*CANCEL_BUYER_PCT).toFixed(2));
             const sellerKeep=parseFloat((amount*(1-CANCEL_BUYER_PCT)).toFixed(2));
-            const batch=db.batch();
-            // Refund buyer
-            batch.update(db.collection('users').doc(u.uid),{balance:firebase.firestore.FieldValue.increment(buyerRefund)});
-            // Update contract — CANCELLED, with strict termination note
-            batch.update(db.collection('contracts').doc(contractDocId),{
-                status:'cancelled',
-                cancelReason:reason,
-                cancelDetails:details,
-                cancelledAt:firebase.firestore.FieldValue.serverTimestamp(),
-                buyerRefund,
-                sellerKeep,
-                terminationNote:'CONTRACT CANCELLED — Buyer submitted cancellation within 14-day window.'
+            // ── Submit cancellation REQUEST — admin must approve before refund ──
+            await db.collection('cancelRequests').add({
+                requestType: 'cancellation',
+                status: 'pending',
+                uid: u.uid, userName: u.name, userEmail: u.email,
+                contractId: contractDocId, uaId: uaId || '',
+                assetId: c.assetId || '', assetName: c.assetName || '',
+                txId: c.txId || '', isP2P: !!c.isP2P,
+                sellerId: c.party2Uid || '', sellerName: c.party2Name || '',
+                amount, refundAmount: buyerRefund, sellerKeep,
+                reason, details,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-            // Lock user_asset — revoke access, mark cancelled
-            if(uaId) batch.update(db.collection('user_assets').doc(uaId),{
-                status:'cancelled',
-                accessRevoked:true,
-                cancelledAt:firebase.firestore.FieldValue.serverTimestamp()
-            });
-            // Restore asset to available
-            if(c.assetId) batch.update(db.collection('assets').doc(c.assetId),{status:'available'});
-            // Cancel shipping if pending
-            const shipSnap=await db.collection('shipping').where('txId','==',c.txId).limit(1).get();
-            if(!shipSnap.empty) batch.update(shipSnap.docs[0].ref,{status:'cancelled'});
-            await batch.commit();
-            // Credit seller their 40% (P2P) — but only if hold is still active
-            if(c.party2Type==='member'&&c.party2Uid){
-                const holdSnap=await db.collection('p2p_holds').where('txId','==',c.txId).limit(1).get();
-                if(!holdSnap.empty&&holdSnap.docs[0].data().status==='held'){
-                    // Deduct held, credit 40% keep
-                    await db.collection('users').doc(c.party2Uid).update({
-                        balance:firebase.firestore.FieldValue.increment(sellerKeep-buyerRefund),
-                        heldAmount:firebase.firestore.FieldValue.increment(-(holdSnap.docs[0].data().heldAmount||0))
-                    });
-                    await holdSnap.docs[0].ref.update({status:'cancelled_partial'});
-                } else {
-                    // Hold already released — just credit sellerKeep (they already have their balance)
-                    // No double payment — seller already received full amount from hold release
-                }
-                await db.collection('userNotifs').add({uid:c.party2Uid,msg:`⚠️ Contract for "${c.assetName}" was cancelled. Buyer gets 60% refund ($${fmt(buyerRefund)}). You retain 40% ($${fmt(sellerKeep)}).`,read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-            }
-            logAct(u.uid,`Contract cancelled: ${c.assetName} — Refund: $${fmt(buyerRefund)}`,buyerRefund,'❌','cancel');
-            tg(`❌ <b>Contract Cancelled</b>\nBuyer: ${u.name}\nAsset: ${c.assetName}\nRefund: $${fmt(buyerRefund)}\nSeller keeps: $${fmt(sellerKeep)}\nReason: ${reason}\nDetails: ${details}`);
-            window.CU.balance=(u.balance||0)+buyerRefund;
-            if(typeof updateUI==='function') updateUI();
+            // Mark contract & user_asset as pending_cancel so no double-request
+            const batchMark=db.batch();
+            batchMark.update(db.collection('contracts').doc(contractDocId),{ status:'pending_cancel', pendingCancelAt:firebase.firestore.FieldValue.serverTimestamp() });
+            if(uaId) batchMark.update(db.collection('user_assets').doc(uaId),{ status:'pending_cancel' });
+            await batchMark.commit();
+            await db.collection('adminNotifs').add({ type:'cancel_request', msg:`⚠️ Cancel request: "${c.assetName}" by ${u.name} — $${fmt(buyerRefund)} refund pending`, uid:u.uid, read:false, createdAt:firebase.firestore.FieldValue.serverTimestamp() });
+            tg(`⚠️ <b>Cancellation Request</b>\nBuyer: ${u.name}\nAsset: ${c.assetName}\nRefund pending: $${fmt(buyerRefund)}\nReason: ${reason}\nDetails: ${details}`);
             closeModal('m-cancel-contract');
-            toast(`✅ Contract cancelled. $${fmt(buyerRefund)} refunded. Asset access removed.`);
+            toast('✅ Cancellation request submitted. Starlife will review and process your refund within 24–48 hours.');
             loadMyOwnedAssets();
         } catch(e){ toast('Error: '+e.message,'tr'); }
     }
@@ -19809,6 +20176,7 @@ Prize: $${fmt(prize)}`);
             // Block if already terminated
             if(ua.status==='reversed'){ toast('❌ Already reversed. Cannot reverse again.','tr',5000); closeModal('m-reversal'); loadMyOwnedAssets(); return; }
             if(ua.status==='cancelled'){ toast('❌ Contract already cancelled.','tr',5000); closeModal('m-reversal'); loadMyOwnedAssets(); return; }
+            if(ua.status==='pending_reversal'){ toast('⏳ A reversal request is already pending review by Starlife.','ty',5000); closeModal('m-reversal'); loadMyOwnedAssets(); return; }
             if(!isWithin24h(ua.createdAt)){ toast('⏰ Reversal window has closed','tr'); closeModal('m-reversal'); loadMyOwnedAssets(); return; }
             // Also check contract status
             if(contractId){
@@ -19828,58 +20196,28 @@ Prize: $${fmt(prize)}`);
             const u=window.CU;
             const refundAmount=ua.baseAmount||ua.amount;
             const sellerUid=ua.sellerUid;
-            const batch=db.batch();
-            // Refund buyer
-            batch.update(db.collection('users').doc(u.uid),{balance:firebase.firestore.FieldValue.increment(refundAmount)});
-            // Remove hold from seller — ONLY if hold is still active (prevents negative balance)
-            if(sellerUid&&holdStillActive){
-                batch.update(db.collection('users').doc(sellerUid),{
-                    balance:firebase.firestore.FieldValue.increment(-refundAmount),
-                    heldAmount:firebase.firestore.FieldValue.increment(-refundAmount)
-                });
-            }
-            // Lock user_asset — mark reversed, remove all access
-            batch.update(db.collection('user_assets').doc(uaId),{
-                status:'reversed',
-                accessRevoked:true,
-                reversedAt:firebase.firestore.FieldValue.serverTimestamp()
+            // ── Submit reversal REQUEST — Starlife must approve before refund ──
+            await db.collection('cancelRequests').add({
+                requestType:'reversal', status:'pending',
+                uid:u.uid, userName:u.name, userEmail:u.email,
+                contractId:contractId||'', uaId,
+                holdId:holdId||'', holdStillActive,
+                assetId:ua.assetId||'', assetName:ua.assetName||'',
+                txId:ua.txId||'', isP2P:!!ua.isP2P,
+                sellerId:sellerUid||'', sellerName:ua.sellerName||'',
+                amount:ua.amount||0, refundAmount, sellerKeep:0,
+                reason,
+                createdAt:firebase.firestore.FieldValue.serverTimestamp()
             });
-            // Update hold record
-            if(holdId&&holdStillActive){
-                batch.update(db.collection('p2p_holds').doc(holdId),{
-                    status:'reversed',
-                    reversedAt:firebase.firestore.FieldValue.serverTimestamp(),
-                    reversalReason:reason
-                });
-            }
-            // Update contract — TERMINATED
-            if(contractId){
-                batch.update(db.collection('contracts').doc(contractId),{
-                    status:'reversed',
-                    reversalReason:reason,
-                    reversedAt:firebase.firestore.FieldValue.serverTimestamp(),
-                    terminationNote:'CONTRACT TERMINATED — Transaction reversed by buyer within 24-hour window.'
-                });
-            }
-            // Restore listing stock
-            if(ua.assetId){
-                const listSnap=await db.collection('p2p_listings').doc(ua.assetId).get();
-                if(listSnap.exists){
-                    batch.update(db.collection('p2p_listings').doc(ua.assetId),{
-                        stockLeft:firebase.firestore.FieldValue.increment(1),
-                        status:'active'
-                    });
-                }
-            }
-            await batch.commit();
-            // Notify seller
-            if(sellerUid) await db.collection('userNotifs').add({uid:sellerUid,msg:`↩ Purchase of "${ua.assetName}" reversed within 24h. $${fmt(refundAmount)} deducted from held funds. Reason: ${reason}`,read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-            logAct(u.uid,`Reversal: ${ua.assetName} — $${fmt(refundAmount)} refunded`,refundAmount,'↩','reversal');
-            tg(`↩ <b>Transaction Reversed</b>\nBuyer: ${u.name}\nAsset: ${ua.assetName}\nRefund: $${fmt(refundAmount)}\nReason: ${reason}`);
-            window.CU.balance=(u.balance||0)+refundAmount;
-            if(typeof updateUI==='function') updateUI();
+            // Mark as pending so duplicate requests are blocked
+            const batchMark=db.batch();
+            batchMark.update(db.collection('user_assets').doc(uaId),{status:'pending_reversal'});
+            if(contractId) batchMark.update(db.collection('contracts').doc(contractId),{status:'pending_reversal',pendingReversalAt:firebase.firestore.FieldValue.serverTimestamp()});
+            await batchMark.commit();
+            await db.collection('adminNotifs').add({type:'reversal_request',msg:`↩ Reversal request: "${ua.assetName}" by ${u.name} — $${fmt(refundAmount)} pending`,uid:u.uid,read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+            tg(`↩ <b>Reversal Request</b>\nBuyer: ${u.name}\nAsset: ${ua.assetName}\nRefund pending: $${fmt(refundAmount)}\nReason: ${reason}`);
             closeModal('m-reversal');
-            toast(`✅ Reversed! $${fmt(refundAmount)} refunded. Asset access removed.`);
+            toast('✅ Reversal request submitted. Starlife will review within 24h. If approved, your full refund will be credited automatically.');
             loadMyOwnedAssets();
         } catch(e){ toast('Error: '+e.message,'tr'); }
     }
@@ -19893,16 +20231,21 @@ Prize: $${fmt(prize)}`);
             if(snap.empty){ el.innerHTML='<div class="es"><div class="ei">🔑</div>No active rentals</div>'; return; }
             el.innerHTML=snap.docs.map(d=>{
                 const ua=d.data();
-                const expiry=ua.rentEndDate?`<div style="font-size:.72rem;color:${new Date(ua.rentEndDate)<new Date()?'var(--red)':'var(--gold)'};margin-top:2px">⏰ ${new Date(ua.rentEndDate)<new Date()?'EXPIRED':'Expires'}: ${new Date(ua.rentEndDate).toLocaleDateString()}</div>`:'';
-                return `<div class="my-asset-row">
+                const isTerminated=ua.status==='reversed'||ua.status==='cancelled';
+                const expiry=ua.rentEndDate&&!isTerminated?`<div style="font-size:.72rem;color:${new Date(ua.rentEndDate)<new Date()?'var(--red)':'var(--gold)'};margin-top:2px">⏰ ${new Date(ua.rentEndDate)<new Date()?'EXPIRED':'Expires'}: ${new Date(ua.rentEndDate).toLocaleDateString()}</div>`:'';
+                const terminatedNotice=isTerminated?`<div style="background:rgba(255,82,82,.08);border:1px solid rgba(255,82,82,.2);border-radius:8px;padding:8px 10px;font-size:.76rem;color:var(--red);margin-top:6px">
+                    ${ua.status==='reversed'?'↩ Contract Terminated — Transaction Reversed':'❌ Contract Cancelled'}
+                    · Access to this asset has been removed.</div>`:'';
+                const actionBtns=isTerminated?'':`<button class="btn btn-sky btn-sm" onclick="openP2PListModal('${d.id}','${(ua.assetName||'').replace(/'/g,'&#39;')}','${ua.assetType||''}')">📢 Sub-rent</button>`;
+                return `<div class="my-asset-row" style="${isTerminated?'opacity:.7':''}">
                     <div style="display:flex;justify-content:space-between;align-items:flex-start">
                         <div><div style="font-weight:700">${assetIcon(ua.assetType)} ${ua.assetName}</div>
                         <div style="font-size:.74rem;color:var(--t3)">Rented · $${fmt(ua.amount)} · ${fmtD(ua.createdAt)}</div>
                         ${expiry}</div>
                         ${deliveryStatusBadge(ua.status)}
-                    </div>
+                    </div>${terminatedNotice}
                     <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-                        <button class="btn btn-sky btn-sm" onclick="openP2PListModal('${d.id}','${(ua.assetName||'').replace(/'/g,'&#39;')}','${ua.assetType||''}')">📢 Sub-rent</button>
+                        ${actionBtns}
                         <button class="btn btn-gh btn-sm" onclick="viewReceiptByTxId('${ua.txId}')">🧾 Receipt</button>
                         <button class="btn btn-gh btn-sm" onclick="viewContractByTxId('${ua.txId}')">📄 Contract</button>
                     </div>
@@ -20084,7 +20427,7 @@ Prize: $${fmt(prize)}`);
             let images=[];
             if(ua.assetId){ const aSnap=await db.collection('assets').doc(ua.assetId).get(); if(aSnap.exists) images=aSnap.data().images||[]; }
             await db.collection('p2p_listings').add({
-                sellerUid:u.uid,sellerName:u.name,
+                sellerUid:u.uid,sellerName:u.name,sellerEmail:u.email,
                 userAssetId:uaId,assetName,assetType,title,description:desc,
                 priceBuy,priceRent,deliveryFee,
                 qty,stockLeft:qty, // stockLeft decrements per sale
@@ -20217,7 +20560,7 @@ Prize: $${fmt(prize)}`);
             await db.collection('contracts').add({
                 contractId:'P2P-'+txId,txId,userAssetId:uaRef.id,holdId:holdRef.id,
                 uid:u.uid,userName:u.name,userEmail:u.email,
-                party2Type:'member',party2Uid:sellerUid,party2Name:l.sellerName||'Member Seller',party2Email:'',
+                party2Type:'member',party2Uid:sellerUid,party2Name:l.sellerName||'Member Seller',party2Email:l.sellerEmail||'',
                 assetId:listingId,assetName:l.assetName,assetType:l.assetType,assetLocation:'Member Listed Asset',
                 mode,amount:totalAmount,baseAmount,fee,shipFee:0,shippingAddress:'',
                 startDate:new Date().toISOString(),
@@ -20231,6 +20574,7 @@ Prize: $${fmt(prize)}`);
             await db.collection('userNotifs').add({uid:sellerUid,msg:`💰 "${l.assetName}" ${mode==='buy'?'sold':'rented'}! $${fmt(baseAmount)} added to your balance but held 24h for buyer protection. Auto-releases ${new Date(releaseAt).toLocaleString()}. Please sign the contract.`,read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
             // Notify buyer
             await db.collection('userNotifs').add({uid:u.uid,msg:`✅ Purchase of "${l.assetName}" confirmed! Seller funds held 24h. You can reverse for 100% refund within 24h.`,read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+            if(fee>0) creditPlatformAccount('operations', fee, `P2P fee: ${l.assetName} — ${u.name}`, txId).catch(e=>console.warn('Acct credit fail',e));
             logAct(u.uid,'P2P '+mode+': '+l.assetName+' — $'+fmt(totalAmount)+' (24h hold)',-totalAmount,'🤝','p2p_asset');
             tg('🤝 <b>P2P '+mode.toUpperCase()+'</b>\nBuyer: '+u.name+'\nSeller: '+(l.sellerName||'Member')+'\nAsset: '+l.assetName+'\nTotal: $'+fmt(totalAmount)+' (Seller gets: $'+fmt(baseAmount)+' — held 24h)\nFee: $'+fmt(fee)+'\nTxID: '+txId);
             window.CU.balance=(u.balance||0)-totalAmount;

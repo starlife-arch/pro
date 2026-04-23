@@ -8354,7 +8354,7 @@
                 await db.collection('adminNotifs').add({ type: 'investment', msg: `New investment $${fmt(amt)} from ${u.name}`, uid: u.uid, read: false, createdAt: FS().serverTimestamp() });
                 tg(`📈 <b>New Investment</b>\nUser: ${u.name} (${u.email})\nAmount: $${fmt(amt)}\nFrom: Main Balance`);
                 logAct(u.uid, `Investment active: $${fmt(amt)} from balance`, -amt, '📈', 'deposit');
-                creditPlatformAccount('assets', amt, `Investment from balance: ${u.name}`, invRef.id).catch(e => console.warn('Acct credit fail', e));
+                creditPlatformAccount('treasury', amt, `Investment from balance: ${u.name}`, invRef.id).catch(e => console.warn('Acct credit fail', e));
                 window.CU.balance = (u.balance || 0) - amt;
                 window.CU.totalInvested = (u.totalInvested || 0) + amt;
                 updateUI();
@@ -8874,7 +8874,14 @@
             if (spendable < total) return toast(`Insufficient available balance to repay. Available: $${fmt(spendable)}`, 'tr');
             await db.collection('users').doc(u.uid).update({ balance: FS().increment(-total) });
             await db.collection('loans').doc(loanId).update({ status: 'repaid', repaidAt: FS().serverTimestamp() });
-            logAct(u.uid, `Loan repaid $${fmt(total)}`, -total, '💰', 'loan');
+            creditPlatformAccount('treasury', total, `Loan repayment from UID: ${u.uid}`, loanId).catch(e => console.warn('Acct credit fail', e));
+            await logAct(u.uid, `Loan repaid $${fmt(total)}`, -total, '💰', 'loan');
+            await db.collection('userNotifs').add({
+                uid: u.uid,
+                msg: `✅ You have repaid your loan of $${fmt(total)}.`,
+                read: false,
+                createdAt: FS().serverTimestamp()
+            });
             await refreshUser();
             toast('Loan repaid successfully ✓');
             loadMyLoans();
@@ -11666,6 +11673,7 @@ Total: $${fmt(totalPayout)}`);
             const snap = await db.collection('loans').doc(id).get();
             const l = snap.data();
             const interest = l?.interest || 0;
+            const principal = l?.amount || receive;
             const batch = db.batch();
             batch.update(db.collection('loans').doc(id), { status: 'active', approvedAt: FS().serverTimestamp() });
             batch.update(db.collection('users').doc(uid), { balance: FS().increment(receive) });
@@ -11680,8 +11688,10 @@ Total: $${fmt(totalPayout)}`);
                 });
             }
             await batch.commit();
+            await debitPlatformAccount('treasury', principal, `Loan disbursed to UID: ${uid}`, id);
             await db.collection('userNotifs').add({ uid, msg: `Your loan has been approved! $${fmt(receive)} added to your balance.`, read: false, createdAt: FS().serverTimestamp() });
             await logAct(uid, `Loan approved — $${fmt(receive)} disbursed`, receive, '💰', 'loan');
+            await logAct(uid, `Platform treasury debit for loan disbursement: $${fmt(principal)}`, 0, '🏛️', 'loan');
             toast('Loan approved ✓'); loadAdminAll();
         }
 
@@ -11693,6 +11703,8 @@ Total: $${fmt(totalPayout)}`);
 
         async function adminMarkLoanRepaid(id, uid, amount) {
             await db.collection('loans').doc(id).update({ status: 'repaid', repaidAt: FS().serverTimestamp() });
+            await logAct(uid, `Loan marked repaid by admin $${fmt(amount)}`, 0, '💰', 'loan');
+            await db.collection('userNotifs').add({ uid, msg: `Your loan of $${fmt(amount)} has been marked as repaid by admin.`, read: false, createdAt: FS().serverTimestamp() });
             toast('Loan marked as repaid'); loadAdminAll();
         }
 
@@ -17450,7 +17462,7 @@ User: ${uid}
 Amount: $${fmt(amount)}`);
                 await checkCashbackBonus(uid, amount);
                 // Credit assets platform account
-                creditPlatformAccount('assets', amount, `Deposit approved for UID: ${uid}`, id).catch(e => console.warn('Acct credit fail', e));
+                creditPlatformAccount('treasury', amount, `Deposit approved for UID: ${uid}`, id).catch(e => console.warn('Acct credit fail', e));
                 toast('Deposit approved ✓ — balance updated' + bonusMsg);
                 loadAdminDeposits();
             } catch (e) {

@@ -51,20 +51,33 @@
 
         #finance-bg-canvas {
             position: fixed;
-            inset: 0;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             z-index: 0;
             pointer-events: none;
-            opacity: .38;
+            opacity: .72;
+            filter: saturate(1.15) brightness(1.08);
         }
 
         body::before {
             content: '';
             position: fixed;
             inset: 0;
-            background-image: linear-gradient(rgba(0, 230, 118, 0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 230, 118, 0.025) 1px, transparent 1px);
+            background-image: linear-gradient(rgba(0, 230, 118, 0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 230, 118, 0.035) 1px, transparent 1px);
             background-size: 44px 44px;
             pointer-events: none;
-            z-index: 0
+            z-index: 1
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background: linear-gradient(180deg, rgba(6, 10, 7, .44), rgba(6, 10, 7, .52));
+            z-index: 1;
         }
 
         h1,
@@ -85,7 +98,7 @@
             display: none;
             min-height: 100vh;
             position: relative;
-            z-index: 1
+            z-index: 2
         }
 
         .page.active {
@@ -710,6 +723,25 @@
             justify-content: center;
             text-align: center;
             padding: 40px 20px
+        }
+
+        .hero-copy-wrap {
+            position: relative;
+            z-index: 2;
+            padding: 18px 24px;
+            border-radius: 18px;
+        }
+
+        .hero-copy-wrap::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            z-index: -1;
+            background: radial-gradient(circle at top, rgba(11, 24, 16, .7), rgba(6, 10, 7, .42));
+            border: 1px solid rgba(0, 255, 204, .16);
+            box-shadow: 0 0 32px rgba(0, 255, 204, .1), 0 0 42px rgba(245, 197, 66, .08);
+            backdrop-filter: blur(2px);
         }
 
         .lbadge {
@@ -3296,13 +3328,15 @@
         <!-- Hero -->
         <div
             style="min-height:calc(100vh - 57px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px 60px">
-            <div class="lbadge"><span class="ldot"></span>Now accepting investments worldwide</div>
-            <h1
-                style="font-size:clamp(2.4rem,8vw,4rem);font-weight:700;line-height:1.08;margin-bottom:18px;letter-spacing:-1.5px">
-                Invest Smart.<br><span style="color:var(--g)">Earn Every Day.</span></h1>
-            <p style="color:var(--t2);font-size:1rem;max-width:400px;margin:0 auto 36px;line-height:1.65">Put your money
-                to work with Starlife Advert and earn <strong style="color:var(--g)">2% daily profit</strong> — forever,
-                on every dollar invested.</p>
+            <div class="hero-copy-wrap">
+                <div class="lbadge"><span class="ldot"></span>Now accepting investments worldwide</div>
+                <h1
+                    style="font-size:clamp(2.4rem,8vw,4rem);font-weight:700;line-height:1.08;margin-bottom:18px;letter-spacing:-1.5px">
+                    Invest Smart.<br><span style="color:var(--g)">Earn Every Day.</span></h1>
+                <p style="color:var(--t2);font-size:1rem;max-width:400px;margin:0 auto 36px;line-height:1.65">Put your money
+                    to work with Starlife Advert and earn <strong style="color:var(--g)">2% daily profit</strong> — forever,
+                    on every dollar invested.</p>
+            </div>
             <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
                 <button onclick="go('pg-reg')"
                     style="background:var(--g);color:#000;border:none;border-radius:var(--rs);padding:14px 32px;font-size:1rem;font-weight:700;font-family:'Space Grotesk',sans-serif;cursor:pointer;box-shadow:0 4px 24px rgba(0,230,118,.3);transition:.2s">🚀
@@ -7835,8 +7869,8 @@
             if (!canvas) return;
             const ctx = canvas.getContext('2d');
             const particles = [];
-            const symbols = ['$', '₿', '₦', '💵'];
-            const count = Math.min(42, Math.max(18, Math.floor(window.innerWidth / 48)));
+            const symbols = ['$', '₿', '₦', '💵', '€'];
+            const count = Math.min(68, Math.max(26, Math.floor(window.innerWidth / 30)));
             function resize() {
                 canvas.width = window.innerWidth;
                 canvas.height = window.innerHeight;
@@ -7847,9 +7881,9 @@
                     particles.push({
                         x: Math.random() * canvas.width,
                         y: Math.random() * canvas.height,
-                        r: 8 + Math.random() * 18,
-                        s: 0.08 + Math.random() * 0.28,
-                        a: 0.15 + Math.random() * 0.25,
+                        r: 11 + Math.random() * 20,
+                        s: 0.18 + Math.random() * 0.34,
+                        a: 0.32 + Math.random() * 0.32,
                         t: Math.random() * Math.PI * 2,
                         symbol: symbols[Math.floor(Math.random() * symbols.length)]
                     });
@@ -7857,8 +7891,9 @@
             }
             function drawWave(tick) {
                 const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-                grad.addColorStop(0, 'rgba(255, 213, 79, 0.06)');
-                grad.addColorStop(1, 'rgba(0, 230, 118, 0.06)');
+                grad.addColorStop(0, 'rgba(245, 197, 66, 0.17)');
+                grad.addColorStop(.5, 'rgba(0, 255, 204, 0.10)');
+                grad.addColorStop(1, 'rgba(0, 230, 160, 0.16)');
                 ctx.fillStyle = grad;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 for (let i = 0; i < 2; i++) {
@@ -7869,10 +7904,13 @@
                     for (let x = 0; x <= canvas.width; x += 32) {
                         ctx.lineTo(x, y0 + Math.sin((x * 0.003) + tick + i) * amp);
                     }
-                    ctx.strokeStyle = i === 0 ? 'rgba(0, 230, 118, 0.12)' : 'rgba(255, 213, 79, 0.10)';
-                    ctx.lineWidth = 1.2;
+                    ctx.strokeStyle = i === 0 ? 'rgba(0, 255, 204, 0.38)' : 'rgba(245, 197, 66, 0.34)';
+                    ctx.shadowBlur = 14;
+                    ctx.shadowColor = i === 0 ? 'rgba(0, 255, 204, 0.4)' : 'rgba(245, 197, 66, 0.35)';
+                    ctx.lineWidth = 1.6;
                     ctx.stroke();
                 }
+                ctx.shadowBlur = 0;
             }
             function render(ts = 0) {
                 if (window._platformSettings?.animatedBackgroundEnabled === false) {
@@ -7880,19 +7918,22 @@
                     _bgAnimFrame = requestAnimationFrame(render);
                     return;
                 }
-                const tick = ts * 0.00008;
+                const tick = ts * 0.000065;
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 drawWave(tick);
                 particles.forEach((p) => {
                     p.y -= p.s;
-                    p.x += Math.sin(p.t + tick) * 0.14;
+                    p.x += Math.sin(p.t + tick) * 0.22;
                     if (p.y < -24) {
                         p.y = canvas.height + 20;
                         p.x = Math.random() * canvas.width;
                     }
                     ctx.save();
                     ctx.globalAlpha = p.a;
-                    ctx.fillStyle = p.symbol === '💵' ? '#FFD54F' : '#00E676';
+                    const isGold = p.symbol === '💵' || p.symbol === '€';
+                    ctx.fillStyle = isGold ? '#f5c542' : '#00ffcc';
+                    ctx.shadowBlur = isGold ? 18 : 14;
+                    ctx.shadowColor = isGold ? 'rgba(245, 197, 66, 0.55)' : 'rgba(0, 255, 204, 0.5)';
                     ctx.font = `${p.r}px Space Grotesk`;
                     ctx.fillText(p.symbol, p.x, p.y);
                     ctx.restore();

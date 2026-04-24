@@ -8708,20 +8708,47 @@
             } catch (e) { toast(e.message || 'Failed to save settings', 'tr'); }
         }
         const DEFAULT_PAYMENT_METHODS = [
-            { name: 'M-Pesa', details: 'Till Number: 6034186 · Business Name: Starlife Advert Us Agency', status: 'active' },
-            { name: 'PayPal', details: 'starlife.payment@starlifeadvert.com', status: 'active' },
-            { name: 'USDT (BEP20)', details: '0xa95bd74fae59521e8405e14b54b0d07795643812', status: 'active' },
-            { name: 'USDT (TRC20)', details: 'TMeEHzo9pMigvV5op88zkAQEc3ZUEfzBJ6', status: 'active' }
+            { key: 'bank-transfer', name: 'Bank Transfer', details: 'Bank: KCB · Account Name: Starlife Advert Us Agency · Account No: 1143276097 · Branch: Nairobi Main', status: 'active' },
+            { key: 'airtel-money', name: 'Airtel Money', details: 'Airtel Number: +254 717 603 902 · Name: Starlife Advert Us Agency', status: 'active' },
+            { key: 'm-pesa', name: 'M-Pesa', details: 'Till Number: 6034186 · Business Name: Starlife Advert Us Agency', status: 'active' },
+            { key: 'paypal', name: 'PayPal', details: 'starlife.payment@starlifeadvert.com', status: 'active' },
+            { key: 'usdt-bep20', name: 'USDT (BEP20)', details: '0xa95bd74fae59521e8405e14b54b0d07795643812', status: 'active' },
+            { key: 'usdt-trc20', name: 'USDT (TRC20)', details: 'TMeEHzo9pMigvV5op88zkAQEc3ZUEfzBJ6', status: 'active' }
         ];
+        const DEFAULT_PAYMENT_METHOD_KEYS = new Set(DEFAULT_PAYMENT_METHODS.map(m => m.key));
+        function paymentMethodKeyFromName(name) {
+            return String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        }
+        function getDefaultPaymentDocId(methodKey) {
+            return `pm-default-${methodKey}`;
+        }
         async function loadPaymentMethods(includeInactive = false) {
             try {
                 const snap = await db.collection('paymentMethods').get();
-                let methods = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                if (!methods.length) methods = DEFAULT_PAYMENT_METHODS.map((m, i) => ({ ...m, id: `default-${i}` }));
+                const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                const defaultsByKey = new Map(DEFAULT_PAYMENT_METHODS.map(m => [m.key, m]));
+                const docsByDefaultKey = new Map();
+                const docsByNameKey = new Map();
+                docs.forEach(doc => {
+                    const mk = doc.methodKey || paymentMethodKeyFromName(doc.name);
+                    if (mk && defaultsByKey.has(mk)) docsByDefaultKey.set(mk, { ...doc, methodKey: mk });
+                    docsByNameKey.set(mk, { ...doc, methodKey: mk });
+                });
+                const mergedDefaults = DEFAULT_PAYMENT_METHODS.map(def => {
+                    const override = docsByDefaultKey.get(def.key) || docsByNameKey.get(def.key);
+                    if (override) return { ...def, ...override, methodKey: def.key, isDefault: true };
+                    return { ...def, id: `default-${def.key}`, methodKey: def.key, isDefault: true };
+                });
+                const extraCustom = docs.filter(doc => {
+                    const mk = doc.methodKey || paymentMethodKeyFromName(doc.name);
+                    return !DEFAULT_PAYMENT_METHOD_KEYS.has(mk);
+                }).map(doc => ({ ...doc, isDefault: false }));
+                let methods = [...mergedDefaults, ...extraCustom].filter(m => !m.deleted);
                 if (!includeInactive) methods = methods.filter(m => (m.status || 'active') === 'active');
                 return methods.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
             } catch (_) {
-                return includeInactive ? DEFAULT_PAYMENT_METHODS : DEFAULT_PAYMENT_METHODS.filter(m => m.status === 'active');
+                return (includeInactive ? DEFAULT_PAYMENT_METHODS : DEFAULT_PAYMENT_METHODS.filter(m => m.status === 'active'))
+                    .map(m => ({ ...m, id: `default-${m.key}`, methodKey: m.key, isDefault: true }));
             }
         }
         function renderPaymentMethodsUI(methods) {
@@ -8767,8 +8794,12 @@
             const status = $('pm-status').value;
             if (!name) return toast('Payment method name is required', 'ty');
             if (!details) return toast('Payment details are required', 'ty');
-            const payload = { name, details, status, updatedAt: FS().serverTimestamp(), updatedBy: window.CU?.uid || null };
-            if (id) await db.collection('paymentMethods').doc(id).set(payload, { merge: true });
+            const methodKey = id.startsWith('default-') ? id.replace('default-', '') : paymentMethodKeyFromName(name);
+            const payload = { name, details, status, methodKey, deleted: false, updatedAt: FS().serverTimestamp(), updatedBy: window.CU?.uid || null };
+            if (id) {
+                const docId = id.startsWith('default-') ? getDefaultPaymentDocId(methodKey) : id;
+                await db.collection('paymentMethods').doc(docId).set(payload, { merge: true });
+            }
             else await db.collection('paymentMethods').add({ ...payload, createdAt: FS().serverTimestamp() });
             adminResetPaymentMethodForm();
             await loadAdminPaymentMethods();
@@ -8777,7 +8808,23 @@
         }
         async function adminDeletePaymentMethod(id) {
             if (!confirm('Delete this payment method?')) return;
-            await db.collection('paymentMethods').doc(id).delete();
+            const methods = await loadPaymentMethods(true);
+            const method = methods.find(m => m.id === id);
+            if (!method) return toast('Payment method not found', 'ty');
+            const methodKey = method.methodKey || paymentMethodKeyFromName(method.name);
+            if (DEFAULT_PAYMENT_METHOD_KEYS.has(methodKey)) {
+                await db.collection('paymentMethods').doc(getDefaultPaymentDocId(methodKey)).set({
+                    methodKey,
+                    name: method.name || '',
+                    status: method.status || 'inactive',
+                    deleted: true,
+                    updatedAt: FS().serverTimestamp(),
+                    updatedBy: window.CU?.uid || null
+                }, { merge: true });
+            } else {
+                await db.collection('paymentMethods').doc(id).delete();
+            }
+            if (($('pm-edit-id')?.value || '') === id) adminResetPaymentMethodForm();
             await loadAdminPaymentMethods();
             await loadUserPaymentMethods();
             toast('Payment method deleted', 'tg');

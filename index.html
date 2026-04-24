@@ -49,6 +49,14 @@
             overflow-x: hidden
         }
 
+        #finance-bg-canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            opacity: .38;
+        }
+
         body::before {
             content: '';
             position: fixed;
@@ -3063,6 +3071,7 @@
 </head>
 
 <body>
+    <canvas id="finance-bg-canvas" aria-hidden="true"></canvas>
     <div class="toast" id="toast"></div>
     <script>
         // ═══ EARLY HELPERS (available immediately, no Firebase needed) ═══
@@ -3873,11 +3882,7 @@
                                 id="wd-net">$0.00</span></div>
                     </div>
                     <div class="fg"><label class="fl">Withdrawal Method</label><select class="fi" id="wd-method">
-                            <option>M-Pesa</option>
-                            <option>Bank Transfer</option>
-                            <option>PayPal</option>
-                            <option>USDT (BEP20)</option>
-                            <option>USDT (TRC20)</option>
+                            <option>Loading methods…</option>
                         </select></div>
                     <div class="fg"><label class="fl">Payment Details</label><textarea class="fi" id="wd-details"
                             placeholder="Phone number, account, wallet address, etc."></textarea></div>
@@ -3909,34 +3914,12 @@
                         Instantly add funds using any Starlife card (own or shared)
                     </div>
                 </div>
-                <div class="dep-method">
-                    <div class="dm-name">📱 M-Pesa (Lipa Na M-Pesa)</div>
-                    <div class="dm-detail"><span style="font-size:.8rem;color:var(--t2)">Till Number</span><span
-                            class="dm-val" onclick="copyText('6034186','Copied!')">6034186 📋</span></div>
-                    <div class="dm-detail"><span style="font-size:.8rem;color:var(--t2)">Business Name</span><span
-                            style="font-size:.85rem;font-weight:600">Starlife Advert Us Agency</span></div>
-                </div>
-                <div class="dep-method">
-                    <div class="dm-name">💳 PayPal</div>
-                    <div class="dm-detail"><span style="font-size:.8rem;color:var(--t2)">Email</span><span
-                            class="dm-val"
-                            onclick="copyText('starlife.payment&#64;starlifeadvert.com','Email copied!')">starlife.payment@<br>starlifeadvert.com
-                            📋</span></div>
-                </div>
-                <div class="dep-method" style="border-color:rgba(64,196,255,.28)">
-                  <div class="dm-name" style="color:var(--sky)">₿ USDT</div>
-                  <div class="dm-detail"><span style="font-size:.8rem;color:var(--t2)">Network</span><span style="font-size:.85rem;font-weight:600">BEP20 or TRC20</span></div>
-                  <div class="dm-detail"><span style="font-size:.8rem;color:var(--t2)">BEP20 Address</span><span class="dm-val" onclick="copyText('0xa95bd74fae59521e8405e14b54b0d07795643812','Address copied!')" style="font-size:.75rem;color:var(--sky)">0xa95bd74fae59521e8405e14b54b0d07795643812 📋</span></div>
-                  <div class="dm-detail"><span style="font-size:.8rem;color:var(--t2)">TRC20 Address</span><span class="dm-val" onclick="copyText('TMeEHzo9pMigvV5op88zkAQEc3ZUEfzBJ6','Address copied!')" style="font-size:.75rem;color:var(--sky)">TMeEHzo9pMigvV5op88zkAQEc3ZUEfzBJ6 📋</span></div>
-                </div>
+                <div id="deposit-methods-grid"></div>
                 <div class="div"></div>
                 <h3 style="margin-bottom:12px">Submit Proof of Payment</h3>
                 <div class="card">
                     <div class="fg"><label class="fl">Payment Method Used</label><select class="fi" id="dep-method">
-                            <option>M-Pesa</option>
-                            <option>PayPal</option>
-                            <option>USDT (BEP20)</option>
-                            <option>USDT (TRC20)</option>
+                            <option>Loading methods…</option>
                         </select></div>
                     <div class="fg"><label class="fl">Amount Sent (USD)</label><input class="fi" id="dep-amt"
                             type="number" min="1" placeholder="e.g. 50"></div>
@@ -4465,6 +4448,9 @@
                         <label class="fl">Bio</label>
                         <textarea class="fi" id="edit-bio" placeholder="Tell us about yourself"
                             style="margin-bottom:12px;min-height:50px"></textarea>
+                        <label class="fl">Phone Number</label>
+                        <input class="fi" id="edit-phone" type="text" placeholder="+1xxxxxxxxxx"
+                            style="margin-bottom:12px">
 
                         <div style="display:flex;gap:8px">
                             <button class="btn btn-p btn-sm" onclick="saveUserProfile()">Save Profile</button>
@@ -6204,9 +6190,24 @@
                 <div class="card" style="margin-top:12px">
                     <div style="font-weight:700;margin-bottom:8px">Financial Control Settings</div>
                     <div class="fg"><label class="fl">Minimum Withdrawal (USD)</label><input class="fi" id="fin-wd-min" type="number" min="1" step="0.01"></div>
+                    <div class="fg"><label class="fl">Global Maximum Withdrawal (USD)</label><input class="fi" id="fin-wd-max" type="number" min="1" step="0.01"></div>
                     <div class="fg"><label class="fl">Withdrawal Fee (%)</label><input class="fi" id="fin-wd-fee" type="number" min="0" max="100" step="0.01"></div>
                     <div class="fg"><label class="fl">Transfer Fee (%)</label><input class="fi" id="fin-tf-fee" type="number" min="0" max="100" step="0.01"></div>
+                    <div class="fg"><label class="fl">Default Daily Investment Earning (%)</label><input class="fi" id="fin-invest-daily-pct" type="number" min="0" max="100" step="0.0001"></div>
+                    <div class="fg"><label class="fl"><input type="checkbox" id="fin-bg-enabled"> Enable moving finance background animation</label></div>
                     <button class="btn btn-p btn-full" onclick="adminSaveFinancialSettings()">Save Financial Settings</button>
+                </div>
+                <div class="card" style="margin-top:12px">
+                    <div style="font-weight:700;margin-bottom:8px">Payment Methods Manager</div>
+                    <input type="hidden" id="pm-edit-id">
+                    <div class="fg"><label class="fl">Method Name</label><input class="fi" id="pm-name" placeholder="e.g. USDT (TRC20)"></div>
+                    <div class="fg"><label class="fl">Details / Instructions</label><textarea class="fi" id="pm-details" placeholder="Wallet, account number, or payment instructions"></textarea></div>
+                    <div class="fg"><label class="fl">Status</label><select class="fi" id="pm-status"><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
+                    <div style="display:flex;gap:8px">
+                        <button class="btn btn-p btn-sm" onclick="adminSavePaymentMethod()">Save Method</button>
+                        <button class="btn btn-gh btn-sm" onclick="adminResetPaymentMethodForm()">Reset</button>
+                    </div>
+                    <div id="admin-payment-methods" style="margin-top:10px"></div>
                 </div>
                 <div style="font-size:.72rem;color:var(--t3);margin-top:10px">Aggregated from Withdrawals (10%), Transfers (5%), P2P spreads, and Loan interest.</div>
             </div>
@@ -7164,6 +7165,9 @@
             </div>
             <div class="fg"><label class="fl">Agent Region</label><input class="fi" id="eu-agent-region"
                     placeholder="Region"></div>
+            <div class="fg"><label class="fl">User Min Withdrawal (USD)</label><input class="fi" id="eu-wd-min" type="number" min="0" step="0.01" placeholder="Leave blank for platform minimum"></div>
+            <div class="fg"><label class="fl">User Max Withdrawal (USD)</label><input class="fi" id="eu-wd-max" type="number" min="0" step="0.01" placeholder="Leave blank for platform/global maximum"></div>
+            <div class="fg"><label class="fl">Custom Daily Investment Earning (%)</label><input class="fi" id="eu-invest-rate" type="number" min="0" max="100" step="0.0001" placeholder="Leave blank to use platform default"></div>
             <div class="fg">
                 <label class="fl">Promo / Privilege Access</label>
                 <label><input type="checkbox" id="eu-promo-enabled"> Enable privilege overrides for this user</label>
@@ -7663,8 +7667,13 @@
         const SUPPORT_EMAIL = "support@example.com";
         const DEFAULT_PLATFORM_SETTINGS = {
             withdrawMinAmount: 10,
+            withdrawMaxAmount: 100000,
             withdrawFeeRate: 0.10,
-            transferFeeRate: 0.05
+            transferFeeRate: 0.05,
+            investmentDailyRate: 0.02,
+            withdrawalWindowStartHour: 10,
+            withdrawalWindowEndHour: 14,
+            animatedBackgroundEnabled: true
         };
         const DEFAULT_USER_PRIVILEGES = {
             promoAccessEnabled: false,
@@ -7683,8 +7692,13 @@
                     const d = snap.data() || {};
                     window._platformSettings = {
                         withdrawMinAmount: Number.isFinite(Number(d.withdrawMinAmount)) ? Number(d.withdrawMinAmount) : DEFAULT_PLATFORM_SETTINGS.withdrawMinAmount,
+                        withdrawMaxAmount: Number.isFinite(Number(d.withdrawMaxAmount)) ? Number(d.withdrawMaxAmount) : DEFAULT_PLATFORM_SETTINGS.withdrawMaxAmount,
                         withdrawFeeRate: Number.isFinite(Number(d.withdrawFeeRate)) ? Number(d.withdrawFeeRate) : DEFAULT_PLATFORM_SETTINGS.withdrawFeeRate,
-                        transferFeeRate: Number.isFinite(Number(d.transferFeeRate)) ? Number(d.transferFeeRate) : DEFAULT_PLATFORM_SETTINGS.transferFeeRate
+                        transferFeeRate: Number.isFinite(Number(d.transferFeeRate)) ? Number(d.transferFeeRate) : DEFAULT_PLATFORM_SETTINGS.transferFeeRate,
+                        investmentDailyRate: Number.isFinite(Number(d.investmentDailyRate)) ? Number(d.investmentDailyRate) : DEFAULT_PLATFORM_SETTINGS.investmentDailyRate,
+                        withdrawalWindowStartHour: Number.isFinite(Number(d.withdrawalWindowStartHour)) ? Number(d.withdrawalWindowStartHour) : DEFAULT_PLATFORM_SETTINGS.withdrawalWindowStartHour,
+                        withdrawalWindowEndHour: Number.isFinite(Number(d.withdrawalWindowEndHour)) ? Number(d.withdrawalWindowEndHour) : DEFAULT_PLATFORM_SETTINGS.withdrawalWindowEndHour,
+                        animatedBackgroundEnabled: typeof d.animatedBackgroundEnabled === 'boolean' ? d.animatedBackgroundEnabled : DEFAULT_PLATFORM_SETTINGS.animatedBackgroundEnabled
                     };
                 } else {
                     window._platformSettings = { ...DEFAULT_PLATFORM_SETTINGS };
@@ -7709,7 +7723,9 @@
             const parsed = Number(v);
             if (!Number.isFinite(parsed)) return fallback;
             if (key === 'withdrawFeeRate' || key === 'transferFeeRate') return Math.min(1, Math.max(0, parsed));
-            if (key === 'withdrawMinAmount') return Math.max(0, parsed);
+            if (key === 'investmentDailyRate') return Math.min(1, Math.max(0, parsed));
+            if (key === 'withdrawalWindowStartHour' || key === 'withdrawalWindowEndHour') return Math.min(23, Math.max(0, parsed));
+            if (key === 'withdrawMinAmount' || key === 'withdrawMaxAmount') return Math.max(0, parsed);
             return parsed;
         }
         function normalizeUserPrivileges(p) {
@@ -7776,6 +7792,34 @@
         function closeModal(id) { $(id).classList.remove('open'); }
         function copyText(txt, msg = 'Copied!') { navigator.clipboard.writeText(txt).then(() => toast(msg)); }
         function FS() { return firebase.firestore.FieldValue; }
+        function normalizePhoneNumber(phoneRaw) {
+            const trimmed = String(phoneRaw || '').trim();
+            if (!trimmed) return '';
+            const keepPlus = trimmed.startsWith('+') ? '+' : '';
+            const digits = trimmed.replace(/\D/g, '');
+            return keepPlus + digits;
+        }
+        function getEffectiveInvestmentRate(userObj) {
+            const custom = Number(userObj?.customInvestmentDailyRate);
+            if (Number.isFinite(custom) && custom >= 0 && custom <= 1) return custom;
+            return getFinancialSetting('investmentDailyRate');
+        }
+        function getEffectiveWithdrawalLimits(userObj = {}) {
+            const platformMin = getFinancialSetting('withdrawMinAmount');
+            const platformMax = getFinancialSetting('withdrawMaxAmount');
+            const userMin = Number(userObj?.withdrawLimits?.min);
+            const userMax = Number(userObj?.withdrawLimits?.max);
+            const min = Number.isFinite(userMin) && userMin > 0 ? Math.max(platformMin, userMin) : platformMin;
+            const max = Number.isFinite(userMax) && userMax > 0 ? Math.min(platformMax, userMax) : platformMax;
+            return { min, max };
+        }
+        function validateWithdrawalTimeWindow(now = new Date()) {
+            const startHour = Math.floor(getFinancialSetting('withdrawalWindowStartHour'));
+            const endHour = Math.floor(getFinancialSetting('withdrawalWindowEndHour'));
+            const hour = now.getHours() + (now.getMinutes() / 60);
+            return hour >= startHour && hour < endHour;
+        }
+
 
         window.CU = null; // current user data
         window.AU = []; // admin users cache
@@ -7785,6 +7829,83 @@
         window._aiLastCategory = 'general_guidance';
         window._aiLastSeverity = 'low';
         window._emySessionState = { activeTask: null, step: 0, lastInstruction: '', status: 'idle' };
+        let _bgAnimFrame = null;
+        function initFinancialBackground() {
+            const canvas = document.getElementById('finance-bg-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const particles = [];
+            const symbols = ['$', '₿', '₦', '💵'];
+            const count = Math.min(42, Math.max(18, Math.floor(window.innerWidth / 48)));
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            function seed() {
+                particles.length = 0;
+                for (let i = 0; i < count; i++) {
+                    particles.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        r: 8 + Math.random() * 18,
+                        s: 0.08 + Math.random() * 0.28,
+                        a: 0.15 + Math.random() * 0.25,
+                        t: Math.random() * Math.PI * 2,
+                        symbol: symbols[Math.floor(Math.random() * symbols.length)]
+                    });
+                }
+            }
+            function drawWave(tick) {
+                const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                grad.addColorStop(0, 'rgba(255, 213, 79, 0.06)');
+                grad.addColorStop(1, 'rgba(0, 230, 118, 0.06)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                for (let i = 0; i < 2; i++) {
+                    ctx.beginPath();
+                    const amp = 18 + i * 8;
+                    const y0 = canvas.height * (0.65 + i * 0.08);
+                    ctx.moveTo(0, y0);
+                    for (let x = 0; x <= canvas.width; x += 32) {
+                        ctx.lineTo(x, y0 + Math.sin((x * 0.003) + tick + i) * amp);
+                    }
+                    ctx.strokeStyle = i === 0 ? 'rgba(0, 230, 118, 0.12)' : 'rgba(255, 213, 79, 0.10)';
+                    ctx.lineWidth = 1.2;
+                    ctx.stroke();
+                }
+            }
+            function render(ts = 0) {
+                if (window._platformSettings?.animatedBackgroundEnabled === false) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    _bgAnimFrame = requestAnimationFrame(render);
+                    return;
+                }
+                const tick = ts * 0.00008;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawWave(tick);
+                particles.forEach((p) => {
+                    p.y -= p.s;
+                    p.x += Math.sin(p.t + tick) * 0.14;
+                    if (p.y < -24) {
+                        p.y = canvas.height + 20;
+                        p.x = Math.random() * canvas.width;
+                    }
+                    ctx.save();
+                    ctx.globalAlpha = p.a;
+                    ctx.fillStyle = p.symbol === '💵' ? '#FFD54F' : '#00E676';
+                    ctx.font = `${p.r}px Space Grotesk`;
+                    ctx.fillText(p.symbol, p.x, p.y);
+                    ctx.restore();
+                });
+                _bgAnimFrame = requestAnimationFrame(render);
+            }
+            window.addEventListener('resize', () => { resize(); seed(); });
+            resize();
+            seed();
+            if (_bgAnimFrame) cancelAnimationFrame(_bgAnimFrame);
+            render();
+        }
+        initFinancialBackground();
 
         // ════════════════════════════════════════════════════════
         // AUTO LOGOUT AFTER 10 MINUTES INACTIVITY
@@ -7859,7 +7980,7 @@
             const ref = db.collection('users').doc(user.uid);
             let snap = await ref.get();
             if (!snap.exists) {
-                await ref.set({ name: user.displayName || 'User', email: user.email, phone: '', country: '', balance: 1, tokenBalance: 0, purchasedGiftCoinBalance: 0, receivedGiftCoinBalance: 0, giftCoinBalance: 0, paidDMPriceCoins: 10, paidDMChargingOn: false, paidDMBlocked: false, paidDMEarningsCoins: 0, paidDMPlatformShareCoins: 0, totalInvested: 0, totalEarned: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, shareholderDistributed: 0, surveyPoints: 0, surveysCompleted: 0, surveysSkipped: 0, referralCode: genRef(), referredBy: null, referrals: [], privileges: { ...DEFAULT_USER_PRIVILEGES }, isBanned: false, isRestricted: false, isAdmin: false, firstStakeAt: null, loanDefaultCount: 0, createdAt: FS().serverTimestamp() });
+                await ref.set({ name: user.displayName || 'User', email: user.email, phone: '', phoneNormalized: '', country: '', balance: 1, tokenBalance: 0, purchasedGiftCoinBalance: 0, receivedGiftCoinBalance: 0, giftCoinBalance: 0, paidDMPriceCoins: 10, paidDMChargingOn: false, paidDMBlocked: false, paidDMEarningsCoins: 0, paidDMPlatformShareCoins: 0, totalInvested: 0, totalEarned: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, shareholderDistributed: 0, surveyPoints: 0, surveysCompleted: 0, surveysSkipped: 0, referralCode: genRef(), referredBy: null, referrals: [], privileges: { ...DEFAULT_USER_PRIVILEGES }, isBanned: false, isRestricted: false, isAdmin: false, firstStakeAt: null, loanDefaultCount: 0, createdAt: FS().serverTimestamp() });
                 snap = await ref.get();
                 logAct(user.uid, 'Welcome bonus', .1, '💎', 'deposit');
             }
@@ -7947,6 +8068,7 @@
             const phoneCode = $('r-phone-code') ? $('r-phone-code').value.trim() : '';
             const phoneNum = $('rp').value.trim();
             const phone = phoneCode ? phoneCode + phoneNum.replace(/^0+/, '') : phoneNum;
+            const phoneNormalized = normalizePhoneNumber(phone);
             const country = $('r-country') ? $('r-country').value : '';
             const pw = $('rpw').value;
             const pw2 = $('rpw2').value;
@@ -7978,6 +8100,11 @@
             btn.innerHTML = '<span class="sp"></span> Creating account…';
             btn.disabled = true;
             try {
+                const phoneSnap = await db.collection('users').where('phoneNormalized', '==', phoneNormalized).limit(1).get();
+                if (!phoneSnap.empty) {
+                    $('rp-err').classList.add('show');
+                    throw new Error('Phone number already in use');
+                }
                 const cred = await auth.createUserWithEmailAndPassword(email, pw);
                 const uid = cred.user.uid;
                 const rc = genRef();
@@ -7989,7 +8116,7 @@
                         await db.collection('users').doc(referredBy).update({ referrals: FS().arrayUnion(uid) });
                     }
                 }
-                await db.collection('users').doc(uid).set({ name, email, phone, country, balance: 1, tokenBalance: 0, purchasedGiftCoinBalance: 0, receivedGiftCoinBalance: 0, giftCoinBalance: 0, paidDMPriceCoins: 10, paidDMChargingOn: false, paidDMBlocked: false, paidDMEarningsCoins: 0, paidDMPlatformShareCoins: 0, totalInvested: 0, totalEarned: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, shareholderDistributed: 0, surveyPoints: 0, surveysCompleted: 0, surveysSkipped: 0, referralCode: rc, referredBy, referrals: [], privileges: { ...DEFAULT_USER_PRIVILEGES }, isBanned: false, isRestricted: false, isAdmin: false, firstStakeAt: null, loanDefaultCount: 0, createdAt: FS().serverTimestamp() });
+                await db.collection('users').doc(uid).set({ name, email, phone, phoneNormalized, country, balance: 1, tokenBalance: 0, purchasedGiftCoinBalance: 0, receivedGiftCoinBalance: 0, giftCoinBalance: 0, paidDMPriceCoins: 10, paidDMChargingOn: false, paidDMBlocked: false, paidDMEarningsCoins: 0, paidDMPlatformShareCoins: 0, totalInvested: 0, totalEarned: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, shareholderDistributed: 0, surveyPoints: 0, surveysCompleted: 0, surveysSkipped: 0, referralCode: rc, referredBy, referrals: [], privileges: { ...DEFAULT_USER_PRIVILEGES }, isBanned: false, isRestricted: false, isAdmin: false, firstStakeAt: null, loanDefaultCount: 0, createdAt: FS().serverTimestamp() });
                 sendTransactionalEmail('welcome', email, { name: name });
                 toast('Account created! Welcome bonus added 🎉');
                 tg(`🆕 <b>New Member</b>\nName: ${name}\nEmail: ${email}\nPhone: ${phone || '—'}\nCountry: ${country || '—'}\nRef: ${ref || 'none'}`);
@@ -8004,6 +8131,9 @@
                     errMsg = 'Password is too weak';
                 } else if (e.code === 'auth/network-request-failed') {
                     errMsg = 'Network error — check your internet connection';
+                } else if ((e.message || '').includes('Phone number already in use')) {
+                    $('rp-err').classList.add('show');
+                    errMsg = 'Phone number already in use';
                 }
                 toast(errMsg, 'tr');
                 btn.innerHTML = 'Create Account →';
@@ -8298,22 +8428,35 @@
             await loadPlatformSettings(true);
             initMovingAnnouncementListener();
             if ($('fin-wd-min')) $('fin-wd-min').value = getFinancialSetting('withdrawMinAmount');
+            if ($('fin-wd-max')) $('fin-wd-max').value = getFinancialSetting('withdrawMaxAmount');
             if ($('fin-wd-fee')) $('fin-wd-fee').value = parseFloat((getFinancialSetting('withdrawFeeRate') * 100).toFixed(4));
             if ($('fin-tf-fee')) $('fin-tf-fee').value = parseFloat((getFinancialSetting('transferFeeRate') * 100).toFixed(4));
+            if ($('fin-invest-daily-pct')) $('fin-invest-daily-pct').value = parseFloat((getFinancialSetting('investmentDailyRate') * 100).toFixed(4));
+            if ($('fin-bg-enabled')) $('fin-bg-enabled').checked = !!window._platformSettings?.animatedBackgroundEnabled;
+            loadAdminPaymentMethods();
         }
 
         async function adminSaveFinancialSettings() {
             if (!['superadmin', 'finance'].includes(getAdminRole())) return toast('Finance or Super Admin access required', 'tr');
             const wdMin = Number($('fin-wd-min')?.value || 0);
+            const wdMax = Number($('fin-wd-max')?.value || 0);
             const wdFeePct = Number($('fin-wd-fee')?.value || 0);
             const tfFeePct = Number($('fin-tf-fee')?.value || 0);
+            const investDailyPct = Number($('fin-invest-daily-pct')?.value || 0);
+            const animatedBackgroundEnabled = !!$('fin-bg-enabled')?.checked;
             if (!Number.isFinite(wdMin) || wdMin < 1) return toast('Minimum withdrawal must be at least $1', 'ty');
+            if (!Number.isFinite(wdMax) || wdMax <= 0) return toast('Global maximum withdrawal must be greater than $0', 'ty');
+            if (wdMax < wdMin) return toast('Global maximum withdrawal must be greater than or equal to minimum', 'ty');
             if (!Number.isFinite(wdFeePct) || wdFeePct < 0 || wdFeePct > 100) return toast('Withdrawal fee must be between 0% and 100%', 'ty');
             if (!Number.isFinite(tfFeePct) || tfFeePct < 0 || tfFeePct > 100) return toast('Transfer fee must be between 0% and 100%', 'ty');
+            if (!Number.isFinite(investDailyPct) || investDailyPct < 0 || investDailyPct > 100) return toast('Default daily investment earning must be between 0% and 100%', 'ty');
             const payload = {
                 withdrawMinAmount: parseFloat(wdMin.toFixed(4)),
+                withdrawMaxAmount: parseFloat(wdMax.toFixed(4)),
                 withdrawFeeRate: parseFloat((wdFeePct / 100).toFixed(6)),
                 transferFeeRate: parseFloat((tfFeePct / 100).toFixed(6)),
+                investmentDailyRate: parseFloat((investDailyPct / 100).toFixed(6)),
+                animatedBackgroundEnabled,
                 updatedAt: FS().serverTimestamp(),
                 updatedBy: window.CU?.uid || null
             };
@@ -8332,6 +8475,81 @@
                 toast('Financial settings updated ✓', 'tg');
             } catch (e) { toast(e.message || 'Failed to save settings', 'tr'); }
         }
+        const DEFAULT_PAYMENT_METHODS = [
+            { name: 'M-Pesa', details: 'Till Number: 6034186 · Business Name: Starlife Advert Us Agency', status: 'active' },
+            { name: 'PayPal', details: 'starlife.payment@starlifeadvert.com', status: 'active' },
+            { name: 'USDT (BEP20)', details: '0xa95bd74fae59521e8405e14b54b0d07795643812', status: 'active' },
+            { name: 'USDT (TRC20)', details: 'TMeEHzo9pMigvV5op88zkAQEc3ZUEfzBJ6', status: 'active' }
+        ];
+        async function loadPaymentMethods(includeInactive = false) {
+            try {
+                const snap = await db.collection('paymentMethods').get();
+                let methods = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                if (!methods.length) methods = DEFAULT_PAYMENT_METHODS.map((m, i) => ({ ...m, id: `default-${i}` }));
+                if (!includeInactive) methods = methods.filter(m => (m.status || 'active') === 'active');
+                return methods.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+            } catch (_) {
+                return includeInactive ? DEFAULT_PAYMENT_METHODS : DEFAULT_PAYMENT_METHODS.filter(m => m.status === 'active');
+            }
+        }
+        function renderPaymentMethodsUI(methods) {
+            const wd = $('wd-method');
+            const dep = $('dep-method');
+            const grid = $('deposit-methods-grid');
+            const options = methods.map(m => `<option>${m.name}</option>`).join('') || '<option>No active methods</option>';
+            if (wd) wd.innerHTML = options;
+            if (dep) dep.innerHTML = options;
+            if (grid) {
+                grid.innerHTML = methods.map(m => `<div class="dep-method"><div class="dm-name">${m.name}</div><div class="dm-detail"><span style="font-size:.8rem;color:var(--t2)">Details</span><span class="dm-val">${(m.details || '—').replace(/</g, '&lt;')}</span></div></div>`).join('') || '<div class="es">No active payment methods available right now.</div>';
+            }
+        }
+        async function loadUserPaymentMethods() {
+            const methods = await loadPaymentMethods(false);
+            renderPaymentMethodsUI(methods);
+        }
+        function adminResetPaymentMethodForm() {
+            if ($('pm-edit-id')) $('pm-edit-id').value = '';
+            if ($('pm-name')) $('pm-name').value = '';
+            if ($('pm-details')) $('pm-details').value = '';
+            if ($('pm-status')) $('pm-status').value = 'active';
+        }
+        async function loadAdminPaymentMethods() {
+            const methods = await loadPaymentMethods(true);
+            const wrap = $('admin-payment-methods');
+            if (!wrap) return;
+            wrap.innerHTML = methods.map(m => `<div class="ai" style="margin-top:8px"><div class="ai-l"><div class="ai-ico">💳</div><div><div class="ai-desc">${m.name}</div><div class="ai-time">${m.details || '—'} · ${(m.status || 'active')}</div></div></div><div style="display:flex;gap:6px"><button class="btn btn-gh btn-sm" onclick="adminEditPaymentMethod('${m.id}')">Edit</button><button class="btn btn-d btn-sm" onclick="adminDeletePaymentMethod('${m.id}')">Delete</button></div></div>`).join('') || '<div class="es">No payment methods found.</div>';
+        }
+        async function adminEditPaymentMethod(id) {
+            const methods = await loadPaymentMethods(true);
+            const method = methods.find(m => m.id === id);
+            if (!method) return;
+            $('pm-edit-id').value = id;
+            $('pm-name').value = method.name || '';
+            $('pm-details').value = method.details || '';
+            $('pm-status').value = method.status || 'active';
+        }
+        async function adminSavePaymentMethod() {
+            const id = $('pm-edit-id').value.trim();
+            const name = $('pm-name').value.trim();
+            const details = $('pm-details').value.trim();
+            const status = $('pm-status').value;
+            if (!name) return toast('Payment method name is required', 'ty');
+            if (!details) return toast('Payment details are required', 'ty');
+            const payload = { name, details, status, updatedAt: FS().serverTimestamp(), updatedBy: window.CU?.uid || null };
+            if (id) await db.collection('paymentMethods').doc(id).set(payload, { merge: true });
+            else await db.collection('paymentMethods').add({ ...payload, createdAt: FS().serverTimestamp() });
+            adminResetPaymentMethodForm();
+            await loadAdminPaymentMethods();
+            await loadUserPaymentMethods();
+            toast('Payment method saved ✓', 'tg');
+        }
+        async function adminDeletePaymentMethod(id) {
+            if (!confirm('Delete this payment method?')) return;
+            await db.collection('paymentMethods').doc(id).delete();
+            await loadAdminPaymentMethods();
+            await loadUserPaymentMethods();
+            toast('Payment method deleted', 'tg');
+        }
 
         function shTab(el, id) { document.querySelectorAll('#t-shareholder .itab').forEach(t => t.classList.remove('on')); el.classList.add('on');['sh-t-stake', 'sh-t-history', 'sh-t-withdraw'].forEach(i => $(i).style.display = 'none'); $(id).style.display = 'block'; }
         function svTab(el, id) { document.querySelectorAll('#t-surveys .itab').forEach(t => t.classList.remove('on')); el.classList.add('on');['sv-t-avail', 'sv-t-done', 'sv-t-redeem'].forEach(i => { if ($(i)) $(i).style.display = 'none'; }); $(id).style.display = 'block'; if (id === 'sv-t-done') loadDoneSurveys(); if (id === 'sv-t-redeem') loadRedeemTab(); }
@@ -8349,7 +8567,7 @@
         // LOAD ALL USER DATA
         // ════════════════════════════════════════════════════════
         async function loadAllUserData() {
-            await Promise.all([loadInvestments(), loadWithdrawals(), loadActivity('all'), loadReferrals(), loadSurveys(), loadMyLoans(), loadMyTickets(), loadSecurityCenter(), loadMyCards()]);
+            await Promise.all([loadInvestments(), loadWithdrawals(), loadActivity('all'), loadReferrals(), loadSurveys(), loadMyLoans(), loadMyTickets(), loadSecurityCenter(), loadMyCards(), loadUserPaymentMethods()]);
             processScheduledBroadcasts();
             setTimeout(initAutoReinvestUI, 500);
             // Load fresh KYC status from Firestore (not just cached CU)
@@ -8684,6 +8902,34 @@
             $('wd-fee').textContent = '$' + fmt(fee);
             $('wd-net').textContent = '$' + fmt(a - fee);
         }
+        async function validateWithdrawalPolicyForUser(userObj) {
+            const now = new Date();
+            if (!validateWithdrawalTimeWindow(now)) {
+                const msg = 'Withdrawals are only allowed between 10:00 AM and 2:00 PM';
+                try { await db.collection('userNotifs').add({ uid: userObj.uid, msg, read: false, createdAt: FS().serverTimestamp() }); } catch (_) { }
+                return { ok: false, message: msg };
+            }
+            const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+            const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+            const existing = await db.collection('withdrawals')
+                .where('uid', '==', userObj.uid)
+                .where('createdAt', '>=', firebase.firestore.Timestamp.fromDate(start))
+                .where('createdAt', '<', firebase.firestore.Timestamp.fromDate(end))
+                .limit(1)
+                .get();
+            if (!existing.empty) {
+                const msg = 'You have already made a withdrawal today';
+                try { await db.collection('userNotifs').add({ uid: userObj.uid, msg, read: false, createdAt: FS().serverTimestamp() }); } catch (_) { }
+                return { ok: false, message: msg };
+            }
+            return { ok: true };
+        }
+        function validateWithdrawalAmountRules(amount, userObj = {}) {
+            const { min, max } = getEffectiveWithdrawalLimits(userObj);
+            if (amount < min) return { ok: false, message: `Minimum withdrawal is $${fmt(min)}` };
+            if (amount > max) return { ok: false, message: `Maximum withdrawal is $${fmt(max)}` };
+            return { ok: true };
+        }
 
         async function doWithdraw() {
             // KYC check first
@@ -8695,8 +8941,11 @@
             const u = window.CU;
             const useCard = document.getElementById('wd-pay-card')?.classList.contains('active');
             await loadPlatformSettings();
-            const wdMin = getFinancialSetting('withdrawMinAmount');
-            if (!amt || amt < wdMin) return toast(`Minimum withdrawal $${fmt(wdMin)}`, 'ty');
+            if (!amt) return toast('Enter amount', 'ty');
+            const wdRules = validateWithdrawalAmountRules(amt, u);
+            if (!wdRules.ok) return toast(wdRules.message, 'ty');
+            const eligibility = await validateWithdrawalPolicyForUser(u);
+            if (!eligibility.ok) return toast(eligibility.message, 'ty');
             if (!details) return toast('Enter your payment details', 'ty');
             if (!useCard) {
                 const availBal = getAvailableBalance(u);
@@ -8764,6 +9013,8 @@
             const ex = await db.collection('withdrawals').where('uid', '==', u.uid).where('status', '==', 'pending').get();
             if (!ex.empty) return toast('You already have a pending withdrawal', 'ty');
             await loadPlatformSettings();
+            const eligibility = await validateWithdrawalPolicyForUser(u);
+            if (!eligibility.ok) throw new Error(eligibility.message);
             const txId = genTxId();
             let fee = 0;
             let net = 0;
@@ -8773,8 +9024,9 @@
                 const userSnap = await t.get(userRef);
                 if (!userSnap.exists) throw new Error('Account not found');
                 const freshUser = { uid: u.uid, ...(userSnap.data() || {}) };
-                const wdMin = getFinancialSetting('withdrawMinAmount');
-                if (!Number.isFinite(Number(amt)) || Number(amt) < wdMin) throw new Error(`Minimum withdrawal $${fmt(wdMin)}`);
+                if (!Number.isFinite(Number(amt))) throw new Error('Invalid withdrawal amount');
+                const wdRules = validateWithdrawalAmountRules(Number(amt), freshUser);
+                if (!wdRules.ok) throw new Error(wdRules.message);
                 const spendable = getAvailableBalance(freshUser);
                 if (spendable < amt) throw new Error(`Insufficient available balance. Available: $${fmt(spendable)}`);
                 const feeRate = getEffectiveWithdrawalFeeRate(freshUser);
@@ -11669,6 +11921,9 @@
             $('eu-free-official-replies').checked = false;
             $('eu-free-token-actions').checked = false;
             $('eu-custom-wd-fee').value = '';
+            $('eu-wd-min').value = '';
+            $('eu-wd-max').value = '';
+            $('eu-invest-rate').value = '';
             const u = (window.AU || []).find(x => x.id === id);
             if (u) {
                 const roles = u.officialRoles || [];
@@ -11686,6 +11941,9 @@
                 $('eu-free-official-replies').checked = !!pv.freeOfficialReplies;
                 $('eu-free-token-actions').checked = !!pv.freeTokenActions;
                 $('eu-custom-wd-fee').value = (typeof pv.customWithdrawFeeRate === 'number' && Number.isFinite(pv.customWithdrawFeeRate)) ? (pv.customWithdrawFeeRate * 100).toFixed(4).replace(/\.?0+$/, '') : '';
+                $('eu-wd-min').value = Number.isFinite(Number(u.withdrawLimits?.min)) ? Number(u.withdrawLimits.min) : '';
+                $('eu-wd-max').value = Number.isFinite(Number(u.withdrawLimits?.max)) ? Number(u.withdrawLimits.max) : '';
+                $('eu-invest-rate').value = Number.isFinite(Number(u.customInvestmentDailyRate)) ? (Number(u.customInvestmentDailyRate) * 100).toFixed(4).replace(/\.?0+$/, '') : '';
             }
             openModal('m-edit-user');
         }
@@ -11704,7 +11962,17 @@
             const freeTokenActions = !!$('eu-free-token-actions').checked;
             const customFeeInput = $('eu-custom-wd-fee').value.trim();
             const customFeePct = customFeeInput === '' ? null : Number(customFeeInput);
+            const wdMinInput = $('eu-wd-min').value.trim();
+            const wdMaxInput = $('eu-wd-max').value.trim();
+            const userWdMin = wdMinInput === '' ? null : Number(wdMinInput);
+            const userWdMax = wdMaxInput === '' ? null : Number(wdMaxInput);
+            const investRateInput = $('eu-invest-rate').value.trim();
+            const investRatePct = investRateInput === '' ? null : Number(investRateInput);
             if (customFeeInput !== '' && (!Number.isFinite(customFeePct) || customFeePct < 0 || customFeePct > 100)) return toast('Custom withdrawal fee must be between 0 and 100', 'ty');
+            if (wdMinInput !== '' && (!Number.isFinite(userWdMin) || userWdMin < 0)) return toast('User minimum withdrawal must be 0 or more', 'ty');
+            if (wdMaxInput !== '' && (!Number.isFinite(userWdMax) || userWdMax <= 0)) return toast('User maximum withdrawal must be greater than 0', 'ty');
+            if (wdMinInput !== '' && wdMaxInput !== '' && userWdMin > userWdMax) return toast('User minimum withdrawal cannot exceed user maximum', 'ty');
+            if (investRateInput !== '' && (!Number.isFinite(investRatePct) || investRatePct < 0 || investRatePct > 100)) return toast('Custom daily investment earning must be between 0% and 100%', 'ty');
             const nextPrivileges = normalizeUserPrivileges({
                 promoAccessEnabled: promoEnabled,
                 freeWithdrawFees,
@@ -11717,6 +11985,11 @@
             const prevSnap = await db.collection('users').doc(id).get();
             const prevData = prevSnap.exists ? (prevSnap.data() || {}) : {};
             const prevPrivileges = normalizeUserPrivileges(prevData.privileges);
+            const normalizedPhone = normalizePhoneNumber(p);
+            if (normalizedPhone) {
+                const phoneSnap = await db.collection('users').where('phoneNormalized', '==', normalizedPhone).limit(2).get();
+                if (phoneSnap.docs.some(doc => doc.id !== id)) return toast('Phone number already in use', 'ty');
+            }
 
             // If salary being set to Approved — pay from Treasury account
             const prevSalStat = prevData.salaryStatus || 'Pending';
@@ -11744,11 +12017,17 @@ Total: $${fmt(totalPayout)}`);
             }
             await db.collection('users').doc(id).update({
                 name: n, phone: p,
+                phoneNormalized: normalizedPhone || '',
                 officialRoles: roles,
                 salaryAmount: sAmt, secretaryAllowance: sAllow,
                 salaryStatus: sStat, officeStatus: oStat,
                 performanceRank: pRank, agentRegion: aReg,
-                privileges: nextPrivileges
+                privileges: nextPrivileges,
+                withdrawLimits: {
+                    min: wdMinInput === '' ? null : parseFloat(userWdMin.toFixed(4)),
+                    max: wdMaxInput === '' ? null : parseFloat(userWdMax.toFixed(4))
+                },
+                customInvestmentDailyRate: investRateInput === '' ? null : parseFloat((investRatePct / 100).toFixed(6))
             });
             const privilegeFields = ['promoAccessEnabled', 'freeWithdrawFees', 'customWithdrawFeeRate', 'freeOfficialReplies', 'freeTokenActions'];
             for (const field of privilegeFields) {
@@ -16669,7 +16948,8 @@ You will receive $${fmt(receive)} (+${_vaultPlan.rate}%) on ${unlock.toLocaleDat
                     if (!uSnap.exists) continue;
                     const uData = uSnap.data();
                     if (!uData || uData.isBanned) continue;
-                    const profit = parseFloat(((inv.amount || 0) * 0.02).toFixed(4));
+                    const rate = getEffectiveInvestmentRate(uData || {});
+                    const profit = parseFloat(((inv.amount || 0) * rate).toFixed(4));
                     if (profit <= 0) continue;
                     // Auto-reinvest if enabled
                     let reinvestAmt = 0, balanceProfit = profit;
@@ -16682,13 +16962,13 @@ You will receive $${fmt(receive)} (+${_vaultPlan.rate}%) on ${unlock.toLocaleDat
                     // If auto-reinvest — create new investment
                     if (reinvestAmt > 0) {
                         const newInvRef = db.collection('investments').doc();
-                        invActBatch.set(newInvRef, { uid: inv.uid, userName: uData.name, userEmail: uData.email, amount: reinvestAmt, method: 'Auto-Reinvest', txid: 'AR-' + genTxId(), status: 'active', earningEnabled: true, dailyProfit: reinvestAmt * 0.02, totalPaid: 0, createdAt: FS().serverTimestamp() });
+                        invActBatch.set(newInvRef, { uid: inv.uid, userName: uData.name, userEmail: uData.email, amount: reinvestAmt, method: 'Auto-Reinvest', txid: 'AR-' + genTxId(), status: 'active', earningEnabled: true, dailyProfit: reinvestAmt * rate, totalPaid: 0, createdAt: FS().serverTimestamp() });
                         invActBatch.set(db.collection('activity').doc(), { uid: inv.uid, desc: `Auto-reinvested $${fmt(reinvestAmt)} (${uData.autoReinvestPct}% of $${fmt(profit)} profit)`, amt: -reinvestAmt, icon: '🔄', type: 'profit', createdAt: FS().serverTimestamp() });
                     }
                     const aRef = db.collection('activity').doc();
-                    invActBatch.set(aRef, { uid: inv.uid, desc: `Investment daily profit 2% (${today})`, amt: profit, icon: '📈', type: 'profit', createdAt: FS().serverTimestamp() });
+                    invActBatch.set(aRef, { uid: inv.uid, desc: `Investment daily profit ${(rate * 100).toFixed(4).replace(/\.?0+$/, '')}% (${today})`, amt: profit, icon: '📈', type: 'profit', createdAt: FS().serverTimestamp() });
                     const nRef = db.collection('userNotifs').doc();
-                    invActBatch.set(nRef, { uid: inv.uid, msg: `📈 Daily profit +$${profit.toFixed(2)} from $${fmt(inv.amount)} investment`, read: false, createdAt: FS().serverTimestamp() });
+                    invActBatch.set(nRef, { uid: inv.uid, msg: `📈 Daily profit +$${profit.toFixed(2)} from $${fmt(inv.amount)} investment at ${(rate * 100).toFixed(4).replace(/\.?0+$/, '')}%`, read: false, createdAt: FS().serverTimestamp() });
                     invCount++;
                 }
                 await invBatch.commit();
@@ -18448,8 +18728,13 @@ ${points}pts → $${fmt(usd)}`);
             closeModal('m-pin');
             if (window._pinCallback === 'withdrawal' && window._pendingWdData) {
                 const d = window._pendingWdData;
-                await executeWithdrawal(d.amt, d.method, d.details);
-                window._pendingWdData = null;
+                try {
+                    await executeWithdrawal(d.amt, d.method, d.details);
+                } catch (e) {
+                    toast(e.message || 'Withdrawal failed', 'tr');
+                } finally {
+                    window._pendingWdData = null;
+                }
             } else if (window._pinCallback === 'transfer') {
                 window._pinCallback = null;
                 await executeTransfer();
@@ -19998,6 +20283,7 @@ Prize: $${fmt(prize)}`);
             $('edit-displayName').value = u.displayName || '';
             $('edit-username').value = u.username || '';
             $('edit-bio').value = u.bio || '';
+            $('edit-phone').value = u.phone || '';
             $('prof-edit-wrap').style.display = 'block';
             $('prof-edit-btn').style.display = 'none';
         }
@@ -20008,6 +20294,8 @@ Prize: $${fmt(prize)}`);
             var dName = $('edit-displayName').value.trim();
             var uName = $('edit-username').value.trim();
             var bio = $('edit-bio').value.trim();
+            var phone = $('edit-phone').value.trim();
+            var phoneNormalized = normalizePhoneNumber(phone);
             var file = $('edit-photo').files[0];
             var b64 = u.avatarBase64;
 
@@ -20048,6 +20336,14 @@ Prize: $${fmt(prize)}`);
             }
 
             try {
+                if (phone) {
+                    const q = await db.collection('users').where('phoneNormalized', '==', phoneNormalized).limit(2).get();
+                    const usedByAnother = q.docs.some(doc => doc.id !== u.uid);
+                    if (usedByAnother) {
+                        toast('Phone number already in use', 'tr', 3500);
+                        return;
+                    }
+                }
                 if (file) {
                     b64 = await compressImage(file, 200);
                 }
@@ -20056,6 +20352,8 @@ Prize: $${fmt(prize)}`);
                     displayName: dName,
                     username: uName,
                     bio: bio,
+                    phone: phone,
+                    phoneNormalized: phoneNormalized || '',
                     avatarBase64: b64 || null
                 };
 
@@ -20068,6 +20366,8 @@ Prize: $${fmt(prize)}`);
                 window.CU.displayName = dName;
                 window.CU.username = uName;
                 window.CU.bio = bio;
+                window.CU.phone = phone;
+                window.CU.phoneNormalized = phoneNormalized || '';
                 window.CU.avatarBase64 = b64 || null;
 
                 updateProfileBadges(window.CU);

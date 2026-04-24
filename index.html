@@ -3415,9 +3415,89 @@
                 <div class="fg"><label class="fl">Email Address</label><input class="fi" id="re" type="email"
                         placeholder="you@example.com" autocomplete="email"><span class="ferr" id="re-err">Email already
                         in use</span></div>
-                <div class="fg"><label class="fl">Phone Number (with country code)</label><input class="fi" id="rp"
-                        placeholder="+254 7XX XXX XXX" autocomplete="tel"><span class="ferr" id="rp-err">Phone already
-                        registered</span></div>
+                <div class="fg">
+                    <label class="fl">Country</label>
+                    <select class="fi" id="r-country" onchange="updatePhoneCode()">
+                        <option value="">Select your country…</option>
+                        <option value="KE" data-code="+254">Kenya</option>
+                        <option value="NG" data-code="+234">Nigeria</option>
+                        <option value="GH" data-code="+233">Ghana</option>
+                        <option value="ZA" data-code="+27">South Africa</option>
+                        <option value="UG" data-code="+256">Uganda</option>
+                        <option value="TZ" data-code="+255">Tanzania</option>
+                        <option value="ZM" data-code="+260">Zambia</option>
+                        <option value="ZW" data-code="+263">Zimbabwe</option>
+                        <option value="RW" data-code="+250">Rwanda</option>
+                        <option value="ET" data-code="+251">Ethiopia</option>
+                        <option value="CM" data-code="+237">Cameroon</option>
+                        <option value="CI" data-code="+225">Ivory Coast</option>
+                        <option value="SN" data-code="+221">Senegal</option>
+                        <option value="EG" data-code="+20">Egypt</option>
+                        <option value="MA" data-code="+212">Morocco</option>
+                        <option value="US" data-code="+1">United States</option>
+                        <option value="GB" data-code="+44">United Kingdom</option>
+                        <option value="CA" data-code="+1">Canada</option>
+                        <option value="AU" data-code="+61">Australia</option>
+                        <option value="IN" data-code="+91">India</option>
+                        <option value="PK" data-code="+92">Pakistan</option>
+                        <option value="BD" data-code="+880">Bangladesh</option>
+                        <option value="PH" data-code="+63">Philippines</option>
+                        <option value="ID" data-code="+62">Indonesia</option>
+                        <option value="MY" data-code="+60">Malaysia</option>
+                        <option value="CN" data-code="+86">China</option>
+                        <option value="JP" data-code="+81">Japan</option>
+                        <option value="KR" data-code="+82">South Korea</option>
+                        <option value="BR" data-code="+55">Brazil</option>
+                        <option value="MX" data-code="+52">Mexico</option>
+                        <option value="DE" data-code="+49">Germany</option>
+                        <option value="FR" data-code="+33">France</option>
+                        <option value="IT" data-code="+39">Italy</option>
+                        <option value="ES" data-code="+34">Spain</option>
+                        <option value="AE" data-code="+971">UAE</option>
+                        <option value="SA" data-code="+966">Saudi Arabia</option>
+                        <option value="OTHER" data-code="">Other</option>
+                    </select>
+                </div>
+                <div class="fg"><label class="fl">Phone Number</label>
+                    <div style="display:flex;gap:6px">
+                        <select class="fi" id="r-phone-code" style="max-width:110px;flex-shrink:0">
+                            <option value="">Code</option>
+                            <option value="+254">🇰🇪 +254</option>
+                            <option value="+234">🇳🇬 +234</option>
+                            <option value="+233">🇬🇭 +233</option>
+                            <option value="+27">🇿🇦 +27</option>
+                            <option value="+256">🇺🇬 +256</option>
+                            <option value="+255">🇹🇿 +255</option>
+                            <option value="+260">🇿🇲 +260</option>
+                            <option value="+263">🇿🇼 +263</option>
+                            <option value="+250">🇷🇼 +250</option>
+                            <option value="+251">🇪🇹 +251</option>
+                            <option value="+237">🇨🇲 +237</option>
+                            <option value="+225">🇨🇮 +225</option>
+                            <option value="+221">🇸🇳 +221</option>
+                            <option value="+20">🇪🇬 +20</option>
+                            <option value="+212">🇲🇦 +212</option>
+                            <option value="+1">🇺🇸 +1</option>
+                            <option value="+44">🇬🇧 +44</option>
+                            <option value="+61">🇦🇺 +61</option>
+                            <option value="+91">🇮🇳 +91</option>
+                            <option value="+92">🇵🇰 +92</option>
+                            <option value="+63">🇵🇭 +63</option>
+                            <option value="+62">🇮🇩 +62</option>
+                            <option value="+60">🇲🇾 +60</option>
+                            <option value="+86">🇨🇳 +86</option>
+                            <option value="+81">🇯🇵 +81</option>
+                            <option value="+55">🇧🇷 +55</option>
+                            <option value="+52">🇲🇽 +52</option>
+                            <option value="+49">🇩🇪 +49</option>
+                            <option value="+33">🇫🇷 +33</option>
+                            <option value="+971">🇦🇪 +971</option>
+                            <option value="+966">🇸🇦 +966</option>
+                        </select>
+                        <input class="fi" id="rp" placeholder="7XX XXX XXX" autocomplete="tel" style="flex:1">
+                    </div>
+                    <span class="ferr" id="rp-err">Phone already registered</span>
+                </div>
                 <div class="fg">
                     <label class="fl">Password</label>
                     <div class="pw-wrap">
@@ -3517,6 +3597,19 @@
                 <h2 style="margin-bottom:10px;color:var(--red)">Account Suspended</h2>
                 <p style="color:var(--t2);margin-bottom:20px">Your account has been suspended. Please contact support
                     for assistance.</p>
+                <a href="mailto:support@example.com">Contact Support</a>
+                <button class="btn btn-gh btn-full" style="margin-top:8px" onclick="doLogout()">Sign Out</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- RESTRICTED PAGE — can login but no services -->
+    <div class="page" id="pg-restricted">
+        <div class="ban-overlay">
+            <div class="ban-card">
+                <div style="font-size:3rem;margin-bottom:16px">🔒</div>
+                <h2 style="margin-bottom:10px;color:var(--orange)">Account Restricted</h2>
+                <p style="color:var(--t2);margin-bottom:20px">Your account has been temporarily restricted by Starlife. You can still log in, but all services are currently unavailable. Please contact support for assistance.</p>
                 <a href="mailto:support@example.com">Contact Support</a>
                 <button class="btn btn-gh btn-full" style="margin-top:8px" onclick="doLogout()">Sign Out</button>
             </div>
@@ -4388,6 +4481,7 @@
                         <button class="btn btn-gh btn-sm" id="bday-edit-btn" style="font-size:.72rem"
                             onclick="openBdayEdit()">Set Birthday</button>
                     </div>
+                    <div id="bday-kyc-required" style="display:none;font-size:.78rem;color:var(--gold);margin-top:8px;padding:8px;background:rgba(255,213,79,.08);border-radius:var(--rs)">🪪 Complete identity verification first. Your date of birth will be checked against your ID by our admin team.</div>
                     <div id="bday-edit-wrap" style="display:none;margin-top:12px">
                         <input class="fi" id="bday-input" type="date" style="margin-bottom:8px">
                         <div style="font-size:.75rem;color:var(--gold);margin-bottom:10px">🎂 Get $5 bonus every year on
@@ -4414,16 +4508,35 @@
                     </div>
                     <!-- Upload form - shown when not verified or rejected -->
                     <div id="kyc-upload-area">
-                        <p style="font-size:.8rem;color:var(--t2);margin-bottom:10px">Upload your National ID, Passport,
-                            or Driver's License.</p>
-                        <label class="img-attach-btn" style="width:100%;justify-content:center;cursor:pointer">
-                            📷 Choose ID Photo
-                            <input type="file" id="kyc-file" accept="image/*" style="display:none">
-                        </label>
-                        <img id="kyc-preview"
-                            style="display:none;max-width:100%;border-radius:var(--rs);margin-top:8px;border:1px solid var(--bds)">
-                        <button class="btn btn-p btn-full" id="kyc-submit-btn"
-                            style="margin-top:10px;display:none">Submit for Verification →</button>
+                        <p style="font-size:.8rem;color:var(--t2);margin-bottom:12px">Upload both sides of your National ID and a selfie holding the ID. All three photos are required.</p>
+                        <!-- ID Front -->
+                        <div style="margin-bottom:10px">
+                            <div style="font-size:.78rem;font-weight:600;margin-bottom:4px;color:var(--t1)">📷 ID Front Side</div>
+                            <label class="img-attach-btn" style="width:100%;justify-content:center;cursor:pointer">
+                                Choose Front of ID
+                                <input type="file" id="kyc-file-front" accept="image/*" style="display:none" onchange="previewKYCPhoto(this,'kyc-preview-front','front')">
+                            </label>
+                            <img id="kyc-preview-front" style="display:none;max-width:100%;border-radius:var(--rs);margin-top:6px;border:1px solid var(--bds)">
+                        </div>
+                        <!-- ID Back -->
+                        <div style="margin-bottom:10px">
+                            <div style="font-size:.78rem;font-weight:600;margin-bottom:4px;color:var(--t1)">📷 ID Back Side</div>
+                            <label class="img-attach-btn" style="width:100%;justify-content:center;cursor:pointer">
+                                Choose Back of ID
+                                <input type="file" id="kyc-file-back" accept="image/*" style="display:none" onchange="previewKYCPhoto(this,'kyc-preview-back','back')">
+                            </label>
+                            <img id="kyc-preview-back" style="display:none;max-width:100%;border-radius:var(--rs);margin-top:6px;border:1px solid var(--bds)">
+                        </div>
+                        <!-- Selfie -->
+                        <div style="margin-bottom:12px">
+                            <div style="font-size:.78rem;font-weight:600;margin-bottom:4px;color:var(--t1)">🤳 Selfie Holding Your ID</div>
+                            <label class="img-attach-btn" style="width:100%;justify-content:center;cursor:pointer">
+                                Choose Selfie with ID
+                                <input type="file" id="kyc-file-selfie" accept="image/*" style="display:none" onchange="previewKYCPhoto(this,'kyc-preview-selfie','selfie')">
+                            </label>
+                            <img id="kyc-preview-selfie" style="display:none;max-width:100%;border-radius:var(--rs);margin-top:6px;border:1px solid var(--bds)">
+                        </div>
+                        <button class="btn btn-p btn-full" id="kyc-submit-btn" style="margin-top:4px;display:none" onclick="submitKYC()">Submit for Verification →</button>
                     </div>
                     <div id="kyc-pending-msg"
                         style="display:none;font-size:.82rem;color:var(--gold);padding:8px;background:rgba(255,213,79,.08);border-radius:var(--rs)">
@@ -4433,7 +4546,7 @@
                         ✅ Identity verified! You can now make withdrawals.</div>
                     <div id="kyc-rejected-msg"
                         style="display:none;font-size:.82rem;color:var(--red);padding:8px;background:rgba(255,82,82,.08);border-radius:var(--rs)">
-                        ❌ Rejected. Please resubmit a clearer photo.</div>
+                        ❌ Rejected. Please resubmit clearer photos of both sides of your ID and a selfie.</div>
                 </div>
 
                 <!-- Verification subscription — populated by updateProfileBadges() -->
@@ -6271,6 +6384,7 @@
                     <button class="btn btn-gh btn-sm" onclick="loadAdminKYC('pending')">⏳ Pending</button>
                     <button class="btn btn-gh btn-sm" onclick="loadAdminKYC('approved')">✅ Approved</button>
                     <button class="btn btn-gh btn-sm" onclick="loadAdminKYC('rejected')">❌ Rejected</button>
+                    <button class="btn btn-gh btn-sm" onclick="loadAdminKYC('all')">📋 All</button>
                 </div>
                 <div id="at-kyc-list">
                     <div class="es">Loading…</div>
@@ -7745,7 +7859,7 @@
             const ref = db.collection('users').doc(user.uid);
             let snap = await ref.get();
             if (!snap.exists) {
-                await ref.set({ name: user.displayName || 'User', email: user.email, phone: '', balance: 1, tokenBalance: 0, purchasedGiftCoinBalance: 0, receivedGiftCoinBalance: 0, giftCoinBalance: 0, paidDMPriceCoins: 10, paidDMChargingOn: false, paidDMBlocked: false, paidDMEarningsCoins: 0, paidDMPlatformShareCoins: 0, totalInvested: 0, totalEarned: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, shareholderDistributed: 0, surveyPoints: 0, surveysCompleted: 0, surveysSkipped: 0, referralCode: genRef(), referredBy: null, referrals: [], privileges: { ...DEFAULT_USER_PRIVILEGES }, isBanned: false, isAdmin: false, firstStakeAt: null, loanDefaultCount: 0, createdAt: FS().serverTimestamp() });
+                await ref.set({ name: user.displayName || 'User', email: user.email, phone: '', country: '', balance: 1, tokenBalance: 0, purchasedGiftCoinBalance: 0, receivedGiftCoinBalance: 0, giftCoinBalance: 0, paidDMPriceCoins: 10, paidDMChargingOn: false, paidDMBlocked: false, paidDMEarningsCoins: 0, paidDMPlatformShareCoins: 0, totalInvested: 0, totalEarned: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, shareholderDistributed: 0, surveyPoints: 0, surveysCompleted: 0, surveysSkipped: 0, referralCode: genRef(), referredBy: null, referrals: [], privileges: { ...DEFAULT_USER_PRIVILEGES }, isBanned: false, isRestricted: false, isAdmin: false, firstStakeAt: null, loanDefaultCount: 0, createdAt: FS().serverTimestamp() });
                 snap = await ref.get();
                 logAct(user.uid, 'Welcome bonus', .1, '💎', 'deposit');
             }
@@ -7755,6 +7869,7 @@
             initMovingAnnouncementListener();
             initTargetedAnnouncementListener();
             if (d.isBanned) { go('pg-banned'); return; }
+            if (d.isRestricted) { go('pg-restricted'); return; }
             await warmSecurityContext();
             const blocked = await isCurrentIpBlocked();
             if (blocked && !(d.isAdmin || user.email === ADMIN_EMAIL)) {
@@ -7810,10 +7925,29 @@
             $('pw-num').classList.toggle('ok', /[0-9]/.test(v));
         }
 
+        function updatePhoneCode() {
+            const countrySelect = $('r-country');
+            const phoneCodeSelect = $('r-phone-code');
+            if (!countrySelect || !phoneCodeSelect) return;
+            const selected = countrySelect.options[countrySelect.selectedIndex];
+            const code = selected ? selected.getAttribute('data-code') : '';
+            if (code) {
+                for (let i = 0; i < phoneCodeSelect.options.length; i++) {
+                    if (phoneCodeSelect.options[i].value === code) {
+                        phoneCodeSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+        }
+
         window._doRegister = window.doRegister = async function () {
             const name = $('rn').value.trim();
             const email = $('re').value.trim().toLowerCase();
-            const phone = $('rp').value.trim();
+            const phoneCode = $('r-phone-code') ? $('r-phone-code').value.trim() : '';
+            const phoneNum = $('rp').value.trim();
+            const phone = phoneCode ? phoneCode + phoneNum.replace(/^0+/, '') : phoneNum;
+            const country = $('r-country') ? $('r-country').value : '';
             const pw = $('rpw').value;
             const pw2 = $('rpw2').value;
             const ref = $('rref').value.trim().toUpperCase();
@@ -7829,8 +7963,10 @@
             if (/[^a-zA-Z\s\-\'\.]/.test(name)) return toast('Name must contain letters only', 'ty');
             if (!email) return toast('Enter your email address', 'ty');
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return toast('Enter a valid email address', 'ty');
-            if (!phone) return toast('Phone number is required', 'ty');
-            if (!/^[\+\d][\d\s\-\(\)]{6,19}$/.test(phone)) return toast('Enter a valid phone number', 'ty');
+            if (!country) return toast('Please select your country', 'ty');
+            if (!phoneCode) return toast('Please select a phone country code', 'ty');
+            if (!phoneNum) return toast('Phone number is required', 'ty');
+            if (!/^[\d\s\-\(\)]{5,15}$/.test(phoneNum)) return toast('Enter a valid phone number (digits only, no country code)', 'ty');
             if (!pw) return toast('Enter a password', 'ty');
             if (pw.length < 8) return toast('Password must be at least 8 characters', 'ty');
             if (!/[A-Z]/.test(pw)) return toast('Password needs at least one uppercase letter', 'ty');
@@ -7853,10 +7989,10 @@
                         await db.collection('users').doc(referredBy).update({ referrals: FS().arrayUnion(uid) });
                     }
                 }
-                await db.collection('users').doc(uid).set({ name, email, phone, balance: 1, tokenBalance: 0, purchasedGiftCoinBalance: 0, receivedGiftCoinBalance: 0, giftCoinBalance: 0, paidDMPriceCoins: 10, paidDMChargingOn: false, paidDMBlocked: false, paidDMEarningsCoins: 0, paidDMPlatformShareCoins: 0, totalInvested: 0, totalEarned: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, shareholderDistributed: 0, surveyPoints: 0, surveysCompleted: 0, surveysSkipped: 0, referralCode: rc, referredBy, referrals: [], privileges: { ...DEFAULT_USER_PRIVILEGES }, isBanned: false, isAdmin: false, firstStakeAt: null, loanDefaultCount: 0, createdAt: FS().serverTimestamp() });
+                await db.collection('users').doc(uid).set({ name, email, phone, country, balance: 1, tokenBalance: 0, purchasedGiftCoinBalance: 0, receivedGiftCoinBalance: 0, giftCoinBalance: 0, paidDMPriceCoins: 10, paidDMChargingOn: false, paidDMBlocked: false, paidDMEarningsCoins: 0, paidDMPlatformShareCoins: 0, totalInvested: 0, totalEarned: 0, referralEarned: 0, shareholderStake: 0, shareholderEarned: 0, shareholderDistributed: 0, surveyPoints: 0, surveysCompleted: 0, surveysSkipped: 0, referralCode: rc, referredBy, referrals: [], privileges: { ...DEFAULT_USER_PRIVILEGES }, isBanned: false, isRestricted: false, isAdmin: false, firstStakeAt: null, loanDefaultCount: 0, createdAt: FS().serverTimestamp() });
                 sendTransactionalEmail('welcome', email, { name: name });
                 toast('Account created! Welcome bonus added 🎉');
-                tg(`🆕 <b>New Member</b>\nName: ${name}\nEmail: ${email}\nPhone: ${phone || '—'}\nRef: ${ref || 'none'}`);
+                tg(`🆕 <b>New Member</b>\nName: ${name}\nEmail: ${email}\nPhone: ${phone || '—'}\nCountry: ${country || '—'}\nRef: ${ref || 'none'}`);
             } catch (e) {
                 let errMsg = 'Registration failed — please try again';
                 if (e.code === 'auth/email-already-in-use') {
@@ -11308,7 +11444,7 @@
             el.innerHTML = users.map(u => `
     <div class="arow">
       <div class="ar-top"><div>
-        <div class="ar-name">${u.name || '—'} ${u.isBanned ? '<span class="badge br">BANNED</span>' : ''}</div>
+        <div class="ar-name">${u.name || '—'} ${u.isBanned ? '<span class="badge br">BANNED</span>' : ''} ${u.isRestricted ? '<span class="badge" style="background:rgba(255,112,67,.15);color:var(--orange);border:1px solid rgba(255,112,67,.3)">RESTRICTED</span>' : ''}</div>
         <div class="ar-sub">${u.email} · ${u.phone || '—'}</div>
         <div class="ar-sub">Balance: <strong style="color:var(--g)">$${fmt(u.balance)}</strong>${(u.heldAmount || 0) > 0 ? ' · <span style="color:var(--red)">🔒 Held: $' + fmt(u.heldAmount || 0) + '</span>' : ''} · Invested: $${fmt(u.totalInvested)} · Stake: $${fmt(u.shareholderStake)}</div>
         <div class="ar-sub">Member ID: ${memberIdFromUid(u.id)} · Points: ${u.surveyPoints || 0} · Savings: $${fmt(u.savingsBalance || 0)}</div>
@@ -11332,6 +11468,7 @@
         <button class="btn btn-gh btn-sm" onclick="openEditUser(&quot;${u.id}&quot;,&quot;${(u.name || '').replace(/"/g, '') || 'User'}&quot;,&quot;${u.email}&quot;,&quot;${(u.phone || '').replace(/"/g, '')}&quot;)">✏️ Edit</button>
         <button class="btn btn-sky btn-sm" onclick="adminEditBirthday(&quot;${u.id}&quot;,&quot;${(u.name || 'User').replace(/"/g, '')}&quot;,&quot;${u.birthday || ''}&quot;)">🎂 Birthday</button>
         ${u.isBanned ? '<button class="btn btn-p btn-sm" onclick="banUser(&quot;' + u.id + '&quot;,false)">Unban</button>' : '<button class="btn btn-d btn-sm" onclick="banUser(&quot;' + u.id + '&quot;,true)">Ban</button>'}
+        ${u.isRestricted ? '<button class="btn btn-p btn-sm" onclick="restrictUser(&quot;' + u.id + '&quot;,false)">🔓 Unrestrict</button>' : '<button class="btn btn-gh btn-sm" onclick="restrictUser(&quot;' + u.id + '&quot;,true)">🔒 Restrict</button>'}
         <button class="btn btn-d btn-sm" onclick="deleteUser(&quot;${u.id}&quot;)">🗑 Delete</button>
       </div>
       <div id="ufx-${u.id}" style="display:none;margin-top:8px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:10px;font-size:.78rem;color:var(--t2)"></div>
@@ -11715,6 +11852,17 @@ Total: $${fmt(totalPayout)}`);
                 sendTransactionalEmail('account_unsuspended', banUserData.email || '', { name: banUserData.name || '' });
             }
             toast(ban ? 'User banned' : 'User unbanned'); loadAdminAll();
+        }
+
+        async function restrictUser(id, restrict) {
+            if (!isSuperAdmin()) return toast('Only Super Admin can restrict users', 'tr');
+            const snap = await db.collection('users').doc(id).get();
+            const data = snap.data() || {};
+            await db.collection('users').doc(id).update({ isRestricted: restrict });
+            if (restrict) {
+                await db.collection('userNotifs').add({ uid: id, msg: '🔒 Your account has been restricted. You can still log in but services are unavailable. Contact support.', read: false, createdAt: FS().serverTimestamp() });
+            }
+            toast(restrict ? '🔒 User restricted' : '🔓 User unrestricted'); loadAdminAll();
         }
 
         async function deleteUser(id) {
@@ -12348,6 +12496,14 @@ Message: ${message}`);
         async function debitPlatformAccount(name, amount, note, txRef) {
             if (!amount || amount <= 0) return;
             const ref = db.collection('platformAccounts').doc(name);
+            // Prevent negative balance — read current balance first
+            const snap = await ref.get();
+            const currentBal = snap.exists ? (snap.data().balance || 0) : 0;
+            if (currentBal < amount) {
+                console.warn(`[debitPlatformAccount] Insufficient balance in '${name}': has $${currentBal}, needs $${amount}. Debit capped.`);
+                amount = Math.max(0, currentBal); // cap to available; skip if zero
+                if (amount <= 0) return;
+            }
             const logRef = db.collection('platformAccountLogs').doc();
             const batch = db.batch();
             batch.set(ref, { balance: FS().increment(-amount), updatedAt: FS().serverTimestamp() }, { merge: true });
@@ -13133,7 +13289,6 @@ Message: ${message}`);
                         <div class="card-actions">
                             ${canToggle ? `<button class="btn btn-gh btn-sm" onclick="toggleCardBlock('${c.id}','${nextStatus}')">${nextAction}</button>` : ''}
                             <button class="btn btn-sky btn-sm" onclick="openTempPinModal('${c.id}')">🔐 Temp PIN</button>
-                            <button class="btn btn-d btn-sm" onclick="deleteCard('${c.id}')">🗑 Delete</button>
                         </div>
                     </div>`;
                 }).join('');
@@ -16697,57 +16852,61 @@ ${names}${ids.length > 6 ? ' ...' : ''}`;
         // ════════════════════════════════════════════════════════
         // KYC VERIFICATION
         // ════════════════════════════════════════════════════════
-        function previewKYC(input) {
+        window._kycPhotos = { front: null, back: null, selfie: null };
+
+        function previewKYCPhoto(input, previewId, slot) {
             const file = input && input.files && input.files[0];
             if (!file) return;
-            if (file.size > 1.5 * 1024 * 1024) { toast('Image too large. Max 1.5MB', 'tr'); return; }
+            if (file.size > 2 * 1024 * 1024) { toast('Image too large. Max 2MB per photo', 'tr'); return; }
             const reader = new FileReader();
             reader.onload = function (e) {
                 const b64 = e.target.result;
-                // Set global FIRST before any DOM operations that could fail
-                window._kycBase64 = b64;
-                // Then update UI safely
-                const img = $('kyc-preview');
+                window._kycPhotos[slot] = b64;
+                const img = $(previewId);
                 if (img) { img.src = b64; img.style.display = 'block'; }
+                // Show submit button only when all 3 photos are ready
+                const allReady = window._kycPhotos.front && window._kycPhotos.back && window._kycPhotos.selfie;
                 const btn = $('kyc-submit-btn');
-                if (btn) { btn.style.display = 'flex'; btn.style.visibility = 'visible'; }
+                if (btn) btn.style.display = allReady ? 'flex' : 'none';
             };
             reader.onerror = function () { toast('Could not read image. Please try another file.', 'tr'); };
             reader.readAsDataURL(file);
         }
 
+        // Legacy single-photo preview kept for backwards compat
+        function previewKYC(input) { previewKYCPhoto(input, 'kyc-preview-front', 'front'); }
+
         async function submitKYC() {
             const u = window.CU;
-            // If _kycBase64 not set, try reading from file input directly
-            if (!window._kycBase64) {
-                const fi = $('kyc-file');
-                if (fi && fi.files && fi.files[0]) {
-                    // Read it now
-                    window._kycBase64 = await new Promise(function (res, rej) {
-                        const r = new FileReader();
-                        r.onload = function (e) { res(e.target.result); };
-                        r.onerror = function () { rej(new Error('read failed')); };
-                        r.readAsDataURL(fi.files[0]);
-                    });
-                }
-            }
-            if (!window._kycBase64) return toast('Please select an ID photo using the Choose ID Photo button', 'ty');
+            if (u.kycStatus === 'approved') return toast('Already verified ✅', 'tg');
+            if (u.kycStatus === 'pending') return toast('KYC already submitted — awaiting review', 'ty');
+            if (u.kycBanned) return toast('You are not permitted to submit identity verification. Contact support.', 'tr', 6000);
+            // Check all 3 photos present
+            if (!window._kycPhotos.front) return toast('Please upload the front of your ID', 'ty');
+            if (!window._kycPhotos.back) return toast('Please upload the back of your ID', 'ty');
+            if (!window._kycPhotos.selfie) return toast('Please upload a selfie holding your ID', 'ty');
             const btn = $('kyc-submit-btn');
-            btn.innerHTML = '<span class="sp"></span> Submitting…'; btn.disabled = true;
+            if (btn) { btn.innerHTML = '<span class="sp"></span> Submitting…'; btn.disabled = true; }
             try {
                 await db.collection('kyc').doc(u.uid).set({
                     uid: u.uid, userName: u.name, userEmail: u.email,
-                    imageBase64: window._kycBase64,
+                    idFront: window._kycPhotos.front,
+                    idBack: window._kycPhotos.back,
+                    selfie: window._kycPhotos.selfie,
+                    // legacy field for old admin code that checks imageBase64
+                    imageBase64: window._kycPhotos.front,
+                    registeredName: u.name,
                     status: 'pending',
                     submittedAt: FS().serverTimestamp()
                 });
                 await db.collection('users').doc(u.uid).update({ kycStatus: 'pending' });
                 window.CU.kycStatus = 'pending';
                 await db.collection('adminNotifs').add({ type: 'kyc', msg: 'KYC submitted by ' + u.name, uid: u.uid, read: false, createdAt: FS().serverTimestamp() });
-                tg('🪪 KYC Submitted\nUser: ' + u.name + ' (' + u.email + ')');
+                tg('🪪 <b>KYC Submitted</b>\nUser: ' + u.name + ' (' + u.email + ')\nPhotos: ID Front + Back + Selfie');
                 updateKYCUI('pending');
-                toast('ID submitted! We will review within 24 hours ✓', 'tg', 5000);
-            } catch (e) { toast(e.message, 'tr'); btn.innerHTML = 'Submit for Verification →'; btn.disabled = false; }
+                window._kycPhotos = { front: null, back: null, selfie: null };
+                toast('Documents submitted! We will review within 24 hours ✓', 'tg', 5000);
+            } catch (e) { toast(e.message, 'tr'); if (btn) { btn.innerHTML = 'Submit for Verification →'; btn.disabled = false; } }
         }
 
         function updateKYCUI(status) {
@@ -16774,6 +16933,8 @@ ${names}${ids.length > 6 ? ' ...' : ''}`;
                 uploadArea.style.display = 'block';
             }
         }
+        // ════════════════════════════════════════════════════════
+        // BLOCK WITHDRAWAL IF NOT KYC VERIFIED        }
 
         // ════════════════════════════════════════════════════════
         // BLOCK WITHDRAWAL IF NOT KYC VERIFIED
@@ -16801,6 +16962,8 @@ ${names}${ids.length > 6 ? ' ...' : ''}`;
         async function loadAdminKYC(filter = 'pending') {
             let snap;
             if (filter === 'pending') { snap = await db.collection('kyc').where('status', '==', 'pending').get(); }
+            else if (filter === 'approved') { snap = await db.collection('kyc').where('status', '==', 'approved').get(); }
+            else if (filter === 'rejected') { snap = await db.collection('kyc').where('status', '==', 'rejected').get(); }
             else { snap = await db.collection('kyc').get(); }
             const list = snap.docs.map(function (d) { return { id: d.id, ...d.data() }; }).sort(function (a, b) { return (b.submittedAt?.seconds || 0) - (a.submittedAt?.seconds || 0); });
             const el = $('at-kyc-list');
@@ -16808,21 +16971,36 @@ ${names}${ids.length > 6 ? ' ...' : ''}`;
             el.innerHTML = list.map(function (k) {
                 window['_kyc_' + k.uid] = k;
                 const badge = k.status === 'approved' ? '<span class="badge bg">Approved</span>' : k.status === 'pending' ? '<span class="badge bgold">Pending</span>' : '<span class="badge br">Rejected</span>';
-                const acts = k.status === 'pending'
-                    ? '<button class="btn btn-p btn-sm" onclick="adminApproveKYC(this)" data-uid="' + k.uid + '">✓ Approve</button>'
-                    + '<button class="btn btn-d btn-sm" onclick="adminRejectKYC(this)" data-uid="' + k.uid + '">✕ Reject</button>'
-                    : '';
-                // Handle all field name variants
                 const kName = k.userName || k.name || 'Unknown';
                 const kEmail = k.userEmail || k.email || '';
-                const kImg = k.imageBase64 || k.image || null;
+                // Support both old single-image and new 3-photo format
+                const frontImg = k.idFront || k.imageBase64 || k.image || null;
+                const backImg = k.idBack || null;
+                const selfieImg = k.selfie || null;
+                const imgBlock = [
+                    frontImg ? `<div style="margin-bottom:6px"><div style="font-size:.72rem;color:var(--t3);margin-bottom:3px">ID Front</div><img src="${frontImg}" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid var(--bds);display:block"></div>` : '',
+                    backImg ? `<div style="margin-bottom:6px"><div style="font-size:.72rem;color:var(--t3);margin-bottom:3px">ID Back</div><img src="${backImg}" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid var(--bds);display:block"></div>` : '',
+                    selfieImg ? `<div style="margin-bottom:6px"><div style="font-size:.72rem;color:var(--t3);margin-bottom:3px">Selfie with ID</div><img src="${selfieImg}" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid var(--bds);display:block"></div>` : ''
+                ].join('');
+                if (!frontImg) imgBlock.concat('<div style="font-size:.78rem;color:var(--red);margin:6px 0">⚠️ No images found</div>');
+                const regName = k.registeredName ? `<div style="font-size:.75rem;color:var(--t2);margin-top:2px">Registered name: <strong style="color:var(--gold)">${k.registeredName}</strong> — verify it matches ID</div>` : '';
+                const approveRejectBtns = k.status === 'pending'
+                    ? `<button class="btn btn-p btn-sm" onclick="adminApproveKYC(this)" data-uid="${k.uid}">✓ Approve</button>`
+                    + `<button class="btn btn-d btn-sm" onclick="adminRejectKYC(this)" data-uid="${k.uid}">✕ Reject</button>`
+                    : k.status === 'approved'
+                    ? `<button class="btn btn-d btn-sm" onclick="adminRejectKYC(this)" data-uid="${k.uid}">Revoke Approval</button>`
+                    : `<button class="btn btn-p btn-sm" onclick="adminApproveKYC(this)" data-uid="${k.uid}">✓ Approve</button>`;
                 return '<div class="arow">'
                     + '<div class="ar-top"><div>'
                     + '<div class="ar-name">' + kName + ' ' + badge + '</div>'
                     + '<div class="ar-sub">' + kEmail + ' · ' + fmtDT(k.submittedAt) + '</div>'
+                    + regName
                     + '</div></div>'
-                    + (kImg ? '<img src="' + kImg + '" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid var(--bds);margin:8px 0;display:block">' : '<div style="font-size:.78rem;color:var(--red);margin:6px 0">⚠️ No image found in submission</div>')
-                    + '<div class="ar-acts">' + acts + '</div></div>';
+                    + (imgBlock || '<div style="font-size:.78rem;color:var(--red);margin:6px 0">⚠️ No images found in submission</div>')
+                    + '<div class="ar-acts">' + approveRejectBtns
+                    + `<button class="btn btn-d btn-sm" onclick="adminDeleteKYC('${k.uid}')">🗑 Delete</button>`
+                    + `<button class="btn btn-gh btn-sm" onclick="adminBanFromKYC('${k.uid}','${kName.replace(/'/g, "\\'")}',${!!k.kycBanned})">${k.kycBanned ? '🔓 Allow KYC' : '🚫 Ban KYC'}</button>`
+                    + '</div></div>';
             }).join('');
         }
 
@@ -16839,8 +17017,26 @@ ${names}${ids.length > 6 ? ' ...' : ''}`;
             const uid = btn.dataset.uid;
             await db.collection('kyc').doc(uid).update({ status: 'rejected', reviewedAt: FS().serverTimestamp() });
             await db.collection('users').doc(uid).update({ kycStatus: 'rejected' });
-            await db.collection('userNotifs').add({ uid, msg: '❌ Your ID verification was rejected. Please resubmit a clearer photo from your Profile.', read: false, createdAt: FS().serverTimestamp() });
+            await db.collection('userNotifs').add({ uid, msg: '❌ Your ID verification was rejected. Please resubmit clearer photos of both sides of your ID and a selfie from your Profile.', read: false, createdAt: FS().serverTimestamp() });
             toast('KYC rejected'); loadAdminKYC();
+        }
+
+        async function adminDeleteKYC(uid) {
+            if (!confirm('Delete this KYC submission? This will reset the user\'s verification status.')) return;
+            await db.collection('kyc').doc(uid).delete();
+            await db.collection('users').doc(uid).update({ kycStatus: 'none' });
+            await db.collection('userNotifs').add({ uid, msg: '🗑 Your KYC submission has been deleted by admin. Please resubmit from your Profile.', read: false, createdAt: FS().serverTimestamp() });
+            toast('KYC deleted and status reset ✓'); loadAdminKYC();
+        }
+
+        async function adminBanFromKYC(uid, name, currentlyBanned) {
+            const newBanned = !currentlyBanned;
+            await db.collection('kyc').doc(uid).set({ kycBanned: newBanned }, { merge: true });
+            await db.collection('users').doc(uid).update({ kycBanned: newBanned });
+            if (newBanned) {
+                await db.collection('userNotifs').add({ uid, msg: '🚫 You have been banned from submitting identity verification. Contact support for assistance.', read: false, createdAt: FS().serverTimestamp() });
+            }
+            toast(newBanned ? `${name} banned from KYC ✓` : `${name} allowed to do KYC ✓`); loadAdminKYC();
         }
 
         // ════════════════════════════════════════════════════════
@@ -19174,6 +19370,13 @@ By: ${u.name}`);
                 toast('Birthday is locked. Contact support@example.com to update it.', 'ty', 5000);
                 return;
             }
+            // Block birthday until KYC approved — admin manually checks DOB against ID
+            if (!window.CU || window.CU.kycStatus !== 'approved') {
+                const kycMsg = $('bday-kyc-required');
+                if (kycMsg) kycMsg.style.display = 'block';
+                toast('Complete identity verification first. Your DOB will be checked against your ID.', 'ty', 5000);
+                return;
+            }
             const wrap = $('bday-edit-wrap');
             if (wrap) wrap.style.display = 'block';
             const btn = $('bday-edit-btn');
@@ -19316,66 +19519,9 @@ By: ${u.name}`);
                 if (btn) { btn.style.display = 'flex'; btn.style.visibility = 'visible'; }
             });
         }
-        async function submitKYC() {
-            // Use window._kycBase64 set by previewKYC, or try reading file directly
-            let b64 = window._kycBase64;
-            if (!b64) {
-                const fi = $('kyc-file');
-                if (fi && fi.files && fi.files[0]) {
-                    b64 = await new Promise(function (res, rej) {
-                        const r = new FileReader();
-                        r.onload = function (e) { res(e.target.result); };
-                        r.onerror = function () { rej(new Error('read failed')); };
-                        r.readAsDataURL(fi.files[0]);
-                    });
-                    window._kycBase64 = b64;
-                }
-            }
-            if (!b64) return toast('Please choose an ID photo first', 'ty');
-            const u = window.CU;
-            if (u.kycStatus === 'approved') return toast('Already verified ✅', 'tg');
-            if (u.kycStatus === 'pending') return toast('KYC already submitted — awaiting review', 'ty');
-            const btn = $('kyc-submit-btn');
-            if (btn) { btn.textContent = 'Submitting…'; btn.disabled = true; }
-            try {
-                // Save with all field variants so both admin views can find it
-                await db.collection('kyc').doc(u.uid).set({
-                    uid: u.uid,
-                    name: u.name, userName: u.name,
-                    email: u.email, userEmail: u.email,
-                    image: b64, imageBase64: b64,
-                    status: 'pending',
-                    submittedAt: FS().serverTimestamp()
-                });
-                await db.collection('users').doc(u.uid).update({ kycStatus: 'pending' });
-                await db.collection('adminNotifs').add({ type: 'kyc', msg: 'KYC submitted by ' + u.name, uid: u.uid, read: false, createdAt: FS().serverTimestamp() });
-                tg('🪪 <b>KYC Submitted</b>\nUser: ' + u.name + ' (' + u.email + ')');
-                window.CU.kycStatus = 'pending';
-                window._kycBase64 = null; // clear after submit
-                toast('ID submitted! We will review within 24 hours ✓', 'tg', 5000);
-                if (typeof updateKYCUI === 'function') updateKYCUI('pending');
-                else if (typeof loadKYCStatus === 'function') loadKYCStatus();
-            } catch (e) {
-                toast('Error: ' + e.message, 'tr');
-                if (btn) { btn.textContent = 'Submit for Verification →'; btn.disabled = false; }
-            }
-        }
         function loadKYCStatus() {
             const u = window.CU;
-            const badge = $('kyc-status-badge');
-            const wrap = $('kyc-upload-wrap');
-            if (!badge) return;
-            if (u.kycStatus === 'approved') {
-                badge.innerHTML = '<span class="badge bg">✅ Verified</span>';
-                if (wrap) wrap.innerHTML = '<div style="font-size:.82rem;color:var(--g)">✅ Your identity has been verified.</div>';
-            } else if (u.kycStatus === 'pending') {
-                badge.innerHTML = '<span class="badge bgold">⏳ Pending</span>';
-                if (wrap) wrap.innerHTML = '<div style="font-size:.82rem;color:var(--gold)">⏳ KYC under review. We will notify you soon.</div>';
-            } else if (u.kycStatus === 'rejected') {
-                badge.innerHTML = '<span class="badge br">❌ Rejected</span>';
-            } else {
-                badge.innerHTML = '<span class="badge bmut">Not Verified</span>';
-            }
+            if (typeof updateKYCUI === 'function') updateKYCUI(u.kycStatus || 'none');
         }
         // ════════════════════════════════════════════════════════
         // SCRATCH CARD

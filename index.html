@@ -7870,15 +7870,77 @@
             const ctx = canvas.getContext('2d');
             const layers = { charts: [], notes: [], coins: [], silhouettes: [] };
             const GOLD = '#ffd700';
+            const TARGET_FPS = 30;
+            const FRAME_MS = 1000 / TARGET_FPS;
+            const LOW_FPS_THRESHOLD = 22;
+            const LOW_FPS_FRAME_STREAK = 40;
+            const SMALL_SCREEN_W = 760;
+            const SMALL_SCREEN_H = 600;
+            let lastRenderTs = 0;
+            let lastFpsTs = 0;
+            let fpsFrames = 0;
+            let lowFpsStreak = 0;
+            let failSafeApplied = false;
+            let isLowPowerMode = false;
+            let staticBgCanvas = null;
+            let noteFillStyle = null;
+            let coinFillStyle = null;
+            let isHidden = document.visibilityState === 'hidden';
             function resize() {
                 canvas.width = window.innerWidth;
                 canvas.height = window.innerHeight;
             }
             function r(min, max) { return min + Math.random() * (max - min); }
+            function hasLowPowerSignals() {
+                const cores = navigator.hardwareConcurrency || 4;
+                const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                return window.innerWidth <= SMALL_SCREEN_W || window.innerHeight <= SMALL_SCREEN_H || cores <= 4 || prefersReducedMotion;
+            }
+            function getCounts() {
+                const widthFactor = Math.max(0.65, Math.min(1, canvas.width / 1280));
+                const baseCharts = Math.max(2, Math.min(3, Math.round(2 + widthFactor)));
+                const baseNotes = Math.max(3, Math.min(6, Math.round(4 + widthFactor * 2)));
+                const baseCoins = Math.max(4, Math.min(8, Math.round(5 + widthFactor * 3)));
+                // Reduce all animation elements by ~50% for low-power devices.
+                if (!isLowPowerMode) return { charts: baseCharts, notes: baseNotes, coins: baseCoins };
+                return {
+                    charts: Math.max(2, Math.ceil(baseCharts * 0.5)),
+                    notes: Math.max(2, Math.ceil(baseNotes * 0.5)),
+                    coins: Math.max(3, Math.ceil(baseCoins * 0.5))
+                };
+            }
+            function buildStaticBackground() {
+                staticBgCanvas = document.createElement('canvas');
+                staticBgCanvas.width = canvas.width;
+                staticBgCanvas.height = canvas.height;
+                const bctx = staticBgCanvas.getContext('2d');
+                if (!bctx) return;
+                const grad = bctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                grad.addColorStop(0, 'rgba(0, 230, 160, 0.09)');
+                grad.addColorStop(0.55, 'rgba(7, 26, 16, 0.03)');
+                grad.addColorStop(1, 'rgba(255, 215, 0, 0.08)');
+                bctx.fillStyle = grad;
+                bctx.fillRect(0, 0, canvas.width, canvas.height);
+                // Static business silhouettes layer (non-animated, very low opacity, behind all moving elements).
+                bctx.save();
+                bctx.filter = isLowPowerMode ? 'none' : 'blur(20px)';
+                bctx.globalAlpha = isLowPowerMode ? 0.05 : 0.08;
+                bctx.fillStyle = 'rgba(185, 210, 196, 0.9)';
+                layers.silhouettes.forEach((s) => {
+                    const bodyW = 32 * s.scale;
+                    const bodyH = 80 * s.scale;
+                    bctx.beginPath();
+                    bctx.arc(s.x, s.y - bodyH * 0.9, 13 * s.scale, 0, Math.PI * 2);
+                    bctx.fill();
+                    bctx.fillRect(s.x - bodyW * 0.5, s.y - bodyH * 0.8, bodyW, bodyH);
+                });
+                bctx.restore();
+            }
             function seed() {
-                const chartCount = Math.max(3, Math.min(6, Math.floor(canvas.width / 480)));
-                const noteCount = Math.max(6, Math.min(12, Math.floor(canvas.width / 210)));
-                const coinCount = Math.max(7, Math.min(14, Math.floor(canvas.width / 170)));
+                const counts = getCounts();
+                const chartCount = counts.charts; // hard max: 3
+                const noteCount = counts.notes; // hard max: 6
+                const coinCount = counts.coins; // hard max: 8
                 const silhouetteCount = Math.max(2, Math.min(4, Math.floor(canvas.width / 500)));
                 layers.charts = [];
                 layers.notes = [];
@@ -7904,7 +7966,7 @@
                         vy: r(0.05, 0.14),
                         tilt: r(-0.22, 0.22),
                         phase: r(0, Math.PI * 2),
-                        alpha: r(0.28, 0.42)
+                        alpha: r(0.22, 0.32)
                     });
                 }
                 for (let i = 0; i < coinCount; i++) {
@@ -7917,7 +7979,8 @@
                         rot: r(0, Math.PI * 2),
                         rotSpeed: r(-0.0028, 0.0028),
                         phase: r(0, Math.PI * 2),
-                        alpha: r(0.48, 0.72)
+                        alpha: r(0.42, 0.62),
+                        isFront: i < Math.ceil(coinCount * 0.34)
                     });
                 }
                 for (let i = 0; i < silhouetteCount; i++) {
@@ -7925,17 +7988,12 @@
                         x: canvas.width * r(0.1, 0.9),
                         y: canvas.height * r(0.64, 0.9),
                         scale: r(0.75, 1.25),
-                        alpha: r(0.08, 0.14)
+                        alpha: r(0.05, 0.1)
                     });
                 }
-            }
-            function drawBaseGlow() {
-                const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-                grad.addColorStop(0, 'rgba(0, 230, 160, 0.11)');
-                grad.addColorStop(0.55, 'rgba(7, 26, 16, 0.04)');
-                grad.addColorStop(1, 'rgba(255, 215, 0, 0.12)');
-                ctx.fillStyle = grad;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                noteFillStyle = null;
+                coinFillStyle = null;
+                buildStaticBackground();
             }
             function drawGrowthCharts(ts) {
                 layers.charts.forEach((line, idx) => {
@@ -7949,30 +8007,10 @@
                     }
                     const isGold = idx % 2 === 1;
                     ctx.strokeStyle = isGold ? `rgba(255, 215, 0, ${line.alpha})` : `rgba(0, 230, 160, ${line.alpha + 0.08})`;
-                    ctx.shadowColor = isGold ? 'rgba(255, 215, 0, 0.25)' : 'rgba(0, 230, 160, 0.28)';
-                    ctx.shadowBlur = 18;
-                    ctx.filter = 'blur(1.6px)';
+                    ctx.shadowColor = 'transparent';
+                    ctx.shadowBlur = 0;
                     ctx.lineWidth = line.thickness;
                     ctx.stroke();
-                });
-                ctx.shadowBlur = 0; ctx.filter = 'none';
-            }
-            function drawSilhouettes(ts) {
-                layers.silhouettes.forEach((s, i) => {
-                    const bob = Math.sin(ts * 0.00016 + i) * 5;
-                    const x = s.x;
-                    const y = s.y + bob;
-                    const bodyW = 32 * s.scale;
-                    const bodyH = 80 * s.scale;
-                    ctx.save();
-                    ctx.globalAlpha = s.alpha;
-                    ctx.filter = 'blur(6px)';
-                    ctx.fillStyle = 'rgba(185, 210, 196, 0.55)';
-                    ctx.beginPath();
-                    ctx.arc(x, y - bodyH * 0.9, 13 * s.scale, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillRect(x - bodyW * 0.5, y - bodyH * 0.8, bodyW, bodyH);
-                    ctx.restore();
                 });
             }
             function drawNotes(ts) {
@@ -7986,15 +8024,17 @@
                     ctx.translate(n.x, n.y);
                     ctx.rotate(n.tilt + Math.sin(ts * 0.00035 + n.phase) * 0.1);
                     ctx.globalAlpha = n.alpha;
-                    const noteGrad = ctx.createLinearGradient(-n.w * 0.5, 0, n.w * 0.5, 0);
-                    noteGrad.addColorStop(0, 'rgba(0, 160, 110, 0.95)');
-                    noteGrad.addColorStop(1, 'rgba(0, 230, 160, 0.85)');
-                    ctx.fillStyle = noteGrad;
-                    ctx.shadowColor = 'rgba(0, 230, 160, 0.32)';
-                    ctx.shadowBlur = 8;
+                    if (!noteFillStyle) {
+                        noteFillStyle = ctx.createLinearGradient(-44, 0, 44, 0);
+                        noteFillStyle.addColorStop(0, 'rgba(0, 160, 110, 0.82)');
+                        noteFillStyle.addColorStop(1, 'rgba(0, 230, 160, 0.68)');
+                    }
+                    ctx.fillStyle = noteFillStyle;
+                    ctx.shadowColor = 'transparent';
+                    ctx.shadowBlur = 0;
                     ctx.fillRect(-n.w * 0.5, -n.h * 0.5, n.w, n.h);
                     ctx.strokeStyle = 'rgba(235, 255, 246, 0.5)';
-                    ctx.lineWidth = 1.3;
+                    ctx.lineWidth = 1;
                     ctx.strokeRect(-n.w * 0.43, -n.h * 0.3, n.w * 0.86, n.h * 0.6);
                     ctx.restore();
                 });
@@ -8010,13 +8050,21 @@
                     ctx.translate(c.x, c.y);
                     ctx.rotate(c.rot);
                     ctx.globalAlpha = c.alpha;
-                    const coinGrad = ctx.createRadialGradient(-c.size * 0.24, -c.size * 0.26, c.size * 0.1, 0, 0, c.size * 0.58);
-                    coinGrad.addColorStop(0, '#fff6b8');
-                    coinGrad.addColorStop(0.5, GOLD);
-                    coinGrad.addColorStop(1, '#b8860b');
-                    ctx.fillStyle = coinGrad;
-                    ctx.shadowColor = 'rgba(255, 215, 0, 0.5)';
-                    ctx.shadowBlur = 16;
+                    if (!coinFillStyle) {
+                        coinFillStyle = ctx.createRadialGradient(-20, -20, 5, 0, 0, 34);
+                        coinFillStyle.addColorStop(0, '#fff6b8');
+                        coinFillStyle.addColorStop(0.5, GOLD);
+                        coinFillStyle.addColorStop(1, '#b8860b');
+                    }
+                    ctx.fillStyle = coinFillStyle;
+                    // Glow only on front coins.
+                    if (!isLowPowerMode && c.isFront) {
+                        ctx.shadowColor = 'rgba(255, 215, 0, 0.28)';
+                        ctx.shadowBlur = 6;
+                    } else {
+                        ctx.shadowColor = 'transparent';
+                        ctx.shadowBlur = 0;
+                    }
                     ctx.beginPath();
                     ctx.ellipse(0, 0, c.size * 0.5, c.size * 0.42, 0, 0, Math.PI * 2);
                     ctx.fill();
@@ -8032,25 +8080,62 @@
                 });
                 ctx.shadowBlur = 0;
             }
+            function maybeApplyFailSafe() {
+                if (failSafeApplied) return;
+                failSafeApplied = true;
+                isLowPowerMode = true;
+                seed();
+            }
             function render(ts = 0) {
+                if (isHidden) return;
+                if (lastRenderTs && (ts - lastRenderTs) < FRAME_MS) {
+                    _bgAnimFrame = requestAnimationFrame(render);
+                    return;
+                }
+                lastRenderTs = ts;
+                fpsFrames += 1;
+                if (!lastFpsTs) lastFpsTs = ts;
+                if (ts - lastFpsTs >= 1000) {
+                    const fps = (fpsFrames * 1000) / (ts - lastFpsTs);
+                    lowFpsStreak = fps < LOW_FPS_THRESHOLD ? (lowFpsStreak + 1) : 0;
+                    if (lowFpsStreak >= LOW_FPS_FRAME_STREAK) maybeApplyFailSafe();
+                    fpsFrames = 0;
+                    lastFpsTs = ts;
+                }
                 if (window._platformSettings?.animatedBackgroundEnabled === false) {
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     _bgAnimFrame = requestAnimationFrame(render);
                     return;
                 }
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                drawBaseGlow();
+                if (staticBgCanvas) ctx.drawImage(staticBgCanvas, 0, 0);
                 drawGrowthCharts(ts);
-                drawSilhouettes(ts);
                 drawNotes(ts);
                 drawCoins(ts);
                 _bgAnimFrame = requestAnimationFrame(render);
             }
-            window.addEventListener('resize', () => { resize(); seed(); });
+            window.addEventListener('resize', () => {
+                isLowPowerMode = hasLowPowerSignals() || failSafeApplied;
+                resize();
+                seed();
+            });
+            document.addEventListener('visibilitychange', () => {
+                isHidden = document.visibilityState === 'hidden';
+                if (isHidden) {
+                    if (_bgAnimFrame) cancelAnimationFrame(_bgAnimFrame);
+                    _bgAnimFrame = null;
+                    return;
+                }
+                lastRenderTs = 0;
+                lastFpsTs = 0;
+                fpsFrames = 0;
+                _bgAnimFrame = requestAnimationFrame(render);
+            });
+            isLowPowerMode = hasLowPowerSignals();
             resize();
             seed();
             if (_bgAnimFrame) cancelAnimationFrame(_bgAnimFrame);
-            render();
+            _bgAnimFrame = requestAnimationFrame(render);
         }
         initFinancialBackground();
 

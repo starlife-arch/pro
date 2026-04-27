@@ -2,6 +2,7 @@ const fetch = require('node-fetch');
 const { getAccessToken, timestampNow, buildStkPassword, assertEnv, normalizeKenyanPhone, getMpesaBaseUrl } = require('./_lib/mpesa');
 const admin = require('firebase-admin');
 
+// Firebase Admin SDK initialization using environment variable
 if (!admin.apps.length) {
   const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
   admin.initializeApp({

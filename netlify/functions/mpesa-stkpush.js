@@ -1,4 +1,4 @@
-const { getAccessToken, timestampNow, buildStkPassword, assertEnv, normalizeKenyanPhone } = require('./_lib/mpesa');
+const { getAccessToken, timestampNow, buildStkPassword, assertEnv, normalizeKenyanPhone, getMpesaBaseUrl } = require('./_lib/mpesa');
 
 exports.handler = async (event) => {
   const { phone, amountKES, userId, userName } = JSON.parse(event.body);
@@ -7,6 +7,7 @@ exports.handler = async (event) => {
   const timestamp = timestampNow();
   const password = buildStkPassword(shortcode, passkey, timestamp);
   const token = await getAccessToken();
+  const baseUrl = getMpesaBaseUrl();
 
   const payload = {
     BusinessShortCode: shortcode,
@@ -22,7 +23,7 @@ exports.handler = async (event) => {
     TransactionDesc: 'Starlife deposit'
   };
 
-  const res = await fetch(`${process.env.MPESA_ENV === 'production' ? 'https://api.safaricom.co.ke' : 'https://sandbox.safaricom.co.ke'}/mpesa/stkpush/v1/processrequest`, {
+  const res = await fetch(`${baseUrl}/mpesa/stkpush/v1/processrequest`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)

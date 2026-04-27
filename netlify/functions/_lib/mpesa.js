@@ -1,11 +1,11 @@
 function getMpesaEnv() {
-  return String(process.env.MPESA_ENV || 'sandbox').toLowerCase();
+  const env = process.env.MPESA_ENV;
+  if (!env) throw new Error('MPESA_ENV environment variable is not set');
+  return String(env).toLowerCase();
 }
 
 function getMpesaBaseUrl() {
-  return getMpesaEnv() === 'production'
-    ? 'https://api.safaricom.co.ke'
-    : 'https://sandbox.safaricom.co.ke';
+  return assertEnv('MPESA_BASE_URL');
 }
 
 function assertEnv(name) {

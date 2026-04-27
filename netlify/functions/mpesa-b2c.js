@@ -1,3 +1,4 @@
+const fetch = require('node-fetch');
 const { getAccessToken, assertEnv, normalizeKenyanPhone, getMpesaBaseUrl } = require('./_lib/mpesa');
 
 exports.handler = async (event) => {
@@ -5,9 +6,10 @@ exports.handler = async (event) => {
   const shortcode = assertEnv('MPESA_SHORTCODE');
   const token = await getAccessToken();
   const baseUrl = getMpesaBaseUrl();
+  const siteUrl = assertEnv('SITE_URL');
 
-  // IMPORTANT: Replace this placeholder with your actual encrypted security credential.
-  // In production, you must generate this properly using Safaricom's public key.
+  // IMPORTANT: Replace this with your actual live encrypted security credential.
+  // For now, a placeholder – must be generated with Safaricom public key.
   const securityCredential = 'PLACEHOLDER_ENCRYPTED_CREDENTIAL';
 
   const payload = {
@@ -18,8 +20,8 @@ exports.handler = async (event) => {
     PartyA: shortcode,
     PartyB: normalizeKenyanPhone(phone),
     Remarks: `Withdrawal ${withdrawalId}`,
-    QueueTimeOutURL: `${process.env.URL}/.netlify/functions/mpesa-b2c-timeout`,
-    ResultURL: `${process.env.URL}/.netlify/functions/mpesa-b2c-result`,
+    QueueTimeOutURL: `${siteUrl}/.netlify/functions/mpesa-b2c-timeout`,
+    ResultURL: `${siteUrl}/.netlify/functions/mpesa-b2c-result`,
     Occasion: 'Starlife payout'
   };
 
@@ -28,8 +30,8 @@ exports.handler = async (event) => {
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
-  const data = await res.json();
 
+  const data = await res.json();
   if (!res.ok || data.ResponseCode !== '0') {
     throw new Error(data.errorMessage || data.ResponseDescription || 'B2C request failed');
   }

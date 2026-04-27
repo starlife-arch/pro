@@ -16,7 +16,9 @@ exports.handler = async (event) => {
 
   const txRef = db.collection('mpesa_transactions').doc(checkoutId);
   const txDoc = await txRef.get();
-  if (!txDoc.exists) return { statusCode: 200, body: 'OK' };
+  if (!txDoc.exists) {
+    return { statusCode: 200, body: 'OK' };
+  }
 
   if (resultCode === 0) {
     const amountKES = stkCallback.CallbackMetadata.Item.find(i => i.Name === 'Amount').Value;
@@ -34,7 +36,12 @@ exports.handler = async (event) => {
       });
     });
 
-    await txRef.update({ status: 'completed', receipt, amountKES });
+    await txRef.update({
+      status: 'completed',
+      receipt,
+      amountKES
+    });
+
     await db.collection('deposits').add({
       uid: userId,
       amount: usdAmount,
@@ -43,7 +50,11 @@ exports.handler = async (event) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
   } else {
-    await txRef.update({ status: 'failed', resultDesc: stkCallback.ResultDesc });
+    await txRef.update({
+      status: 'failed',
+      resultDesc: stkCallback.ResultDesc
+    });
   }
+
   return { statusCode: 200, body: 'OK' };
 };

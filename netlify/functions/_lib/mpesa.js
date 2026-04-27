@@ -1,19 +1,11 @@
-function getMpesaEnv() {
-  const env = process.env.MPESA_ENV;
-  if (!env) throw new Error('MPESA_ENV environment variable is not set');
-  return String(env).toLowerCase();
-}
-
-function getMpesaBaseUrl() {
-  return getMpesaEnv() === 'production'
-    ? 'https://api.safaricom.co.ke'
-    : 'https://sandbox.safaricom.co.ke';
-}
-
 function assertEnv(name) {
   const value = process.env[name];
   if (!value) throw new Error(`Missing environment variable: ${name}`);
   return value;
+}
+
+function getMpesaBaseUrl() {
+  return assertEnv('MPESA_BASE_URL');
 }
 
 function timestampNow() {
@@ -55,6 +47,5 @@ module.exports = {
   timestampNow,
   normalizeKenyanPhone,
   getAccessToken,
-  buildStkPassword,
-  getMpesaEnv
+  buildStkPassword
 };

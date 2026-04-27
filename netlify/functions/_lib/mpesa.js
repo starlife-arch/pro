@@ -1,3 +1,5 @@
+const fetch = require('node-fetch');
+
 function assertEnv(name) {
   const value = process.env[name];
   if (!value) throw new Error(`Missing environment variable: ${name}`);
@@ -26,13 +28,16 @@ async function getAccessToken() {
   const consumerKey = assertEnv('MPESA_CONSUMER_KEY');
   const consumerSecret = assertEnv('MPESA_CONSUMER_SECRET');
   const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');
-  const res = await fetch(`${getMpesaBaseUrl()}/oauth/v1/generate?grant_type=client_credentials`, {
+  const url = `${getMpesaBaseUrl()}/oauth/v1/generate?grant_type=client_credentials`;
+
+  const res = await fetch(url, {
     method: 'GET',
     headers: { Authorization: `Basic ${auth}` }
   });
+
   const data = await res.json();
   if (!res.ok || !data.access_token) {
-    throw new Error(data.errorMessage || data.error_description || 'Failed to get M-Pesa token');
+    throw new Error(data.errorMessage || data.error_description || 'Failed to get M-Pesa access token');
   }
   return data.access_token;
 }

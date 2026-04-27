@@ -1,9 +1,10 @@
-const { getAccessToken, assertEnv, normalizeKenyanPhone } = require('./_lib/mpesa');
+const { getAccessToken, assertEnv, normalizeKenyanPhone, getMpesaBaseUrl } = require('./_lib/mpesa');
 
 exports.handler = async (event) => {
   const { phone, amountKES, withdrawalId, userId } = JSON.parse(event.body);
   const shortcode = assertEnv('MPESA_SHORTCODE');
   const token = await getAccessToken();
+  const baseUrl = getMpesaBaseUrl();
 
   // In production, you must encrypt SecurityCredential properly.
   // For now, use a placeholder – replace with actual encryption when live.
@@ -22,7 +23,7 @@ exports.handler = async (event) => {
     Occasion: 'Starlife payout'
   };
 
-  const res = await fetch(`${process.env.MPESA_ENV === 'production' ? 'https://api.safaricom.co.ke' : 'https://sandbox.safaricom.co.ke'}/mpesa/b2c/v1/paymentrequest`, {
+  const res = await fetch(`${baseUrl}/mpesa/b2c/v1/paymentrequest`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)

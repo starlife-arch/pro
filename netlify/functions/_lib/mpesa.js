@@ -1,5 +1,7 @@
 function getMpesaEnv() {
-  return String(process.env.MPESA_ENV || 'sandbox').toLowerCase();
+  const env = process.env.MPESA_ENV;
+  if (!env) throw new Error('MPESA_ENV environment variable is not set');
+  return String(env).toLowerCase();
 }
 
 function getMpesaBaseUrl() {

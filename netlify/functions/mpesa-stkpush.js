@@ -1,5 +1,14 @@
 const fetch = require('node-fetch');
 const { getAccessToken, timestampNow, buildStkPassword, assertEnv, normalizeKenyanPhone, getMpesaBaseUrl } = require('./_lib/mpesa');
+const admin = require('firebase-admin');
+
+if (!admin.apps.length) {
+  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
+}
+const db = admin.firestore();
 
 exports.handler = async (event) => {
   const { phone, amountKES, userId, userName } = JSON.parse(event.body);
@@ -36,11 +45,6 @@ exports.handler = async (event) => {
     throw new Error(data.errorMessage || data.ResponseDescription || 'STK push failed');
   }
 
-  const admin = require('firebase-admin');
-  if (!admin.apps.length) {
-    admin.initializeApp({ credential: admin.credential.applicationDefault() });
-  }
-  const db = admin.firestore();
   await db.collection('mpesa_transactions').doc(data.CheckoutRequestID).set({
     userId,
     userName,

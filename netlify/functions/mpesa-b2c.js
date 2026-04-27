@@ -1,9 +1,7 @@
 const { getDb, admin } = require('./_lib/firebase');
 const { getMpesaBaseUrl, assertEnv, normalizeKenyanPhone, getAccessToken } = require('./_lib/mpesa');
 
-function getSecurityCredential() {
-  return process.env.MPESA_SECURITY_CREDENTIAL || 'REPLACE_WITH_RSA_ENCRYPTED_INITIATOR_PASSWORD';
-}
+const USD_TO_KES = 129;
 
 exports.handler = async function handler(event) {
   if (event.httpMethod !== 'POST') {
@@ -11,11 +9,14 @@ exports.handler = async function handler(event) {
   }
 
   try {
-    const { phone, amountKES, withdrawalId, userId } = JSON.parse(event.body || '{}');
+    const { phone, amountKES, amountUSD, withdrawalId, userId } = JSON.parse(event.body || '{}');
     if (!withdrawalId || !userId) throw new Error('withdrawalId and userId are required');
 
     const normalizedPhone = normalizeKenyanPhone(phone);
-    const amount = Math.round(Number(amountKES));
+    const amountFromUsd = Number.isFinite(Number(amountUSD))
+      ? Math.round(Number(amountUSD) * USD_TO_KES)
+      : null;
+    const amount = Math.round(Number.isFinite(Number(amountKES)) ? Number(amountKES) : amountFromUsd);
     if (!Number.isFinite(amount) || amount < 1) throw new Error('Invalid amountKES');
 
     const db = getDb();
@@ -23,19 +24,23 @@ exports.handler = async function handler(event) {
     const wdSnap = await wdRef.get();
     if (!wdSnap.exists) throw new Error('Withdrawal not found');
     const wd = wdSnap.data() || {};
+    if (wd.mpesaConversationId) {
+      return { statusCode: 200, body: JSON.stringify({ ok: true, alreadyProcessed: true, status: wd.status || 'processing', conversationId: wd.mpesaConversationId }) };
+    }
     if (wd.status === 'processing' || wd.status === 'paid') {
       return { statusCode: 200, body: JSON.stringify({ ok: true, alreadyProcessed: true, status: wd.status }) };
     }
 
     const token = await getAccessToken();
     const shortcode = assertEnv('MPESA_SHORTCODE');
+    const securityCredential = assertEnv('MPESA_SECURITY_CREDENTIAL');
+    const initiatorName = assertEnv('MPESA_INITIATOR_NAME');
     const callbackBase = assertEnv('URL').replace(/\/$/, '');
-    const initiatorName = process.env.MPESA_INITIATOR_NAME || 'testapi';
     const originatorConversationId = `wd-${withdrawalId}`.slice(0, 32);
 
     const payload = {
       InitiatorName: initiatorName,
-      SecurityCredential: getSecurityCredential(),
+      SecurityCredential: securityCredential,
       CommandID: process.env.MPESA_B2C_COMMAND_ID || 'BusinessPayment',
       Amount: amount,
       PartyA: shortcode,

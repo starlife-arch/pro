@@ -7452,7 +7452,7 @@
             <div class="modal-title" id="mpesa-fb-title">M-Pesa Payment Status</div>
             <div id="mpesa-fb-message" style="font-size:.9rem;color:var(--t2);margin-bottom:12px"></div>
             <div class="modal-acts">
-                <button class="btn btn-p" onclick="closeModal('m-mpesa-feedback')">OK</button>
+                <button class="btn btn-p" id="mpesa-fb-action" onclick="closeModal('m-mpesa-feedback')">OK</button>
             </div>
         </div>
     </div>
@@ -9242,10 +9242,35 @@
             if (wrap) wrap.style.display = isMpesaMethod(method) ? 'block' : 'none';
         }
         async function showMpesaFeedback(type, message) {
+            const actionBtn = document.getElementById('mpesa-fb-action');
             if ($('mpesa-fb-title')) {
                 $('mpesa-fb-title').textContent = type;
                 $('mpesa-fb-message').textContent = message;
+                if (actionBtn) actionBtn.style.display = 'inline-flex';
                 openModal('m-mpesa-feedback');
+                return;
+            }
+            toast(message, type.includes('Successful') ? 'tg' : 'tr', 6000);
+        }
+        async function showMpesaLoading(message = 'Waiting for M-Pesa confirmation…') {
+            if ($('mpesa-fb-title')) {
+                $('mpesa-fb-title').textContent = 'M-Pesa Payment Status';
+                $('mpesa-fb-message').textContent = message;
+                const actionBtn = document.getElementById('mpesa-fb-action');
+                if (actionBtn) actionBtn.style.display = 'none';
+                openModal('m-mpesa-feedback');
+                return;
+            }
+            toast(message, 'ty', 3000);
+        }
+        async function showMpesaFinalFeedback(type, message, autoCloseMs = 0) {
+            const actionBtn = document.getElementById('mpesa-fb-action');
+            if ($('mpesa-fb-title')) {
+                $('mpesa-fb-title').textContent = type;
+                $('mpesa-fb-message').textContent = message;
+                if (actionBtn) actionBtn.style.display = autoCloseMs > 0 ? 'none' : 'inline-flex';
+                openModal('m-mpesa-feedback');
+                if (autoCloseMs > 0) setTimeout(() => closeModal('m-mpesa-feedback'), autoCloseMs);
                 return;
             }
             toast(message, type.includes('Successful') ? 'tg' : 'tr', 6000);
@@ -9280,7 +9305,7 @@
                     status: 'pending',
                     createdAt: FS().serverTimestamp()
                 });
-                toast('Sending STK push…', 'ty');
+                await showMpesaLoading('Sending STK push… Please complete payment on your phone.');
                 const res = await fetch('/.netlify/functions/mpesa-stkpush', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -9288,7 +9313,7 @@
                 });
                 const data = await res.json();
                 if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to initiate M-Pesa payment');
-                toast('Check your phone for M-Pesa prompt. You will be notified when payment is confirmed.', 'tg', 5000);
+                await showMpesaLoading('Check your phone and enter your M-Pesa PIN to complete payment.');
 
                 const checkoutId = data.checkoutRequestId;
                 for (let i = 0; i < 30; i += 1) {
@@ -9299,16 +9324,23 @@
                         const fresh = await db.collection('users').doc(u.uid).get();
                         if (fresh.exists) window.CU = { ...window.CU, ...fresh.data() };
                         updateUI();
-                        await showMpesaFeedback('✅ Payment Successful', '✅ Payment Successful – Your balance has been updated.');
+                        await showMpesaFinalFeedback('✅ Payment Successful', '✅ Payment Successful – Your balance has been updated.', 3000);
                         return;
                     }
                     if (status === 'failed') {
-                        await showMpesaFeedback('❌ Payment Canceled', '❌ Payment Canceled – You did not complete the payment.');
+                        const resultDesc = String(statusData.queryResultDesc || '').toLowerCase();
+                        const isCancelled = /cancel|canceled|cancelled|declined|1032/.test(resultDesc);
+                        if (isCancelled) {
+                            await showMpesaFinalFeedback('❌ Payment Cancelled', '❌ Payment Cancelled – You did not complete the payment.');
+                        } else {
+                            await showMpesaFinalFeedback('❌ Payment Failed', '❌ Payment failed – Please try again.');
+                        }
                         return;
                     }
                 }
-                await showMpesaFeedback('⏱️ Payment timed out', '⏱️ Payment timed out – Please try again.');
+                await showMpesaFinalFeedback('⏱️ Payment timed out', '⏱️ Payment timed out – Please try again.');
             } catch (e) {
+                closeModal('m-mpesa-feedback');
                 toast(e.message || 'Failed to start M-Pesa payment', 'tr');
             }
         }
@@ -9355,7 +9387,7 @@
             const kycOk = await checkKYCForWithdrawal();
             if (!kycOk) return;
             const amt = parseFloat($('wd-amt').value);
-            const method = $('wd-method').value;
+            let method = $('wd-method').value;
             let details = $('wd-details').value.trim();
             const u = window.CU;
             const useCard = document.getElementById('wd-pay-card')?.classList.contains('active');
@@ -9368,6 +9400,8 @@
             if (isMpesaMethod(method)) {
                 const mpesaPhone = normalizeMpesaPhone($('wd-mpesa-phone')?.value || details);
                 if (!mpesaPhone) return toast('Enter a valid M-Pesa phone number', 'ty');
+                method = 'M-Pesa';
+                $('wd-method').value = 'M-Pesa';
                 details = mpesaPhone;
                 if ($('wd-details') && !$('wd-details').value.trim()) $('wd-details').value = mpesaPhone;
             }
@@ -12100,8 +12134,9 @@
             if (isMpesaMethod(method)) {
                 const mpesaPhone = normalizeMpesaPhone(details || '');
                 if (!mpesaPhone) throw new Error('Invalid M-Pesa phone in withdrawal details');
-                const payoutUsd = Number(net || amount || 0);
-                const amountKES = Math.round(payoutUsd * USD_TO_KES);
+                const amountUSD = Number(amount || 0);
+                const amountKES = Math.round(amountUSD * USD_TO_KES);
+                toast('Sending via M-Pesa…', 'ty');
                 const resp = await fetch('/.netlify/functions/mpesa-b2c', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -12109,8 +12144,9 @@
                 });
                 const out = await resp.json();
                 if (!resp.ok || !out.ok) throw new Error(out.error || 'Failed to send M-Pesa B2C payout');
-                await db.collection('userNotifs').add({ uid, msg: `Your M-Pesa withdrawal of $${fmt(payoutUsd)} is processing.`, read: false, createdAt: FS().serverTimestamp() });
-                toast('M-Pesa payout started. Status set to processing ✓');
+                await db.collection('withdrawals').doc(id).set({ status: 'processing', processingAt: FS().serverTimestamp() }, { merge: true });
+                await db.collection('userNotifs').add({ uid, msg: `Your M-Pesa withdrawal of $${fmt(amountUSD)} is processing.`, read: false, createdAt: FS().serverTimestamp() });
+                toast('Sent successfully', 'tg');
                 loadAdminAll(); loadAdminWd('pending');
                 return;
             }

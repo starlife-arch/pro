@@ -1,7 +1,9 @@
-const MPESA_ENV = (process.env.MPESA_ENV || 'sandbox').toLowerCase();
+function getMpesaEnv() {
+  return String(process.env.MPESA_ENV || 'sandbox').toLowerCase();
+}
 
 function getMpesaBaseUrl() {
-  return MPESA_ENV === 'production'
+  return getMpesaEnv() === 'production'
     ? 'https://api.safaricom.co.ke'
     : 'https://sandbox.safaricom.co.ke';
 }
@@ -52,5 +54,5 @@ module.exports = {
   normalizeKenyanPhone,
   getAccessToken,
   buildStkPassword,
-  MPESA_ENV
+  getMpesaEnv
 };

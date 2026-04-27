@@ -2,58 +2,116 @@ const admin = require('firebase-admin');
 
 if (!admin.apps.length) {
   const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
+  admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 }
 const db = admin.firestore();
 
-exports.handler = async (event) => {
-  const callbackData = JSON.parse(event.body);
-  const { Body: { stkCallback } } = callbackData;
-  const checkoutId = stkCallback.CheckoutRequestID;
-  const resultCode = stkCallback.ResultCode;
+// Configurable exchange rate — set KES_TO_USD_RATE in your Netlify env vars.
+// Defaults to 129 if not set.
+const KES_TO_USD = parseFloat(process.env.KES_TO_USD_RATE || '129');
 
-  const txRef = db.collection('mpesa_transactions').doc(checkoutId);
-  const txDoc = await txRef.get();
-  if (!txDoc.exists) {
+exports.handler = async (event) => {
+  // ── Parse callback body ───────────────────────────────────────────────────
+  let callbackData;
+  try {
+    callbackData = JSON.parse(event.body);
+  } catch {
+    console.error('Invalid JSON in M-Pesa callback');
+    return { statusCode: 200, body: 'OK' }; // Always return 200 to M-Pesa
+  }
+
+  const stkCallback = callbackData?.Body?.stkCallback;
+  if (!stkCallback) {
+    console.error('Unexpected callback structure:', JSON.stringify(callbackData));
     return { statusCode: 200, body: 'OK' };
   }
 
+  const checkoutId = stkCallback.CheckoutRequestID;
+  const resultCode = stkCallback.ResultCode;
+
+  if (!checkoutId) {
+    console.error('Missing CheckoutRequestID in callback');
+    return { statusCode: 200, body: 'OK' };
+  }
+
+  // ── Look up the transaction ───────────────────────────────────────────────
+  const txRef = db.collection('mpesa_transactions').doc(checkoutId);
+  let txDoc;
+  try {
+    txDoc = await txRef.get();
+  } catch (e) {
+    console.error('Firestore read error:', e);
+    return { statusCode: 200, body: 'OK' };
+  }
+
+  if (!txDoc.exists) {
+    console.warn('No transaction found for CheckoutRequestID:', checkoutId);
+    return { statusCode: 200, body: 'OK' };
+  }
+
+  const txData = txDoc.data();
+
+  // ── Handle success ────────────────────────────────────────────────────────
   if (resultCode === 0) {
-    const amountKES = stkCallback.CallbackMetadata.Item.find(i => i.Name === 'Amount').Value;
-    const receipt = stkCallback.CallbackMetadata.Item.find(i => i.Name === 'MpesaReceiptNumber').Value;
-    const userId = txDoc.data().userId;
-    const usdAmount = amountKES / 129;
+    const items = stkCallback.CallbackMetadata?.Item || [];
+    const amountKES = items.find(i => i.Name === 'Amount')?.Value;
+    const receipt = items.find(i => i.Name === 'MpesaReceiptNumber')?.Value;
 
-    const userRef = db.collection('users').doc(userId);
-    await db.runTransaction(async (t) => {
-      const userSnap = await t.get(userRef);
-      const currentBal = userSnap.data().balance || 0;
-      t.update(userRef, {
-        balance: currentBal + usdAmount,
-        totalEarned: admin.firestore.FieldValue.increment(usdAmount)
+    if (!amountKES) {
+      console.error('Amount missing from callback metadata for:', checkoutId);
+      return { statusCode: 200, body: 'OK' };
+    }
+
+    const userId = txData.userId;
+    const usdAmount = amountKES / KES_TO_USD;
+
+    try {
+      const userRef = db.collection('users').doc(userId);
+      await db.runTransaction(async (t) => {
+        const userSnap = await t.get(userRef);
+        if (!userSnap.exists) throw new Error(`User ${userId} not found`);
+        const currentBal = userSnap.data().balance || 0;
+        t.update(userRef, {
+          balance: currentBal + usdAmount,
+          totalEarned: admin.firestore.FieldValue.increment(usdAmount)
+        });
       });
-    });
 
-    await txRef.update({
-      status: 'completed',
-      receipt,
-      amountKES
-    });
+      await txRef.update({
+        status: 'completed',
+        receipt: receipt || null,
+        amountKES,
+        completedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
 
-    await db.collection('deposits').add({
-      uid: userId,
-      amount: usdAmount,
-      method: 'M-Pesa STK',
-      status: 'approved',
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
-    });
+      await db.collection('deposits').add({
+        uid: userId,
+        amount: usdAmount,
+        amountKES,
+        receipt: receipt || null,
+        method: 'M-Pesa STK',
+        status: 'approved',
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      console.log(`STK payment success: user=${userId} KES=${amountKES} USD=${usdAmount} receipt=${receipt}`);
+    } catch (e) {
+      console.error('Firestore update failed after successful STK payment:', e);
+      // Still return 200 so M-Pesa doesn't retry
+    }
   } else {
-    await txRef.update({
-      status: 'failed',
-      resultDesc: stkCallback.ResultDesc
-    });
+    // ── Handle failure ──────────────────────────────────────────────────────
+    console.warn(`STK payment failed for ${checkoutId}: [${resultCode}] ${stkCallback.ResultDesc}`);
+    try {
+      await txRef.update({
+        status: 'failed',
+        resultCode,
+        resultDesc: stkCallback.ResultDesc || 'Payment failed',
+        failedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    } catch (e) {
+      console.error('Firestore update error on STK failure:', e);
+    }
   }
 
   return { statusCode: 200, body: 'OK' };

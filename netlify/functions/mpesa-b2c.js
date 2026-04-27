@@ -1,5 +1,14 @@
 const fetch = require('node-fetch');
 const { getAccessToken, assertEnv, normalizeKenyanPhone, getMpesaBaseUrl } = require('./_lib/mpesa');
+const admin = require('firebase-admin');
+
+if (!admin.apps.length) {
+  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
+}
+const db = admin.firestore();
 
 exports.handler = async (event) => {
   const { phone, amountKES, withdrawalId, userId } = JSON.parse(event.body);
@@ -8,8 +17,8 @@ exports.handler = async (event) => {
   const baseUrl = getMpesaBaseUrl();
   const siteUrl = assertEnv('SITE_URL');
 
-  // IMPORTANT: Replace this with your actual live encrypted security credential.
-  // For now, a placeholder – must be generated with Safaricom public key.
+  // IMPORTANT: Replace this placeholder with your actual live encrypted security credential.
+  // You must generate this using Safaricom's public key and your API password.
   const securityCredential = 'PLACEHOLDER_ENCRYPTED_CREDENTIAL';
 
   const payload = {
@@ -36,8 +45,6 @@ exports.handler = async (event) => {
     throw new Error(data.errorMessage || data.ResponseDescription || 'B2C request failed');
   }
 
-  const admin = require('firebase-admin');
-  const db = admin.firestore();
   await db.collection('withdrawals').doc(withdrawalId).update({
     mpesaConversationId: data.ConversationID,
     b2cStatus: 'processing'

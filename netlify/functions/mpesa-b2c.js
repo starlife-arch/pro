@@ -6,8 +6,8 @@ exports.handler = async (event) => {
   const token = await getAccessToken();
   const baseUrl = getMpesaBaseUrl();
 
-  // In production, you must encrypt SecurityCredential properly.
-  // For now, use a placeholder – replace with actual encryption when live.
+  // IMPORTANT: Replace this placeholder with your actual encrypted security credential.
+  // In production, you must generate this properly using Safaricom's public key.
   const securityCredential = 'PLACEHOLDER_ENCRYPTED_CREDENTIAL';
 
   const payload = {

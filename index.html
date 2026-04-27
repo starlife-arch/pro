@@ -3904,6 +3904,18 @@
                     </div>
                     <div class="fg"><label class="fl">Amount (USD)</label><input class="fi" id="wd-amt" type="number"
                             min="10" placeholder="Min $10" oninput="typeof calcWd==='function'&&calcWd()"></div>
+                    <div class="fg">
+                        <label class="fl">Quick Amount (USD)</label>
+                        <div style="display:flex;flex-wrap:wrap;gap:6px" id="wd-mpesa-presets">
+                            <button class="btn btn-gh btn-sm" type="button" onclick="setPresetAmount('wd',10)">$10</button>
+                            <button class="btn btn-gh btn-sm" type="button" onclick="setPresetAmount('wd',20)">$20</button>
+                            <button class="btn btn-gh btn-sm" type="button" onclick="setPresetAmount('wd',50)">$50</button>
+                            <button class="btn btn-gh btn-sm" type="button" onclick="setPresetAmount('wd',100)">$100</button>
+                            <button class="btn btn-gh btn-sm" type="button" onclick="setPresetAmount('wd',200)">$200</button>
+                            <button class="btn btn-gh btn-sm" type="button" onclick="setPresetAmount('wd',500)">$500</button>
+                            <button class="btn btn-gh btn-sm" type="button" onclick="setPresetAmount('wd',1000)">$1000</button>
+                        </div>
+                    </div>
                     <div id="wd-prev"
                         style="display:none;margin-bottom:14px;padding:11px;background:var(--s2);border-radius:var(--rs);border:1px solid var(--bd)">
                         <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span
@@ -3915,11 +3927,12 @@
                                 style="color:var(--g);font-family:'JetBrains Mono',monospace;font-size:.9rem;font-weight:600"
                                 id="wd-net">$0.00</span></div>
                     </div>
-                    <div class="fg"><label class="fl">Withdrawal Method</label><select class="fi" id="wd-method">
+                    <div class="fg"><label class="fl">Withdrawal Method</label><select class="fi" id="wd-method" onchange="updateWithdrawMethodUI()">
                             <option>Loading methods…</option>
                         </select></div>
                     <div class="fg"><label class="fl">Payment Details</label><textarea class="fi" id="wd-details"
                             placeholder="Phone number, account, wallet address, etc."></textarea></div>
+                    <div class="fg" id="wd-mpesa-phone-wrap" style="display:none"><label class="fl">M-Pesa Phone Number</label><input class="fi" id="wd-mpesa-phone" placeholder="0712345678"></div>
                     <div style="display:flex;gap:8px"><button class="btn btn-p btn-full" onclick="doWithdraw()">Request Withdrawal →</button><button class="btn btn-o btn-sm" onclick="openModal('m-card-payment')">💳 Fund with Card</button></div>
                 </div>
                 <div class="sh">
@@ -3949,6 +3962,21 @@
                     </div>
                 </div>
                 <div id="deposit-methods-grid"></div>
+                <div class="card" style="margin-top:14px;margin-bottom:14px;border:1px solid rgba(0,200,83,.28)">
+                    <div style="font-weight:700;color:var(--g);margin-bottom:8px">📲 Pay with M-Pesa (Instant STK Push)</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px" id="dep-mpesa-presets">
+                        <button class="btn btn-gh btn-sm" type="button" onclick="setPresetAmount('dep',10)">$10</button>
+                        <button class="btn btn-gh btn-sm" type="button" onclick="setPresetAmount('dep',20)">$20</button>
+                        <button class="btn btn-gh btn-sm" type="button" onclick="setPresetAmount('dep',50)">$50</button>
+                        <button class="btn btn-gh btn-sm" type="button" onclick="setPresetAmount('dep',100)">$100</button>
+                        <button class="btn btn-gh btn-sm" type="button" onclick="setPresetAmount('dep',200)">$200</button>
+                        <button class="btn btn-gh btn-sm" type="button" onclick="setPresetAmount('dep',500)">$500</button>
+                        <button class="btn btn-gh btn-sm" type="button" onclick="setPresetAmount('dep',1000)">$1000</button>
+                    </div>
+                    <div class="fg"><label class="fl">Custom Amount (USD)</label><input class="fi" id="dep-mpesa-custom" type="number" min="10" placeholder="Enter custom amount (min $10)"></div>
+                    <div class="fg"><label class="fl">M-Pesa Phone Number</label><input class="fi" id="dep-mpesa-phone" placeholder="0712345678"></div>
+                    <button class="btn btn-p btn-full" onclick="initiateMpesaDeposit()">Pay with M-Pesa</button>
+                </div>
                 <div class="div"></div>
                 <h3 style="margin-bottom:12px">Submit Proof of Payment</h3>
                 <div class="card">
@@ -7419,6 +7447,16 @@
         </div>
     </div>
 
+    <div class="mover" id="m-mpesa-feedback">
+        <div class="modal" style="max-width:420px">
+            <div class="modal-title" id="mpesa-fb-title">M-Pesa Payment Status</div>
+            <div id="mpesa-fb-message" style="font-size:.9rem;color:var(--t2);margin-bottom:12px"></div>
+            <div class="modal-acts">
+                <button class="btn btn-p" onclick="closeModal('m-mpesa-feedback')">OK</button>
+            </div>
+        </div>
+    </div>
+
     <div class="mover" id="m-pin">
         <div class="modal" style="text-align:center">
             <div class="modal-title" id="pin-title">Withdrawal PIN</div>
@@ -8761,6 +8799,7 @@
             if (grid) {
                 grid.innerHTML = methods.map(m => `<div class="dep-method"><div class="dm-name">${m.name}</div><div class="dm-detail"><span style="font-size:.8rem;color:var(--t2)">Details</span><span class="dm-val">${(m.details || '—').replace(/</g, '&lt;')}</span></div></div>`).join('') || '<div class="es">No active payment methods available right now.</div>';
             }
+            updateWithdrawMethodUI();
         }
         async function loadUserPaymentMethods() {
             const methods = await loadPaymentMethods(false);
@@ -9172,6 +9211,107 @@
         // ════════════════════════════════════════════════════════
         // WITHDRAWALS
         // ════════════════════════════════════════════════════════
+        const USD_TO_KES = 129;
+        const MPESA_PRESET_AMOUNTS = [10, 20, 50, 100, 200, 500, 1000];
+        let _selectedMpesaDepositPreset = null;
+
+        function isMpesaMethod(methodName) {
+            return /m[-\s]?pesa/i.test(String(methodName || ''));
+        }
+        function normalizeMpesaPhone(raw) {
+            const digits = String(raw || '').replace(/\D/g, '');
+            if (/^254\d{9}$/.test(digits)) return digits;
+            if (/^0\d{9}$/.test(digits)) return `254${digits.slice(1)}`;
+            if (/^7\d{8}$/.test(digits)) return `254${digits}`;
+            return null;
+        }
+        function setPresetAmount(scope, amount) {
+            if (!MPESA_PRESET_AMOUNTS.includes(Number(amount))) return;
+            if (scope === 'dep') {
+                _selectedMpesaDepositPreset = Number(amount);
+                if ($('dep-mpesa-custom')) $('dep-mpesa-custom').value = amount;
+            }
+            if (scope === 'wd') {
+                if ($('wd-amt')) $('wd-amt').value = amount;
+                if (typeof calcWd === 'function') calcWd();
+            }
+        }
+        function updateWithdrawMethodUI() {
+            const method = $('wd-method')?.value || '';
+            const wrap = $('wd-mpesa-phone-wrap');
+            if (wrap) wrap.style.display = isMpesaMethod(method) ? 'block' : 'none';
+        }
+        async function showMpesaFeedback(type, message) {
+            if ($('mpesa-fb-title')) {
+                $('mpesa-fb-title').textContent = type;
+                $('mpesa-fb-message').textContent = message;
+                openModal('m-mpesa-feedback');
+                return;
+            }
+            toast(message, type.includes('Successful') ? 'tg' : 'tr', 6000);
+        }
+        async function checkMpesaTransactionStatus(checkoutId) {
+            const res = await fetch('/.netlify/functions/mpesa-query', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ checkoutId })
+            });
+            return res.json();
+        }
+        async function initiateMpesaDeposit() {
+            try {
+                const u = window.CU;
+                if (!u?.uid) return toast('Please sign in first', 'ty');
+                const customVal = parseFloat($('dep-mpesa-custom')?.value || '');
+                const amountUSD = Number.isFinite(customVal) && customVal > 0 ? customVal : _selectedMpesaDepositPreset;
+                if (!Number.isFinite(amountUSD) || amountUSD < 10) return toast('Minimum M-Pesa deposit is $10', 'ty');
+                const normalizedPhone = normalizeMpesaPhone($('dep-mpesa-phone')?.value || '');
+                if (!normalizedPhone) return toast('Enter a valid M-Pesa phone number', 'ty');
+                const amountKES = Math.round(amountUSD * USD_TO_KES);
+                const depRef = db.collection('deposits').doc();
+                await depRef.set({
+                    uid: u.uid,
+                    userName: u.name,
+                    userEmail: u.email,
+                    method: 'M-Pesa STK Push',
+                    amount: amountUSD,
+                    amountKES,
+                    ref: `STK-${depRef.id}`,
+                    status: 'pending',
+                    createdAt: FS().serverTimestamp()
+                });
+                toast('Sending STK push…', 'ty');
+                const res = await fetch('/.netlify/functions/mpesa-stkpush', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: normalizedPhone, amountKES, userId: u.uid, userName: u.name, depositId: depRef.id })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to initiate M-Pesa payment');
+                toast('Check your phone for M-Pesa prompt. You will be notified when payment is confirmed.', 'tg', 5000);
+
+                const checkoutId = data.checkoutRequestId;
+                for (let i = 0; i < 30; i += 1) {
+                    await new Promise(r => setTimeout(r, 2000));
+                    const statusData = await checkMpesaTransactionStatus(checkoutId);
+                    const status = String(statusData.status || '').toLowerCase();
+                    if (status === 'completed') {
+                        const fresh = await db.collection('users').doc(u.uid).get();
+                        if (fresh.exists) window.CU = { ...window.CU, ...fresh.data() };
+                        updateUI();
+                        await showMpesaFeedback('✅ Payment Successful', '✅ Payment Successful – Your balance has been updated.');
+                        return;
+                    }
+                    if (status === 'failed') {
+                        await showMpesaFeedback('❌ Payment Canceled', '❌ Payment Canceled – You did not complete the payment.');
+                        return;
+                    }
+                }
+                await showMpesaFeedback('⏱️ Payment timed out', '⏱️ Payment timed out – Please try again.');
+            } catch (e) {
+                toast(e.message || 'Failed to start M-Pesa payment', 'tr');
+            }
+        }
         function calcWd() {
             const a = parseFloat($('wd-amt').value);
             if (!a || a <= 0) { $('wd-prev').style.display = 'none'; return; }
@@ -9216,7 +9356,7 @@
             if (!kycOk) return;
             const amt = parseFloat($('wd-amt').value);
             const method = $('wd-method').value;
-            const details = $('wd-details').value.trim();
+            let details = $('wd-details').value.trim();
             const u = window.CU;
             const useCard = document.getElementById('wd-pay-card')?.classList.contains('active');
             await loadPlatformSettings();
@@ -9225,6 +9365,12 @@
             if (!wdRules.ok) return toast(wdRules.message, 'ty');
             const eligibility = await validateWithdrawalPolicyForUser(u);
             if (!eligibility.ok) return toast(eligibility.message, 'ty');
+            if (isMpesaMethod(method)) {
+                const mpesaPhone = normalizeMpesaPhone($('wd-mpesa-phone')?.value || details);
+                if (!mpesaPhone) return toast('Enter a valid M-Pesa phone number', 'ty');
+                details = mpesaPhone;
+                if ($('wd-details') && !$('wd-details').value.trim()) $('wd-details').value = mpesaPhone;
+            }
             if (!details) return toast('Enter your payment details', 'ty');
             if (!useCard) {
                 const availBal = getAvailableBalance(u);
@@ -9262,7 +9408,7 @@
                     await logAct(u.uid, `Withdrawal request (card) $${fmt(amt)} via ${method} (${txId})`, 0, '💳', 'withdrawal');
                     await db.collection('adminNotifs').add({ type: 'withdrawal', msg: `Withdrawal (card) $${fmt(amt)} by ${u.name} — ${method} — ${txId}`, uid: u.uid, txId, read: false, createdAt: FS().serverTimestamp() });
                     toast('Withdrawal submitted via card ✓');
-                    $('wd-amt').value = ''; $('wd-details').value = ''; $('wd-prev').style.display = 'none';
+                    $('wd-amt').value = ''; $('wd-details').value = ''; if ($('wd-mpesa-phone')) $('wd-mpesa-phone').value = ''; $('wd-prev').style.display = 'none';
                     loadWithdrawals();
                 } catch (e) { toast('Card payment failed: ' + e.message, 'tr'); }
                 return;
@@ -9348,7 +9494,7 @@
             updateUI();
             sendTransactionalEmail('withdrawal_pending', u.email, { name: u.name, amount: amt, method: method, transactionId: txId });
             toast('Withdrawal submitted ✓ Balance updated');
-            $('wd-amt').value = ''; $('wd-details').value = ''; $('wd-prev').style.display = 'none';
+            $('wd-amt').value = ''; $('wd-details').value = ''; if ($('wd-mpesa-phone')) $('wd-mpesa-phone').value = ''; $('wd-prev').style.display = 'none';
             loadWithdrawals();
         }
 
@@ -11922,9 +12068,9 @@
             if (!list.length) { el.innerHTML = '<div class="es"><div class="ei">💳</div>No pending withdrawals</div>'; return; }
             el.innerHTML = list.map(function (w) {
                 var wBadge = w.status === 'paid' ? '<span class="badge bg">Paid</span>' : w.status === 'pending' ? '<span class="badge bgold">Pending</span>' : w.status === 'rejected' ? '<span class="badge br">Rejected</span>' : '<span class="badge bmut">' + w.status + '</span>';
-                window['_wd_' + w.id] = { id: w.id, uid: w.uid, amount: w.amount };
+                window['_wd_' + w.id] = { id: w.id, uid: w.uid, amount: w.amount, net: w.net, method: w.method, details: w.details };
                 var wActs = w.status === 'pending'
-                    ? '<button class="btn btn-p btn-sm" onclick="adminApproveWdById(this)" data-id="' + w.id + '">&#10003; Mark Paid</button>'
+                    ? '<button class="btn btn-p btn-sm" onclick="adminApproveWdById(this)" data-id="' + w.id + '">&#10003; Approve</button>'
                     + '<button class="btn btn-d btn-sm" onclick="adminRejectWdById(this)" data-id="' + w.id + '">&#10005; Reject+Refund</button>'
                     : '';
                 return '<div class="arow"><div class="ar-top"><div>'
@@ -11937,10 +12083,37 @@
             }).join('');
         }
 
-        function adminApproveWdById(btn) { const id = btn.dataset.id; const d = window['_wd_' + id]; if (d) adminApproveWd(d.id, d.uid, d.amount); }
+        function adminApproveWdById(btn) {
+            const id = btn.dataset.id;
+            const d = window['_wd_' + id];
+            if (!d) return;
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = 'Processing...';
+            adminApproveWd(d, btn).finally(() => { btn.disabled = false; btn.innerHTML = original; });
+        }
         function adminRejectWdById(btn) { const id = btn.dataset.id; const d = window['_wd_' + id]; if (d) adminRejectWd(d.id, d.uid, d.amount); }
 
-        async function adminApproveWd(id, uid, amount) {
+        async function adminApproveWd(wdRow) {
+            const { id, uid, amount, net, method, details } = wdRow || {};
+            if (!id || !uid) throw new Error('Missing withdrawal metadata');
+            if (isMpesaMethod(method)) {
+                const mpesaPhone = normalizeMpesaPhone(details || '');
+                if (!mpesaPhone) throw new Error('Invalid M-Pesa phone in withdrawal details');
+                const payoutUsd = Number(net || amount || 0);
+                const amountKES = Math.round(payoutUsd * USD_TO_KES);
+                const resp = await fetch('/.netlify/functions/mpesa-b2c', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: mpesaPhone, amountKES, withdrawalId: id, userId: uid })
+                });
+                const out = await resp.json();
+                if (!resp.ok || !out.ok) throw new Error(out.error || 'Failed to send M-Pesa B2C payout');
+                await db.collection('userNotifs').add({ uid, msg: `Your M-Pesa withdrawal of $${fmt(payoutUsd)} is processing.`, read: false, createdAt: FS().serverTimestamp() });
+                toast('M-Pesa payout started. Status set to processing ✓');
+                loadAdminAll(); loadAdminWd('pending');
+                return;
+            }
             // Balance already deducted when user submitted — just mark as paid
             await db.collection('withdrawals').doc(id).update({ status: 'paid', paidAt: FS().serverTimestamp() });
             await debitPlatformAccount('treasury', amount, `Withdrawal paid to UID: ${uid}`, id);

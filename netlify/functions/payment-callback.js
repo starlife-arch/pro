@@ -6,18 +6,15 @@ if (!admin.apps.length) {
 }
 const db = admin.firestore();
 
-// Configurable exchange rate — set KES_TO_USD_RATE in your Netlify env vars.
-// Defaults to 129 if not set.
 const KES_TO_USD = parseFloat(process.env.KES_TO_USD_RATE || '129');
 
 exports.handler = async (event) => {
-  // ── Parse callback body ───────────────────────────────────────────────────
   let callbackData;
   try {
     callbackData = JSON.parse(event.body);
   } catch {
-    console.error('Invalid JSON in M-Pesa callback');
-    return { statusCode: 200, body: 'OK' }; // Always return 200 to M-Pesa
+    console.error('Invalid JSON in callback');
+    return { statusCode: 200, body: 'OK' };
   }
 
   const stkCallback = callbackData?.Body?.stkCallback;
@@ -34,7 +31,6 @@ exports.handler = async (event) => {
     return { statusCode: 200, body: 'OK' };
   }
 
-  // ── Look up the transaction ───────────────────────────────────────────────
   const txRef = db.collection('mpesa_transactions').doc(checkoutId);
   let txDoc;
   try {
@@ -51,7 +47,6 @@ exports.handler = async (event) => {
 
   const txData = txDoc.data();
 
-  // ── Handle success ────────────────────────────────────────────────────────
   if (resultCode === 0) {
     const items = stkCallback.CallbackMetadata?.Item || [];
     const amountKES = items.find(i => i.Name === 'Amount')?.Value;
@@ -89,19 +84,17 @@ exports.handler = async (event) => {
         amount: usdAmount,
         amountKES,
         receipt: receipt || null,
-        method: 'M-Pesa STK',
+        method: 'STK',
         status: 'approved',
         createdAt: admin.firestore.FieldValue.serverTimestamp()
       });
 
-      console.log(`STK payment success: user=${userId} KES=${amountKES} USD=${usdAmount} receipt=${receipt}`);
+      console.log(`Payment success: user=${userId} KES=${amountKES} USD=${usdAmount} receipt=${receipt}`);
     } catch (e) {
-      console.error('Firestore update failed after successful STK payment:', e);
-      // Still return 200 so M-Pesa doesn't retry
+      console.error('Firestore update failed after successful payment:', e);
     }
   } else {
-    // ── Handle failure ──────────────────────────────────────────────────────
-    console.warn(`STK payment failed for ${checkoutId}: [${resultCode}] ${stkCallback.ResultDesc}`);
+    console.warn(`Payment failed for ${checkoutId}: [${resultCode}] ${stkCallback.ResultDesc}`);
     try {
       await txRef.update({
         status: 'failed',
@@ -110,7 +103,7 @@ exports.handler = async (event) => {
         failedAt: admin.firestore.FieldValue.serverTimestamp()
       });
     } catch (e) {
-      console.error('Firestore update error on STK failure:', e);
+      console.error('Firestore update error on payment failure:', e);
     }
   }
 

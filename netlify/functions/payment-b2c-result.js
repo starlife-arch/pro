@@ -7,16 +7,14 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 exports.handler = async (event) => {
-  // ── Parse callback ────────────────────────────────────────────────────────
   let result;
   try {
     result = JSON.parse(event.body);
   } catch {
     console.error('Invalid JSON in B2C result callback');
-    return { statusCode: 200, body: 'OK' }; // Always return 200 to M-Pesa
+    return { statusCode: 200, body: 'OK' };
   }
 
-  // FIX: Safaricom wraps B2C result under result.Result — not the top level
   const resultData = result?.Result;
   if (!resultData) {
     console.error('Unexpected B2C result structure:', JSON.stringify(result));
@@ -30,11 +28,10 @@ exports.handler = async (event) => {
     return { statusCode: 200, body: 'OK' };
   }
 
-  // ── Find the withdrawal ───────────────────────────────────────────────────
   let wdQuery;
   try {
     wdQuery = await db.collection('withdrawals')
-      .where('mpesaConversationId', '==', ConversationID)
+      .where('conversationId', '==', ConversationID)
       .limit(1)
       .get();
   } catch (e) {
@@ -49,7 +46,6 @@ exports.handler = async (event) => {
 
   const wdRef = wdQuery.docs[0].ref;
 
-  // ── Update withdrawal status ──────────────────────────────────────────────
   try {
     if (ResultCode === 0) {
       await wdRef.update({
@@ -64,7 +60,6 @@ exports.handler = async (event) => {
       if (!uid || amount == null) {
         console.error('Withdrawal doc missing uid or amount:', wdDoc.id);
       } else {
-        // Refund the user because B2C failed
         await db.collection('users').doc(uid).update({
           balance: admin.firestore.FieldValue.increment(amount)
         });

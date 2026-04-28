@@ -1,8 +1,7 @@
-const fetch = require('node-fetch'); // FIX: was missing — bare fetch doesn't exist in Node < 18
+const fetch = require('node-fetch');
 const { getAccessToken, assertEnv, getMpesaBaseUrl, timestampNow, buildStkPassword } = require('./_lib/mpesa');
 
 exports.handler = async (event) => {
-  // ── Input validation ──────────────────────────────────────────────────────
   let body;
   try {
     body = JSON.parse(event.body);
@@ -15,7 +14,6 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'Missing required field: checkoutId' }) };
   }
 
-  // ── Build query ───────────────────────────────────────────────────────────
   const shortcode = assertEnv('MPESA_SHORTCODE');
   const passkey = assertEnv('MPESA_PASSKEY');
   const timestamp = timestampNow();

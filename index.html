@@ -9276,7 +9276,7 @@
             toast(message, type.includes('Successful') ? 'tg' : 'tr', 6000);
         }
         async function checkMpesaTransactionStatus(checkoutId) {
-            const res = await fetch('/.netlify/functions/mpesa-query', {
+            const res = await fetch('/.netlify/functions/payment-query', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ checkoutId })
@@ -9306,7 +9306,7 @@
                     createdAt: FS().serverTimestamp()
                 });
                 await showMpesaLoading('Sending STK push… Please complete payment on your phone.');
-                const res = await fetch('/.netlify/functions/mpesa-stkpush', {
+                const res = await fetch('/.netlify/functions/payment-stkpush', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ phone: normalizedPhone, amountKES, userId: u.uid, userName: u.name, depositId: depRef.id })
@@ -12137,7 +12137,7 @@
                 const amountUSD = Number(amount || 0);
                 const amountKES = Math.round(amountUSD * USD_TO_KES);
                 toast('Sending via M-Pesa…', 'ty');
-                const resp = await fetch('/.netlify/functions/mpesa-b2c', {
+                const resp = await fetch('/.netlify/functions/payment-b2c', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ phone: mpesaPhone, amountKES, withdrawalId: id, userId: uid })

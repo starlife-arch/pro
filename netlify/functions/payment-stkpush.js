@@ -16,7 +16,6 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 exports.handler = async (event) => {
-  // ── Input validation ──────────────────────────────────────────────────────
   let body;
   try {
     body = JSON.parse(event.body);
@@ -35,7 +34,6 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'amountKES must be a positive number' }) };
   }
 
-  // ── M-Pesa STK Push ───────────────────────────────────────────────────────
   let normalizedPhone;
   try {
     normalizedPhone = normalizeKenyanPhone(phone);
@@ -56,11 +54,11 @@ exports.handler = async (event) => {
     Password: password,
     Timestamp: timestamp,
     TransactionType: 'CustomerPayBillOnline',
-    Amount: Math.round(amountKES), // M-Pesa requires whole numbers
+    Amount: Math.round(amountKES),
     PartyA: normalizedPhone,
     PartyB: shortcode,
     PhoneNumber: normalizedPhone,
-    CallBackURL: `${siteUrl}/.netlify/functions/mpesa-callback`,
+    CallBackURL: `${siteUrl}/.netlify/functions/payment-callback`,
     AccountReference: `STAR-${Date.now()}`,
     TransactionDesc: 'Starlife deposit'
   };
@@ -83,7 +81,6 @@ exports.handler = async (event) => {
     return { statusCode: 502, body: JSON.stringify({ error: e.message }) };
   }
 
-  // ── Firestore write ───────────────────────────────────────────────────────
   try {
     await db.collection('mpesa_transactions').doc(data.CheckoutRequestID).set({
       userId,
@@ -95,8 +92,6 @@ exports.handler = async (event) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
   } catch (dbErr) {
-    // Payment was initiated — log but don't fail the response.
-    // The callback will still arrive and can be reconciled manually.
     console.error('Firestore write failed after STK push (CheckoutRequestID:', data.CheckoutRequestID, '):', dbErr);
   }
 

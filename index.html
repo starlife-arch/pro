@@ -3314,131 +3314,448 @@
      LANDING
 ══════════════════════════════════════════ -->
     <div class="page active" id="pg-land">
-        <!-- Landing Nav (sticky, not fixed - stays inside page div) -->
+        <!-- Scoped landing styles -->
+        <style>
+            #pg-land {
+                background:
+                    radial-gradient(1200px 700px at 50% -10%, rgba(0, 230, 118, 0.10), transparent 60%),
+                    linear-gradient(180deg, #060A07 0%, #0A1F12 100%);
+                color: var(--t1);
+            }
+            #pg-land .sl-grid-bg {
+                position: absolute; inset: 0;
+                background-image:
+                    linear-gradient(rgba(0,230,118,.05) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(0,230,118,.05) 1px, transparent 1px);
+                background-size: 56px 56px;
+                mask-image: radial-gradient(ellipse at center, #000 40%, transparent 85%);
+                -webkit-mask-image: radial-gradient(ellipse at center, #000 40%, transparent 85%);
+                pointer-events: none;
+                z-index: 0;
+            }
+            #pg-land .sl-section { position: relative; padding: 72px 20px; max-width: 1180px; margin: 0 auto; }
+            #pg-land .sl-eyebrow {
+                display: inline-flex; align-items: center; gap: 8px;
+                padding: 6px 14px; border-radius: 999px;
+                background: rgba(0, 230, 118, 0.10);
+                border: 1px solid rgba(0, 230, 118, 0.28);
+                font-size: .75rem; letter-spacing: .12em; text-transform: uppercase;
+                color: var(--g); font-weight: 600;
+            }
+            #pg-land .sl-dot {
+                width: 8px; height: 8px; border-radius: 50%; background: var(--g);
+                box-shadow: 0 0 0 4px rgba(0,230,118,.18);
+                animation: sl-pulse 2s ease-in-out infinite;
+            }
+            @keyframes sl-pulse {
+                0%,100% { box-shadow: 0 0 0 4px rgba(0,230,118,.18); }
+                50%     { box-shadow: 0 0 0 8px rgba(0,230,118,.05); }
+            }
+            #pg-land .sl-h1 {
+                font-size: clamp(2.6rem, 7vw, 4.6rem);
+                font-weight: 700; line-height: 1.04; letter-spacing: -2px;
+                margin: 22px 0 18px;
+            }
+            #pg-land .sl-h2 {
+                font-size: clamp(2rem, 5vw, 3.2rem);
+                font-weight: 700; line-height: 1.05; letter-spacing: -1.4px;
+                margin: 14px 0 14px;
+            }
+            #pg-land .sl-sub { color: var(--t2); font-size: 1.05rem; line-height: 1.65; max-width: 560px; }
+            #pg-land .sl-btn {
+                display: inline-flex; align-items: center; gap: 8px;
+                padding: 14px 26px; border-radius: 999px;
+                font-weight: 700; font-size: .98rem; cursor: pointer;
+                font-family: 'Space Grotesk', sans-serif;
+                border: 1px solid transparent; transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+            }
+            #pg-land .sl-btn-primary {
+                background: var(--g); color: #000;
+                box-shadow: 0 10px 30px -10px rgba(0,230,118,.55);
+            }
+            #pg-land .sl-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 16px 40px -10px rgba(0,230,118,.7); }
+            #pg-land .sl-btn-ghost {
+                background: rgba(255,255,255,.04); color: var(--t1);
+                border-color: rgba(255,255,255,.12);
+            }
+            #pg-land .sl-btn-ghost:hover { background: rgba(255,255,255,.08); transform: translateY(-2px); }
+            #pg-land .sl-card {
+                background: linear-gradient(180deg, rgba(23,33,25,.7), rgba(17,25,22,.6));
+                border: 1px solid var(--bd);
+                border-radius: var(--rl);
+                backdrop-filter: blur(14px);
+                -webkit-backdrop-filter: blur(14px);
+                padding: 26px;
+                transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+            }
+            #pg-land .sl-card:hover {
+                transform: translateY(-4px);
+                border-color: var(--bds);
+                box-shadow: 0 20px 50px -20px rgba(0,230,118,.25);
+            }
+            #pg-land .sl-hero-grid {
+                display: grid; grid-template-columns: 1.1fr .9fr; gap: 56px;
+                align-items: center; min-height: 70vh;
+            }
+            #pg-land .sl-hero-img {
+                width: 100%; height: auto; border-radius: var(--rl);
+                box-shadow: 0 30px 80px -20px rgba(0,230,118,.35);
+                border: 1px solid var(--bd);
+            }
+            #pg-land .sl-stats {
+                display: grid; grid-template-columns: repeat(3, 1fr);
+                gap: 24px; padding: 36px;
+                background: rgba(17,25,22,.55);
+                border: 1px solid var(--bd);
+                border-radius: var(--rl);
+                backdrop-filter: blur(14px);
+            }
+            #pg-land .sl-stat-num {
+                font-size: clamp(2rem, 4vw, 2.8rem); font-weight: 800;
+                background: linear-gradient(135deg, #00E676, #FFD54F);
+                -webkit-background-clip: text; background-clip: text; color: transparent;
+                line-height: 1;
+            }
+            #pg-land .sl-stat-lbl {
+                font-size: .8rem; color: var(--t2); margin-top: 6px;
+                letter-spacing: .08em; text-transform: uppercase;
+            }
+            #pg-land .sl-feat-grid {
+                display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;
+            }
+            #pg-land .sl-feat-icon {
+                width: 56px; height: 56px; border-radius: 16px;
+                display: flex; align-items: center; justify-content: center;
+                font-size: 1.8rem; margin-bottom: 16px;
+                background: rgba(0,230,118,.10);
+                border: 1px solid rgba(0,230,118,.25);
+            }
+            #pg-land .sl-step-num {
+                width: 44px; height: 44px; border-radius: 50%;
+                display: flex; align-items: center; justify-content: center;
+                font-weight: 800; color: #000;
+                background: linear-gradient(135deg, #00E676, #00B34A);
+                flex-shrink: 0;
+            }
+            #pg-land .sl-prod-grid {
+                display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px;
+            }
+            #pg-land .sl-prod-card { padding: 0; overflow: hidden; }
+            #pg-land .sl-prod-img {
+                width: 100%; aspect-ratio: 16/10; object-fit: cover; display: block;
+                border-bottom: 1px solid var(--bd);
+            }
+            #pg-land .sl-prod-body { padding: 22px 24px 26px; }
+            #pg-land .sl-test-grid {
+                display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px;
+            }
+            #pg-land .sl-stars { color: var(--gold); letter-spacing: 2px; font-size: 1.05rem; }
+            #pg-land .sl-final {
+                text-align: center; padding: 80px 24px;
+                background: radial-gradient(800px 400px at 50% 0%, rgba(0,230,118,.18), transparent 70%);
+                border-top: 1px solid var(--bd);
+                border-bottom: 1px solid var(--bd);
+            }
+            #pg-land .sl-footer {
+                background: #050807; padding: 64px 20px 32px;
+                border-top: 1px solid var(--bd);
+            }
+            #pg-land .sl-footer-grid {
+                max-width: 1180px; margin: 0 auto;
+                display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 40px;
+            }
+            #pg-land .sl-footer h4 {
+                font-size: .8rem; text-transform: uppercase; letter-spacing: .12em;
+                color: var(--t1); margin-bottom: 16px;
+            }
+            #pg-land .sl-footer a, #pg-land .sl-footer li {
+                display: block; color: var(--t2); font-size: .9rem;
+                text-decoration: none; padding: 6px 0; cursor: pointer;
+                transition: color .15s ease;
+            }
+            #pg-land .sl-footer a:hover, #pg-land .sl-footer li:hover { color: var(--g); }
+            #pg-land .sl-legal {
+                max-width: 1180px; margin: 40px auto 0; padding-top: 24px;
+                border-top: 1px solid var(--bd);
+                display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+                font-size: .8rem; color: var(--t3);
+            }
+            @media (max-width: 900px) {
+                #pg-land .sl-hero-grid { grid-template-columns: 1fr; gap: 32px; text-align: center; }
+                #pg-land .sl-hero-copy .sl-sub { margin-left: auto; margin-right: auto; }
+                #pg-land .sl-hero-cta { justify-content: center; }
+                #pg-land .sl-feat-grid { grid-template-columns: 1fr; }
+                #pg-land .sl-prod-grid { grid-template-columns: 1fr; }
+                #pg-land .sl-test-grid { grid-template-columns: 1fr; }
+                #pg-land .sl-footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+                #pg-land .sl-stats { grid-template-columns: 1fr; gap: 18px; padding: 24px; }
+                #pg-land .sl-section { padding: 56px 18px; }
+            }
+        </style>
+
+        <div class="sl-grid-bg"></div>
+
+        <!-- Sticky Nav -->
         <div
-            style="position:sticky;top:0;z-index:200;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;background:rgba(6,10,7,0.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--bd)">
-            <div style="font-weight:700;font-size:1.15rem;color:var(--g)">Star<span
-                    style="color:var(--gold)">life</span></div>
-            <div style="display:flex;gap:8px">
-                <button class="btn btn-o btn-sm" onclick="go('pg-login')">Sign In</button>
-                <button class="btn btn-p btn-sm" onclick="go('pg-reg')">Join Free</button>
+            style="position:sticky;top:0;z-index:200;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;background:rgba(6,10,7,0.85);backdrop-filter:blur(16px);border-bottom:1px solid var(--bd)">
+            <div style="font-weight:700;font-size:1.25rem;letter-spacing:-.5px">
+                <span style="color:var(--g)">Star</span><span style="color:var(--t1)">life</span>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center">
+                <button class="sl-btn sl-btn-ghost" style="padding:10px 20px;font-size:.9rem" onclick="go('pg-login')">Sign In</button>
+                <button class="sl-btn sl-btn-primary" style="padding:10px 22px;font-size:.9rem" onclick="go('pg-reg')">Join Free</button>
             </div>
         </div>
 
-        <!-- Hero -->
-        <div
-            style="min-height:calc(100vh - 57px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px 60px">
-            <div class="hero-copy-wrap">
-                <div class="lbadge"><span class="ldot"></span>Now accepting investments worldwide</div>
-                <h1
-                    style="font-size:clamp(2.4rem,8vw,4rem);font-weight:700;line-height:1.08;margin-bottom:18px;letter-spacing:-1.5px">
-                    Invest Smart.<br><span style="color:var(--g)">Earn Every Day.</span></h1>
-                <p style="color:var(--t2);font-size:1rem;max-width:400px;margin:0 auto 36px;line-height:1.65">Put your money
-                    to work with Starlife Advert and earn <strong style="color:var(--g)">2% daily profit</strong> — forever,
-                    on every dollar invested.</p>
+        <!-- HERO -->
+        <section class="sl-section" style="padding-top:56px">
+            <div class="sl-hero-grid">
+                <div class="sl-hero-copy">
+                    <div class="sl-eyebrow"><span class="sl-dot"></span> Now accepting investments worldwide</div>
+                    <h1 class="sl-h1">
+                        Invest Smart.<br>
+                        <span style="background:linear-gradient(135deg,#00E676,#FFD54F);-webkit-background-clip:text;background-clip:text;color:transparent">Earn Every Day.</span>
+                    </h1>
+                    <p class="sl-sub">
+                        Put your money to work with Starlife and earn
+                        <strong style="color:var(--g)">2% daily profit</strong> — forever, on every dollar invested.
+                        From M-Pesa to USDT, deposits start at just $10.
+                    </p>
+                    <div class="sl-hero-cta" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:32px">
+                        <button class="sl-btn sl-btn-primary" onclick="go('pg-reg')">Get started →</button>
+                        <button class="sl-btn sl-btn-ghost" onclick="go('pg-login')">Sign In</button>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:14px;margin-top:24px;color:var(--t2);font-size:.85rem">
+                        <span class="sl-stars">★★★★★</span>
+                        <span>4.9 average · 35,000+ active members</span>
+                    </div>
+                </div>
+                <div>
+                    <img class="sl-hero-img" alt="Trader on laptop with glowing financial charts"
+                         src="https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=1200&q=80">
+                </div>
             </div>
+        </section>
+
+        <!-- STATS -->
+        <section class="sl-section" style="padding-top:0">
+            <div class="sl-stats">
+                <div style="text-align:center">
+                    <div class="sl-stat-num">35K+</div>
+                    <div class="sl-stat-lbl">Members</div>
+                </div>
+                <div style="text-align:center">
+                    <div class="sl-stat-num">$30M+</div>
+                    <div class="sl-stat-lbl">Paid Out</div>
+                </div>
+                <div style="text-align:center">
+                    <div class="sl-stat-num">500+</div>
+                    <div class="sl-stat-lbl">Daily Investors</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FEATURE CARDS -->
+        <section class="sl-section">
+            <div style="text-align:center;margin-bottom:40px">
+                <div class="sl-eyebrow">Why Starlife</div>
+                <h2 class="sl-h2">Everything you need to grow.</h2>
+            </div>
+            <div class="sl-feat-grid">
+                <div class="sl-card">
+                    <div class="sl-feat-icon">📈</div>
+                    <div style="font-weight:700;font-size:1.15rem;margin-bottom:6px">2% Daily Profit</div>
+                    <div style="color:var(--t2);font-size:.92rem;line-height:1.6">Earn 2% every single day on your invested capital — paid out forever, no caps.</div>
+                </div>
+                <div class="sl-card">
+                    <div class="sl-feat-icon" style="background:rgba(255,213,79,.10);border-color:rgba(255,213,79,.30)">💎</div>
+                    <div style="font-weight:700;font-size:1.15rem;margin-bottom:6px">Shareholder Pool</div>
+                    <div style="color:var(--t2);font-size:.92rem;line-height:1.6">Top investors share an annual <strong style="color:var(--gold)">$2M pool</strong> distributed to all shareholders.</div>
+                </div>
+                <div class="sl-card">
+                    <div class="sl-feat-icon" style="background:rgba(64,196,255,.10);border-color:rgba(64,196,255,.30)">👥</div>
+                    <div style="font-weight:700;font-size:1.15rem;margin-bottom:6px">10% Referral</div>
+                    <div style="color:var(--t2);font-size:.92rem;line-height:1.6">Invite friends and earn 10% on every first investment they make. Forever.</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- HOW IT WORKS -->
+        <section class="sl-section">
+            <div style="text-align:center;margin-bottom:40px">
+                <div class="sl-eyebrow">How It Works</div>
+                <h2 class="sl-h2">Three steps to daily profit.</h2>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px" class="sl-feat-grid">
+                <div class="sl-card" style="display:flex;gap:16px;align-items:flex-start">
+                    <div class="sl-step-num">1</div>
+                    <div>
+                        <div style="font-weight:700;margin-bottom:6px">Create Free Account</div>
+                        <div style="color:var(--t2);font-size:.9rem;line-height:1.6">Register in seconds. No fees, no paperwork, no hidden charges.</div>
+                    </div>
+                </div>
+                <div class="sl-card" style="display:flex;gap:16px;align-items:flex-start">
+                    <div class="sl-step-num" style="background:linear-gradient(135deg,#FFD54F,#FFB300)">2</div>
+                    <div>
+                        <div style="font-weight:700;margin-bottom:6px">Make an Investment</div>
+                        <div style="color:var(--t2);font-size:.9rem;line-height:1.6">Deposit from $10 via M-Pesa, PayPal, USDT, or bank transfer.</div>
+                    </div>
+                </div>
+                <div class="sl-card" style="display:flex;gap:16px;align-items:flex-start">
+                    <div class="sl-step-num" style="background:linear-gradient(135deg,#40C4FF,#0288D1)">3</div>
+                    <div>
+                        <div style="font-weight:700;margin-bottom:6px">Earn & Withdraw</div>
+                        <div style="color:var(--t2);font-size:.9rem;line-height:1.6">Get 2% profit credited daily. Withdraw any time, instantly.</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PRODUCT GRID -->
+        <section class="sl-section">
+            <div style="text-align:center;margin-bottom:40px">
+                <div class="sl-eyebrow">Built For Everyone</div>
+                <h2 class="sl-h2">One platform. Six powerful tools.</h2>
+            </div>
+            <div class="sl-prod-grid">
+                <div class="sl-card sl-prod-card">
+                    <img class="sl-prod-img" alt="Daily profit chart growing"
+                         src="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=900&q=80">
+                    <div class="sl-prod-body">
+                        <div style="font-weight:700;font-size:1.1rem;margin-bottom:6px">Daily Profits</div>
+                        <div style="color:var(--t2);font-size:.9rem;line-height:1.6">Watch your balance grow with 2% added every day, automatically.</div>
+                    </div>
+                </div>
+                <div class="sl-card sl-prod-card">
+                    <img class="sl-prod-img" alt="Glowing piggy bank"
+                         src="https://images.unsplash.com/photo-1638913662529-1d2f1f3f6e74?auto=format&fit=crop&w=900&q=80">
+                    <div class="sl-prod-body">
+                        <div style="font-weight:700;font-size:1.1rem;margin-bottom:6px">Shareholder Pool</div>
+                        <div style="color:var(--t2);font-size:.9rem;line-height:1.6">Become a shareholder and claim your slice of the $2M annual pool.</div>
+                    </div>
+                </div>
+                <div class="sl-card sl-prod-card">
+                    <img class="sl-prod-img" alt="People connected by referral network"
+                         src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=900&q=80">
+                    <div class="sl-prod-body">
+                        <div style="font-weight:700;font-size:1.1rem;margin-bottom:6px">Referral Rewards</div>
+                        <div style="color:var(--t2);font-size:.9rem;line-height:1.6">Share your link and earn 10% on every friend's first investment.</div>
+                    </div>
+                </div>
+                <div class="sl-card sl-prod-card">
+                    <img class="sl-prod-img" alt="Modern bank vault"
+                         src="https://images.unsplash.com/photo-1601597111158-2fceff292cdc?auto=format&fit=crop&w=900&q=80">
+                    <div class="sl-prod-body">
+                        <div style="font-weight:700;font-size:1.1rem;margin-bottom:6px">Loans & Savings</div>
+                        <div style="color:var(--t2);font-size:.9rem;line-height:1.6">Borrow against your portfolio or lock funds in high-yield savings.</div>
+                    </div>
+                </div>
+                <div class="sl-card sl-prod-card">
+                    <img class="sl-prod-img" alt="Money transfer between phones"
+                         src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=900&q=80">
+                    <div class="sl-prod-body">
+                        <div style="font-weight:700;font-size:1.1rem;margin-bottom:6px">Withdraw Anytime</div>
+                        <div style="color:var(--t2);font-size:.9rem;line-height:1.6">No lock-ins. Cash out to mobile money or crypto in minutes.</div>
+                    </div>
+                </div>
+                <div class="sl-card sl-prod-card">
+                    <img class="sl-prod-img" alt="Shield and lock security"
+                         src="https://images.unsplash.com/photo-1614064641938-3bbee52942c7?auto=format&fit=crop&w=900&q=80">
+                    <div class="sl-prod-body">
+                        <div style="font-weight:700;font-size:1.1rem;margin-bottom:6px">Bank-level Security</div>
+                        <div style="color:var(--t2);font-size:.9rem;line-height:1.6">256-bit encryption, 2FA, and 24/7 monitoring keep your funds safe.</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TESTIMONIALS -->
+        <section class="sl-section">
+            <div style="text-align:center;margin-bottom:40px">
+                <div class="sl-eyebrow">Loved Worldwide</div>
+                <h2 class="sl-h2">Trusted by 35,000+ investors.</h2>
+            </div>
+            <div class="sl-test-grid">
+                <div class="sl-card">
+                    <div class="sl-stars">★★★★★</div>
+                    <p style="margin:14px 0 18px;color:var(--t1);line-height:1.6;font-size:1rem">"Finally an investment app that actually pays daily. I've been earning consistently for 8 months — withdrawals always hit my M-Pesa within minutes."</p>
+                    <div style="display:flex;align-items:center;gap:12px">
+                        <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#00E676,#FFD54F);display:flex;align-items:center;justify-content:center;font-weight:800;color:#000">SM</div>
+                        <div>
+                            <div style="font-weight:600;font-size:.92rem">Sofia M.</div>
+                            <div style="color:var(--t3);font-size:.8rem">Investor since 2024</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="sl-card">
+                    <div class="sl-stars">★★★★★</div>
+                    <p style="margin:14px 0 18px;color:var(--t1);line-height:1.6;font-size:1rem">"The shareholder pool is a game changer. My referrals alone now bring in more than my full-time job. Smooth, transparent, fast."</p>
+                    <div style="display:flex;align-items:center;gap:12px">
+                        <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#40C4FF,#00E676);display:flex;align-items:center;justify-content:center;font-weight:800;color:#000">JT</div>
+                        <div>
+                            <div style="font-weight:600;font-size:.92rem">James T.</div>
+                            <div style="color:var(--t3);font-size:.8rem">Shareholder · 2025</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FINAL CTA -->
+        <section class="sl-final">
+            <h2 class="sl-h2" style="max-width:720px;margin:0 auto 14px">Join 35,000+ people<br>already using Starlife.</h2>
+            <p style="color:var(--t2);max-width:480px;margin:0 auto 32px">Sign up in minutes. No paperwork. No hidden fees. Start earning 2% daily today.</p>
             <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
-                <button onclick="go('pg-reg')"
-                    style="background:var(--g);color:#000;border:none;border-radius:var(--rs);padding:14px 32px;font-size:1rem;font-weight:700;font-family:'Space Grotesk',sans-serif;cursor:pointer;box-shadow:0 4px 24px rgba(0,230,118,.3);transition:.2s">🚀
-                    Join Free</button>
-                <button onclick="go('pg-login')"
-                    style="background:transparent;color:var(--t1);border:1px solid var(--bds);border-radius:var(--rs);padding:14px 28px;font-size:1rem;font-weight:600;font-family:'Space Grotesk',sans-serif;cursor:pointer;transition:.2s">Sign
-                    In</button>
+                <button class="sl-btn sl-btn-primary" onclick="go('pg-reg')">Get started free</button>
+                <button class="sl-btn sl-btn-ghost" onclick="go('pg-login')">I already have an account</button>
             </div>
+        </section>
 
-            <!-- Big Stats -->
-            <div
-                style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:52px 0 36px;max-width:480px;width:100%">
-                <div style="text-align:center">
-                    <div style="font-size:2rem;font-weight:800;color:var(--g);font-family:'Space Grotesk',sans-serif">
-                        35K+</div>
-                    <div
-                        style="font-size:.75rem;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-top:3px">
-                        Members</div>
-                </div>
-                <div style="text-align:center">
-                    <div
-                        style="font-size:2rem;font-weight:800;color:var(--gold);font-family:'Space Grotesk',sans-serif">
-                        $30M+</div>
-                    <div
-                        style="font-size:.75rem;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-top:3px">
-                        Paid Out</div>
-                </div>
-                <div style="text-align:center">
-                    <div style="font-size:2rem;font-weight:800;color:var(--sky);font-family:'Space Grotesk',sans-serif">
-                        500+</div>
-                    <div
-                        style="font-size:.75rem;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-top:3px">
-                        Daily Investors</div>
-                </div>
-            </div>
-
-            <!-- Feature cards -->
-            <div
-                style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;max-width:520px;width:100%;margin-bottom:40px">
-                <div
-                    style="background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);padding:18px;text-align:center">
-                    <div style="font-size:1.8rem;margin-bottom:8px">📈</div>
-                    <div style="font-weight:700;font-size:.9rem">2% Daily</div>
-                    <div style="font-size:.75rem;color:var(--t3);margin-top:3px">Profit forever</div>
-                </div>
-                <div
-                    style="background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);padding:18px;text-align:center">
-                    <div style="font-size:1.8rem;margin-bottom:8px">💎</div>
-                    <div style="font-weight:700;font-size:.9rem">Shareholder</div>
-                    <div style="font-size:.75rem;color:var(--t3);margin-top:3px">$2M annual pool</div>
-                </div>
-                <div
-                    style="background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);padding:18px;text-align:center">
-                    <div style="font-size:1.8rem;margin-bottom:8px">👥</div>
-                    <div style="font-weight:700;font-size:.9rem">10% Referral</div>
-                    <div style="font-size:.75rem;color:var(--t3);margin-top:3px">Per first investment</div>
-                </div>
-            </div>
-
-            <!-- How it works -->
-            <div style="max-width:480px;width:100%;text-align:left">
-                <h2 style="font-size:1.4rem;margin-bottom:20px;text-align:center">How It Works</h2>
-                <div style="display:flex;flex-direction:column;gap:10px">
-                    <div
-                        style="background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);padding:16px;display:flex;align-items:center;gap:14px">
-                        <div
-                            style="width:36px;height:36px;border-radius:50%;background:var(--g);color:#000;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.95rem;flex-shrink:0">
-                            1</div>
-                        <div>
-                            <div style="font-weight:700;font-size:.9rem">Create Free Account</div>
-                            <div style="font-size:.78rem;color:var(--t2);margin-top:2px">Register in seconds. No fees,
-                                no charges.</div>
-                        </div>
+        <!-- FOOTER -->
+        <footer class="sl-footer">
+            <div class="sl-footer-grid">
+                <div>
+                    <div style="font-weight:700;font-size:1.4rem;margin-bottom:12px">
+                        <span style="color:var(--g)">Star</span><span style="color:var(--t1)">life</span>
                     </div>
-                    <div
-                        style="background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);padding:16px;display:flex;align-items:center;gap:14px">
-                        <div
-                            style="width:36px;height:36px;border-radius:50%;background:var(--gold);color:#000;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.95rem;flex-shrink:0">
-                            2</div>
-                        <div>
-                            <div style="font-weight:700;font-size:.9rem">Make an Investment</div>
-                            <div style="font-size:.78rem;color:var(--t2);margin-top:2px">Deposit from $10 via M-Pesa,
-                                PayPal, or USDT.</div>
-                        </div>
-                    </div>
-                    <div
-                        style="background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);padding:16px;display:flex;align-items:center;gap:14px">
-                        <div
-                            style="width:36px;height:36px;border-radius:50%;background:var(--sky);color:#000;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.95rem;flex-shrink:0">
-                            3</div>
-                        <div>
-                            <div style="font-weight:700;font-size:.9rem">Earn Daily & Withdraw</div>
-                            <div style="font-size:.78rem;color:var(--t2);margin-top:2px">Get 2% profit every day.
-                                Withdraw anytime.</div>
-                        </div>
-                    </div>
+                    <p style="color:var(--t2);font-size:.9rem;line-height:1.6;max-width:280px">Invest smart. Earn every day. The world's friendliest 2% daily investment platform.</p>
+                </div>
+                <div>
+                    <h4>Platform</h4>
+                    <ul style="list-style:none;padding:0;margin:0">
+                        <li onclick="go('pg-reg')">Invest</li>
+                        <li onclick="go('pg-login')">Withdraw</li>
+                        <li onclick="go('pg-reg')">Shareholder</li>
+                        <li onclick="go('pg-reg')">Loans</li>
+                        <li onclick="go('pg-reg')">Referrals</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Support</h4>
+                    <ul style="list-style:none;padding:0;margin:0">
+                        <li><a href="mailto:support@starlife.app">Contact us</a></li>
+                        <li>Help centre</li>
+                        <li>Status</li>
+                        <li>Security</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Company</h4>
+                    <ul style="list-style:none;padding:0;margin:0">
+                        <li>About</li>
+                        <li>Blog</li>
+                        <li>Careers</li>
+                        <li>Press</li>
+                    </ul>
                 </div>
             </div>
-
-            <p style="font-size:.76rem;color:var(--t3);margin-top:32px">Min $10 · Max $800,000 · Fast approval · <a
-                    href="mailto:support@example.com">support@example.com</a></p>
-        </div>
+            <div class="sl-legal">
+                <div>© 2026 Starlife. All rights reserved.</div>
+                <div style="display:flex;gap:18px">
+                    <span>Privacy</span><span>Terms</span><span>Cookies</span>
+                </div>
+            </div>
+        </footer>
     </div>
 
     <!-- ══════════════════════════════════════════

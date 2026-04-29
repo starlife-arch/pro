@@ -35,6 +35,107 @@
             --rl: 22px;
         }
 
+        /* ============================================================
+           LIGHT THEME OVERRIDE (Revolut-style)
+           Flips dark surfaces -> white/light-gray globally.
+           Affects landing page AND every dashboard page since the
+           entire app uses these CSS variables.
+           ============================================================ */
+        :root {
+            --bg: #F8F9FA;
+            --s1: #FFFFFF;
+            --s2: #FFFFFF;
+            --s3: #F1F3F5;
+            --bd: rgba(17, 17, 17, 0.08);
+            --bds: rgba(0, 200, 83, 0.35);
+            --t1: #111111;
+            --t2: #5B6470;
+            --t3: #8A93A0;
+            --g: #00C853;
+            --gd: #00A344;
+            --gg: rgba(0, 200, 83, 0.10);
+        }
+        /* Kill heavy dark overlays + animated bg */
+        #finance-bg-canvas { display: none !important; }
+        body::before {
+            background-image:
+                linear-gradient(rgba(17,17,17,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(17,17,17,0.04) 1px, transparent 1px) !important;
+            background-size: 48px 48px !important;
+        }
+        body::after { background: transparent !important; }
+        body { background: var(--bg) !important; color: var(--t1) !important; }
+
+        /* Nav: white with subtle border */
+        nav {
+            background: rgba(255,255,255,0.92) !important;
+            border-bottom: 1px solid var(--bd) !important;
+            box-shadow: 0 1px 0 rgba(17,17,17,0.02);
+        }
+        .nav-bal {
+            background: #F1F8F4 !important;
+            border-color: rgba(0,200,83,0.25) !important;
+            color: #00A344 !important;
+        }
+        .nav-av { color: #fff; }
+
+        /* Bottom nav -> white */
+        .bnav {
+            background: rgba(255,255,255,0.96) !important;
+            border-top: 1px solid var(--bd) !important;
+            color: var(--t2) !important;
+        }
+        .bnav .bnav-item.active, .bnav a.active { color: var(--g) !important; }
+
+        /* Cards: white + subtle shadow, no dark gradients */
+        .card {
+            background: #FFFFFF !important;
+            border: 1px solid var(--bd) !important;
+            box-shadow: 0 1px 2px rgba(17,17,17,0.04), 0 4px 16px rgba(17,17,17,0.04) !important;
+            color: var(--t1) !important;
+        }
+        .targeted-announcement-card {
+            background: #FFFFFF !important;
+            border: 1px solid var(--bds) !important;
+            box-shadow: 0 4px 16px rgba(0,200,83,0.08) !important;
+            color: var(--t1) !important;
+        }
+        .targeted-announcement-card .ta-pill {
+            background: #F1F8F4 !important;
+            border-color: rgba(0,200,83,0.25) !important;
+            color: #00A344 !important;
+        }
+
+        /* Buttons: green primary, light secondary */
+        .btn {
+            color: #fff;
+        }
+        .btn.ghost, .btn.sec, .btn-outline {
+            background: #FFFFFF !important;
+            border: 1px solid var(--bd) !important;
+            color: var(--t1) !important;
+        }
+
+        /* Inputs */
+        input, select, textarea {
+            background: #FFFFFF !important;
+            border-color: var(--bd) !important;
+            color: var(--t1) !important;
+        }
+        input::placeholder, textarea::placeholder { color: var(--t3) !important; }
+
+        /* Tables */
+        table { color: var(--t1) !important; }
+        th, td { border-color: var(--bd) !important; }
+
+        /* Admin */
+        #pg-admin { background: var(--bg) !important; }
+        #pg-admin .wrap { background: var(--bg) !important; }
+        #pg-admin .atab, #pg-admin .itabs { background: #FFFFFF !important; border: 1px solid var(--bd) !important; color: var(--t1) !important; }
+
+        /* Generic dark-glass utility classes used throughout */
+        [style*="rgba(0, 230, 118"], [style*="rgba(0,230,118"] { /* leave inline accents alone */ }
+
         * {
             margin: 0;
             padding: 0;
@@ -3317,16 +3418,14 @@
         <!-- Scoped landing styles -->
         <style>
             #pg-land {
-                background:
-                    radial-gradient(1200px 700px at 50% -10%, rgba(0, 230, 118, 0.10), transparent 60%),
-                    linear-gradient(180deg, #060A07 0%, #0A1F12 100%);
+                background: #FFFFFF;
                 color: var(--t1);
             }
             #pg-land .sl-grid-bg {
                 position: absolute; inset: 0;
                 background-image:
-                    linear-gradient(rgba(0,230,118,.05) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(0,230,118,.05) 1px, transparent 1px);
+                    linear-gradient(rgba(17,17,17,.05) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(17,17,17,.05) 1px, transparent 1px);
                 background-size: 56px 56px;
                 mask-image: radial-gradient(ellipse at center, #000 40%, transparent 85%);
                 -webkit-mask-image: radial-gradient(ellipse at center, #000 40%, transparent 85%);
@@ -3337,31 +3436,31 @@
             #pg-land .sl-eyebrow {
                 display: inline-flex; align-items: center; gap: 8px;
                 padding: 6px 14px; border-radius: 999px;
-                background: rgba(0, 230, 118, 0.10);
-                border: 1px solid rgba(0, 230, 118, 0.28);
+                background: #F1F8F4;
+                border: 1px solid rgba(0, 200, 83, 0.25);
                 font-size: .75rem; letter-spacing: .12em; text-transform: uppercase;
-                color: var(--g); font-weight: 600;
+                color: #00A344; font-weight: 600;
             }
             #pg-land .sl-dot {
-                width: 8px; height: 8px; border-radius: 50%; background: var(--g);
-                box-shadow: 0 0 0 4px rgba(0,230,118,.18);
+                width: 8px; height: 8px; border-radius: 50%; background: #00C853;
+                box-shadow: 0 0 0 4px rgba(0,200,83,.18);
                 animation: sl-pulse 2s ease-in-out infinite;
             }
             @keyframes sl-pulse {
-                0%,100% { box-shadow: 0 0 0 4px rgba(0,230,118,.18); }
-                50%     { box-shadow: 0 0 0 8px rgba(0,230,118,.05); }
+                0%,100% { box-shadow: 0 0 0 4px rgba(0,200,83,.18); }
+                50%     { box-shadow: 0 0 0 8px rgba(0,200,83,.05); }
             }
             #pg-land .sl-h1 {
                 font-size: clamp(2.6rem, 7vw, 4.6rem);
                 font-weight: 700; line-height: 1.04; letter-spacing: -2px;
-                margin: 22px 0 18px;
+                margin: 22px 0 18px; color: #111;
             }
             #pg-land .sl-h2 {
                 font-size: clamp(2rem, 5vw, 3.2rem);
                 font-weight: 700; line-height: 1.05; letter-spacing: -1.4px;
-                margin: 14px 0 14px;
+                margin: 14px 0 14px; color: #111;
             }
-            #pg-land .sl-sub { color: var(--t2); font-size: 1.05rem; line-height: 1.65; max-width: 560px; }
+            #pg-land .sl-sub { color: #5B6470; font-size: 1.05rem; line-height: 1.65; max-width: 560px; }
             #pg-land .sl-btn {
                 display: inline-flex; align-items: center; gap: 8px;
                 padding: 14px 26px; border-radius: 999px;
@@ -3370,28 +3469,27 @@
                 border: 1px solid transparent; transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
             }
             #pg-land .sl-btn-primary {
-                background: var(--g); color: #000;
-                box-shadow: 0 10px 30px -10px rgba(0,230,118,.55);
+                background: #00C853; color: #fff;
+                box-shadow: 0 8px 22px -8px rgba(0,200,83,.45);
             }
-            #pg-land .sl-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 16px 40px -10px rgba(0,230,118,.7); }
+            #pg-land .sl-btn-primary:hover { transform: translateY(-2px); background:#00A344; box-shadow: 0 14px 30px -10px rgba(0,200,83,.55); }
             #pg-land .sl-btn-ghost {
-                background: rgba(255,255,255,.04); color: var(--t1);
-                border-color: rgba(255,255,255,.12);
+                background: #FFFFFF; color: #111;
+                border-color: rgba(17,17,17,.12);
             }
-            #pg-land .sl-btn-ghost:hover { background: rgba(255,255,255,.08); transform: translateY(-2px); }
+            #pg-land .sl-btn-ghost:hover { background: #F8F9FA; transform: translateY(-2px); }
             #pg-land .sl-card {
-                background: linear-gradient(180deg, rgba(23,33,25,.7), rgba(17,25,22,.6));
-                border: 1px solid var(--bd);
+                background: #FFFFFF;
+                border: 1px solid rgba(17,17,17,.08);
                 border-radius: var(--rl);
-                backdrop-filter: blur(14px);
-                -webkit-backdrop-filter: blur(14px);
                 padding: 26px;
-                transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+                box-shadow: 0 1px 2px rgba(17,17,17,0.04), 0 6px 20px rgba(17,17,17,0.05);
+                transition: transform .25s ease, box-shadow .25s ease;
+                color: #111;
             }
             #pg-land .sl-card:hover {
                 transform: translateY(-4px);
-                border-color: var(--bds);
-                box-shadow: 0 20px 50px -20px rgba(0,230,118,.25);
+                box-shadow: 0 14px 40px rgba(17,17,17,0.10);
             }
             #pg-land .sl-hero-grid {
                 display: grid; grid-template-columns: 1.1fr .9fr; gap: 56px;
@@ -3399,25 +3497,24 @@
             }
             #pg-land .sl-hero-img {
                 width: 100%; height: auto; border-radius: var(--rl);
-                box-shadow: 0 30px 80px -20px rgba(0,230,118,.35);
-                border: 1px solid var(--bd);
+                box-shadow: 0 24px 60px -16px rgba(17,17,17,0.18);
+                border: 1px solid rgba(17,17,17,.06);
+                background: #F1F3F5;
             }
             #pg-land .sl-stats {
                 display: grid; grid-template-columns: repeat(3, 1fr);
                 gap: 24px; padding: 36px;
-                background: rgba(17,25,22,.55);
-                border: 1px solid var(--bd);
+                background: #FFFFFF;
+                border: 1px solid rgba(17,17,17,.08);
                 border-radius: var(--rl);
-                backdrop-filter: blur(14px);
+                box-shadow: 0 6px 24px rgba(17,17,17,0.05);
             }
             #pg-land .sl-stat-num {
                 font-size: clamp(2rem, 4vw, 2.8rem); font-weight: 800;
-                background: linear-gradient(135deg, #00E676, #FFD54F);
-                -webkit-background-clip: text; background-clip: text; color: transparent;
-                line-height: 1;
+                color: #00A344; line-height: 1;
             }
             #pg-land .sl-stat-lbl {
-                font-size: .8rem; color: var(--t2); margin-top: 6px;
+                font-size: .8rem; color: #5B6470; margin-top: 6px;
                 letter-spacing: .08em; text-transform: uppercase;
             }
             #pg-land .sl-feat-grid {
@@ -3427,14 +3524,14 @@
                 width: 56px; height: 56px; border-radius: 16px;
                 display: flex; align-items: center; justify-content: center;
                 font-size: 1.8rem; margin-bottom: 16px;
-                background: rgba(0,230,118,.10);
-                border: 1px solid rgba(0,230,118,.25);
+                background: #F1F8F4;
+                border: 1px solid rgba(0,200,83,.20);
             }
             #pg-land .sl-step-num {
                 width: 44px; height: 44px; border-radius: 50%;
                 display: flex; align-items: center; justify-content: center;
-                font-weight: 800; color: #000;
-                background: linear-gradient(135deg, #00E676, #00B34A);
+                font-weight: 800; color: #fff;
+                background: #00C853;
                 flex-shrink: 0;
             }
             #pg-land .sl-prod-grid {
@@ -3443,22 +3540,24 @@
             #pg-land .sl-prod-card { padding: 0; overflow: hidden; }
             #pg-land .sl-prod-img {
                 width: 100%; aspect-ratio: 16/10; object-fit: cover; display: block;
-                border-bottom: 1px solid var(--bd);
+                border-bottom: 1px solid rgba(17,17,17,.06);
+                background:#F1F3F5;
             }
             #pg-land .sl-prod-body { padding: 22px 24px 26px; }
             #pg-land .sl-test-grid {
                 display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px;
             }
-            #pg-land .sl-stars { color: var(--gold); letter-spacing: 2px; font-size: 1.05rem; }
+            #pg-land .sl-stars { color: #FFB300; letter-spacing: 2px; font-size: 1.05rem; }
             #pg-land .sl-final {
                 text-align: center; padding: 80px 24px;
-                background: radial-gradient(800px 400px at 50% 0%, rgba(0,230,118,.18), transparent 70%);
-                border-top: 1px solid var(--bd);
-                border-bottom: 1px solid var(--bd);
+                background: linear-gradient(180deg,#F1F8F4,#FFFFFF);
+                border-top: 1px solid rgba(17,17,17,.06);
+                border-bottom: 1px solid rgba(17,17,17,.06);
             }
             #pg-land .sl-footer {
-                background: #050807; padding: 64px 20px 32px;
-                border-top: 1px solid var(--bd);
+                background: #F8F9FA; padding: 64px 20px 32px;
+                border-top: 1px solid rgba(17,17,17,.06);
+                color: #5B6470;
             }
             #pg-land .sl-footer-grid {
                 max-width: 1180px; margin: 0 auto;
@@ -3466,19 +3565,19 @@
             }
             #pg-land .sl-footer h4 {
                 font-size: .8rem; text-transform: uppercase; letter-spacing: .12em;
-                color: var(--t1); margin-bottom: 16px;
+                color: #111; margin-bottom: 16px;
             }
             #pg-land .sl-footer a, #pg-land .sl-footer li {
-                display: block; color: var(--t2); font-size: .9rem;
+                display: block; color: #5B6470; font-size: .9rem;
                 text-decoration: none; padding: 6px 0; cursor: pointer;
                 transition: color .15s ease;
             }
-            #pg-land .sl-footer a:hover, #pg-land .sl-footer li:hover { color: var(--g); }
+            #pg-land .sl-footer a:hover, #pg-land .sl-footer li:hover { color: #00A344; }
             #pg-land .sl-legal {
                 max-width: 1180px; margin: 40px auto 0; padding-top: 24px;
-                border-top: 1px solid var(--bd);
+                border-top: 1px solid rgba(17,17,17,.06);
                 display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
-                font-size: .8rem; color: var(--t3);
+                font-size: .8rem; color: #8A93A0;
             }
             @media (max-width: 900px) {
                 #pg-land .sl-hero-grid { grid-template-columns: 1fr; gap: 32px; text-align: center; }
@@ -3497,7 +3596,7 @@
 
         <!-- Sticky Nav -->
         <div
-            style="position:sticky;top:0;z-index:200;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;background:rgba(6,10,7,0.85);backdrop-filter:blur(16px);border-bottom:1px solid var(--bd)">
+            style="position:sticky;top:0;z-index:200;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.92);backdrop-filter:blur(16px);border-bottom:1px solid rgba(17,17,17,0.08)">
             <div style="font-weight:700;font-size:1.25rem;letter-spacing:-.5px">
                 <span style="color:var(--g)">Star</span><span style="color:var(--t1)">life</span>
             </div>
@@ -3514,7 +3613,7 @@
                     <div class="sl-eyebrow"><span class="sl-dot"></span> Now accepting investments worldwide</div>
                     <h1 class="sl-h1">
                         Invest Smart.<br>
-                        <span style="background:linear-gradient(135deg,#00E676,#FFD54F);-webkit-background-clip:text;background-clip:text;color:transparent">Earn Every Day.</span>
+                        <span style="color:#00C853">Earn Every Day.</span>
                     </h1>
                     <p class="sl-sub">
                         Put your money to work with Starlife and earn
@@ -3531,8 +3630,9 @@
                     </div>
                 </div>
                 <div>
-                    <img class="sl-hero-img" alt="Trader on laptop with glowing financial charts"
-                         src="https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=1200&q=80">
+                    <img class="sl-hero-img" alt="Modern fintech mobile banking app on smartphone"
+                         src="https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&w=1200&q=80"
+                         onerror="this.onerror=null;this.src='https://picsum.photos/seed/starlife-hero/1200/800';">
                 </div>
             </div>
         </section>
@@ -3620,7 +3720,7 @@
             <div class="sl-prod-grid">
                 <div class="sl-card sl-prod-card">
                     <img class="sl-prod-img" alt="Daily profit chart growing"
-                         src="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=900&q=80">
+                         src="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=900&q=80" onerror="this.onerror=null;this.src='https://picsum.photos/seed/Daily-profit-chart-growing/900/600';">
                     <div class="sl-prod-body">
                         <div style="font-weight:700;font-size:1.1rem;margin-bottom:6px">Daily Profits</div>
                         <div style="color:var(--t2);font-size:.9rem;line-height:1.6">Watch your balance grow with 2% added every day, automatically.</div>
@@ -3628,7 +3728,7 @@
                 </div>
                 <div class="sl-card sl-prod-card">
                     <img class="sl-prod-img" alt="Glowing piggy bank"
-                         src="https://images.unsplash.com/photo-1638913662529-1d2f1f3f6e74?auto=format&fit=crop&w=900&q=80">
+                         src="https://images.unsplash.com/photo-1638913662529-1d2f1f3f6e74?auto=format&fit=crop&w=900&q=80" onerror="this.onerror=null;this.src='https://picsum.photos/seed/Glowing-piggy-bank/900/600';">
                     <div class="sl-prod-body">
                         <div style="font-weight:700;font-size:1.1rem;margin-bottom:6px">Shareholder Pool</div>
                         <div style="color:var(--t2);font-size:.9rem;line-height:1.6">Become a shareholder and claim your slice of the $2M annual pool.</div>
@@ -3636,7 +3736,7 @@
                 </div>
                 <div class="sl-card sl-prod-card">
                     <img class="sl-prod-img" alt="People connected by referral network"
-                         src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=900&q=80">
+                         src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=900&q=80" onerror="this.onerror=null;this.src='https://picsum.photos/seed/People-connected-by-referral-network/900/600';">
                     <div class="sl-prod-body">
                         <div style="font-weight:700;font-size:1.1rem;margin-bottom:6px">Referral Rewards</div>
                         <div style="color:var(--t2);font-size:.9rem;line-height:1.6">Share your link and earn 10% on every friend's first investment.</div>
@@ -3644,7 +3744,7 @@
                 </div>
                 <div class="sl-card sl-prod-card">
                     <img class="sl-prod-img" alt="Modern bank vault"
-                         src="https://images.unsplash.com/photo-1601597111158-2fceff292cdc?auto=format&fit=crop&w=900&q=80">
+                         src="https://images.unsplash.com/photo-1601597111158-2fceff292cdc?auto=format&fit=crop&w=900&q=80" onerror="this.onerror=null;this.src='https://picsum.photos/seed/Modern-bank-vault/900/600';">
                     <div class="sl-prod-body">
                         <div style="font-weight:700;font-size:1.1rem;margin-bottom:6px">Loans & Savings</div>
                         <div style="color:var(--t2);font-size:.9rem;line-height:1.6">Borrow against your portfolio or lock funds in high-yield savings.</div>
@@ -3652,7 +3752,7 @@
                 </div>
                 <div class="sl-card sl-prod-card">
                     <img class="sl-prod-img" alt="Money transfer between phones"
-                         src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=900&q=80">
+                         src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=900&q=80" onerror="this.onerror=null;this.src='https://picsum.photos/seed/Money-transfer-between-phones/900/600';">
                     <div class="sl-prod-body">
                         <div style="font-weight:700;font-size:1.1rem;margin-bottom:6px">Withdraw Anytime</div>
                         <div style="color:var(--t2);font-size:.9rem;line-height:1.6">No lock-ins. Cash out to mobile money or crypto in minutes.</div>
@@ -3660,7 +3760,7 @@
                 </div>
                 <div class="sl-card sl-prod-card">
                     <img class="sl-prod-img" alt="Shield and lock security"
-                         src="https://images.unsplash.com/photo-1614064641938-3bbee52942c7?auto=format&fit=crop&w=900&q=80">
+                         src="https://images.unsplash.com/photo-1614064641938-3bbee52942c7?auto=format&fit=crop&w=900&q=80" onerror="this.onerror=null;this.src='https://picsum.photos/seed/Shield-and-lock-security/900/600';">
                     <div class="sl-prod-body">
                         <div style="font-weight:700;font-size:1.1rem;margin-bottom:6px">Bank-level Security</div>
                         <div style="color:var(--t2);font-size:.9rem;line-height:1.6">256-bit encryption, 2FA, and 24/7 monitoring keep your funds safe.</div>

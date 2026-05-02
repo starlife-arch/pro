@@ -7294,6 +7294,7 @@
                 <div class="fg"><label class="fl">Target Type</label>
                     <select class="fi" id="ta-target-type">
                         <option value="users">Selected users (UID list)</option>
+                        <option value="all">All users (Select All)</option>
                     </select>
                 </div>
                 <div class="fg"><label class="fl">Find user (name/email/member id)</label><input class="fi" id="ta-user-search" oninput="adminSearchAnnouncementUsers()" placeholder="Search and tap to add recipients"></div>
@@ -12094,14 +12095,20 @@
             if (!body) return toast('Enter an announcement message', 'ty');
             if (targetType === 'users' && !merged.length) return toast('Select at least one target user', 'ty');
 
+            let candidateIds = merged;
+            if (targetType === 'all') {
+                const allUsersSnap = await db.collection('users').get();
+                candidateIds = allUsersSnap.docs.map(d => d.id);
+            }
+
             const validUsers = [];
-            for (const uid of merged.slice(0, 300)) {
+            for (const uid of candidateIds.slice(0, 1000)) {
                 try {
                     const us = await db.collection('users').doc(uid).get();
                     if (us.exists) validUsers.push(uid);
                 } catch (e) { }
             }
-            if (!validUsers.length) return toast('No valid target users found', 'tr');
+            if (!validUsers.length) return toast(targetType === 'all' ? 'No users found to target' : 'No valid target users found', 'tr');
             const ref = editId ? db.collection('targetedAnnouncements').doc(editId) : db.collection('targetedAnnouncements').doc();
             const now = FS().serverTimestamp();
             const payload = {

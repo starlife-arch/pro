@@ -4128,18 +4128,9 @@
             </div>
         </nav>
 
-        <!-- ── Floating theme toggle ── -->
-        <div id="theme-toggle-btn" onclick="toggleAppTheme()" title="Toggle dark / light mode"
-             style="position:fixed;bottom:90px;left:16px;z-index:400;display:flex;align-items:center;gap:6px;
-                    background:var(--s2);border:1px solid var(--bd);border-radius:999px;
-                    padding:7px 13px;cursor:pointer;font-size:.78rem;font-weight:600;
-                    color:var(--t1);box-shadow:0 2px 12px rgba(0,0,0,.18);user-select:none;
-                    transition:background .2s,color .2s,border-color .2s">
-            <span id="theme-toggle-icon" style="font-size:1rem">🌙</span>
-            <span id="theme-toggle-label">Dark</span>
-        </div>
+        
 
- id="moving-ticker" role="region" aria-label="Site announcements">
+        <div class="moving-ticker" id="moving-ticker" role="region" aria-label="Site announcements">
             <div class="moving-ticker-tag" id="moving-ticker-tag">Live</div>
             <div class="moving-ticker-viewport">
                 <div class="moving-ticker-belt" id="moving-ticker-belt">
@@ -6469,10 +6460,6 @@
         </nav>
         <div class="wrap">
             <div class="sgrid" style="grid-template-columns:repeat(2,1fr)">
-                <div class="sc">
-                    <div class="sl">Users</div>
-                    <div class="sv sky" id="a-users">—</div>
-                </div>
                 <div class="sc">
                     <div class="sl">Active Investments</div>
                     <div class="sv g" id="a-inv">—</div>
@@ -12261,7 +12248,6 @@
             { id: 'investments', label: 'Investments' },
             { id: 'deposits', label: 'Deposits' },
             { id: 'withdrawals', label: 'Withdrawals' },
-            { id: 'users', label: 'Users' },
             { id: 'kyc', label: '🪪 KYC' },
             { id: 'leaderboard', label: '🏆 Leaderboard' },
             { id: 'community', label: '🌐 Community' },
@@ -12429,7 +12415,6 @@
                 db.collection('stakes').where('status', '==', 'pending').get(),
                 db.collection('tickets').where('status', '==', 'open').get(),
             ]);
-            $('a-users').textContent = us.size;
             $('a-inv').textContent = ai.size;
             $('a-pinv').textContent = pi.size;
             $('a-pwd').textContent = pw.size;

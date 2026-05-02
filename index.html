@@ -3200,6 +3200,24 @@
         .asset-img-thumb .rm-img { position: absolute; top: 4px; right: 4px; background: rgba(255,82,82,.85); color: #fff; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: .7rem; cursor: pointer; display: flex; align-items: center; justify-content: center }
         .asset-img-add { height: 80px; border: 1.5px dashed var(--bds); border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--t3); font-size: 1.5rem; transition: .2s }
         .asset-img-add:hover { border-color: var(--g); color: var(--g) }
+    
+        /* Feature-scoped broadcast theming (additive only) */
+        .broadcast {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        [data-theme="light"] .broadcast {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        [data-theme="dark"] .broadcast {
+            background: #1e293b;
+            color: #facc15;
+        }
+
     </style>
 </head>
 
@@ -7276,6 +7294,7 @@
                 <div class="fg"><label class="fl">Target Type</label>
                     <select class="fi" id="ta-target-type">
                         <option value="users">Selected users (UID list)</option>
+                        <option value="all">All users (Select All)</option>
                     </select>
                 </div>
                 <div class="fg"><label class="fl">Find user (name/email/member id)</label><input class="fi" id="ta-user-search" oninput="adminSearchAnnouncementUsers()" placeholder="Search and tap to add recipients"></div>
@@ -12076,14 +12095,20 @@
             if (!body) return toast('Enter an announcement message', 'ty');
             if (targetType === 'users' && !merged.length) return toast('Select at least one target user', 'ty');
 
+            let candidateIds = merged;
+            if (targetType === 'all') {
+                const allUsersSnap = await db.collection('users').get();
+                candidateIds = allUsersSnap.docs.map(d => d.id);
+            }
+
             const validUsers = [];
-            for (const uid of merged.slice(0, 300)) {
+            for (const uid of candidateIds.slice(0, 1000)) {
                 try {
                     const us = await db.collection('users').doc(uid).get();
                     if (us.exists) validUsers.push(uid);
                 } catch (e) { }
             }
-            if (!validUsers.length) return toast('No valid target users found', 'tr');
+            if (!validUsers.length) return toast(targetType === 'all' ? 'No users found to target' : 'No valid target users found', 'tr');
             const ref = editId ? db.collection('targetedAnnouncements').doc(editId) : db.collection('targetedAnnouncements').doc();
             const now = FS().serverTimestamp();
             const payload = {
@@ -14122,8 +14147,8 @@ Message: ${message}`);
             if (el) el.innerHTML = ''; if (schedEl) schedEl.innerHTML = '';
             const scheduled = list.filter(b => b.status === 'scheduled');
             const sent = list.filter(b => b.status !== 'scheduled');
-            if (schedEl) schedEl.innerHTML = scheduled.length ? scheduled.map(b => `<div class="arow" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div><div style="font-weight:600;font-size:.88rem">${b.title || 'Announcement'} <span class="badge bgold">Scheduled</span></div><div style="font-size:.8rem;color:var(--t2);margin-top:3px">${b.message}</div><div style="font-size:.72rem;color:var(--t3);margin-top:4px">Audience: ${b.audience || 'all'} · ${fmtDT(b.scheduleAt)}</div></div><button class="btn btn-d btn-sm" style="flex-shrink:0" onclick="deleteBroadcast(this)" data-id="${b.id}">🗑</button></div></div>`).join('') : '<div class="es" style="padding:14px">No scheduled broadcasts</div>';
-            if (el) el.innerHTML = sent.length ? sent.map(b => `<div class="arow" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div><div style="font-weight:600;font-size:.88rem">${b.title || 'Announcement'} ${b.failed ? '<span class="badge br">Failed</span>' : '<span class="badge bg">Sent</span>'}</div><div style="font-size:.8rem;color:var(--t2);margin-top:3px">${b.message}</div><div style="font-size:.72rem;color:var(--t3);margin-top:4px">Audience: ${b.audience || 'all'} · ${fmtDT(b.sentAt || b.createdAt)}</div></div><button class="btn btn-d btn-sm" style="flex-shrink:0" onclick="deleteBroadcast(this)" data-id="${b.id}">🗑</button></div></div>`).join('') : '<div class="es" style="padding:14px">No broadcasts yet</div>';
+            if (schedEl) schedEl.innerHTML = scheduled.length ? scheduled.map(b => `<div class="arow broadcast" data-bg-color="${b.bgColor || ""}" data-text-color="${b.textColor || ""}" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div><div style="font-weight:600;font-size:.88rem">${b.title || 'Announcement'} <span class="badge bgold">Scheduled</span></div><div style="font-size:.8rem;color:var(--t2);margin-top:3px">${b.message}</div><div style="font-size:.72rem;color:var(--t3);margin-top:4px">Audience: ${b.audience || 'all'} · ${fmtDT(b.scheduleAt)}</div></div><button class="btn btn-d btn-sm" style="flex-shrink:0" onclick="deleteBroadcast(this)" data-id="${b.id}">🗑</button></div></div>`).join('') : '<div class="es" style="padding:14px">No scheduled broadcasts</div>';
+            if (el) el.innerHTML = sent.length ? sent.map(b => `<div class="arow broadcast" data-bg-color="${b.bgColor || ""}" data-text-color="${b.textColor || ""}" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div><div style="font-weight:600;font-size:.88rem">${b.title || 'Announcement'} ${b.failed ? '<span class="badge br">Failed</span>' : '<span class="badge bg">Sent</span>'}</div><div style="font-size:.8rem;color:var(--t2);margin-top:3px">${b.message}</div><div style="font-size:.72rem;color:var(--t3);margin-top:4px">Audience: ${b.audience || 'all'} · ${fmtDT(b.sentAt || b.createdAt)}</div></div><button class="btn btn-d btn-sm" style="flex-shrink:0" onclick="deleteBroadcast(this)" data-id="${b.id}">🗑</button></div></div>`).join('') : '<div class="es" style="padding:14px">No broadcasts yet</div>';
         }
         async function deleteBroadcast(btn) {
             const id = btn.dataset.id;
@@ -17593,7 +17618,8 @@ You will receive $${fmt(receive)} (+${_vaultPlan.rate}%) on ${unlock.toLocaleDat
                 return toast('Statement exported ✓');
             }
             const win = window.open('', '_blank');
-            win.document.write(`<html><head><title>Wallet Statement</title></head><body style="font-family:Arial;padding:24px"><h2>Starlife Wallet Statement</h2><p>${window.CU.name || ''} · ${window.CU.email || ''}</p><table border="1" cellspacing="0" cellpadding="8" style="border-collapse:collapse;width:100%"><tr><th>Date</th><th>Type</th><th>Description</th><th>Amount</th><th>Status</th></tr>${rows.map(r => `<tr><td>${r.date}</td><td>${r.type}</td><td>${r.description}</td><td>${r.amount}</td><td>${r.status}</td></tr>`).join('')}</table></body></html>`); win.document.close(); win.focus(); win.print();
+            win.document.write(`<html><head><title>Wallet Statement</title></head><body style="font-family:Arial;padding:24px"><h2>Starlife Wallet Statement</h2><p>${window.CU.name || ''} · ${window.CU.email || ''}</p><table border="1" cellspacing="0" cellpadding="8" style="border-collapse:collapse;width:100%"><tr><th>Date</th><th>Type</th><th>Description</th><th>Amount</th><th>Status</th></tr>${rows.map(r => `<tr><td>${r.date}</td><td>${r.type}</td><td>${r.description}</td><td>${r.amount}</td><td>${r.status}</td></tr>`).join('')}</table>
+</body></html>`); win.document.close(); win.focus(); win.print();
         }
         // PROMO CODES
         // ════════════════════════════════════════════════════════
@@ -22571,7 +22597,8 @@ Prize: $${fmt(prize)}`);
         <div style="text-align:center;margin-top:14px;font-size:.7rem;color:var(--t3)">✅ Confirmed by Starlife Advert</div>`;
         openModal('m-receipt');
     }
-    function printReceipt(){ const content=document.getElementById('m-receipt-body').innerHTML; const w=window.open('','_blank','width=500,height=700'); w.document.write(`<html><head><title>Receipt</title><style>body{font-family:sans-serif;padding:24px;color:#111}.receipt-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #eee}.receipt-total{font-weight:700}</style></head><body>${content}</body></html>`); w.document.close(); w.print(); }
+    function printReceipt(){ const content=document.getElementById('m-receipt-body').innerHTML; const w=window.open('','_blank','width=500,height=700'); w.document.write(`<html><head><title>Receipt</title><style>body{font-family:sans-serif;padding:24px;color:#111}.receipt-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #eee}.receipt-total{font-weight:700}</style></head><body>${content}
+</body></html>`); w.document.close(); w.print(); }
 
     // ═══ MY OWNED ASSETS ═══
     async function loadMyOwnedAssets(){
@@ -23290,6 +23317,17 @@ Prize: $${fmt(prize)}`);
     // Register stubs
     ['openAssetDetail','loadAssetMarket','loadMyAssets','loadMyOwnedAssets','loadMyRentingAssets','loadMyContracts','loadMyReceipts','loadMyP2PListings','viewContract','signContract','clearSig','doAssetAction','confirmRent','calcRentTotal','calcAssetShipping','confirmShipping','adminSaveAsset','adminResetAssetForm','adminEditAsset','adminDeleteAsset','adminToggleAssetStatus','loadAdminAssets','loadAdminContracts','loadAdminShipping','adminUpdateShipping','printReceipt','openInstallmentPayment','viewReceiptByTxId','viewReceiptById','viewContractByTxId','adminAssetImgSelected','adminRemoveAssetImg','adminViewContract','loadP2PMarketplace','openP2PDetail','doP2PAction','calcP2PRentTotal','confirmP2PRent','submitP2PListing','openP2PListModal','cancelP2PListing','slideAsset','slideP2P','goSlide','openVisitSchedule','selectVisitTransport','confirmVisitSchedule','openCancelContractModal','confirmCancelContract','openCancelByUaId','openSellerSignModal','clearSellerSig','submitSellerSignature','loadAdminReceipts','adminViewReceipt','openReversalByUaId','confirmReversal','releaseP2PHold','checkAndReleaseExpiredHolds'].forEach(n=>{ window['_real_'+n]=window[n]; });
     </script>
+
+
+    <script>
+        window.features = Object.assign({
+            themeToggle: true,
+            broadcastV2: true
+        }, window.features || {});
+    </script>
+    <script src="features/theme/index.js"></script>
+    <script src="features/broadcast/index.js"></script>
+
 </body>
 
 </html>

@@ -1,6 +1,6 @@
 (function initBroadcastFeature() {
   const features = (window.features = window.features || {});
-  if (features.broadcastV2 !== true) return;
+  console.log('Broadcast Loaded');
 
   const defaultPalette = {
     light: { bg: '#fff3cd', text: '#856404' },
@@ -31,5 +31,6 @@
       return isGlobal ? getAllUsers() : selectedUsers;
     },
     defaultPalette,
+    enabled: features.broadcastV2 !== false,
   };
 })();
